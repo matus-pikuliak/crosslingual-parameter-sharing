@@ -1,5 +1,5 @@
 import os
 
 
-def directories(path):
+def dirs(path):
     return filter(os.path.isdir, os.listdir(path))

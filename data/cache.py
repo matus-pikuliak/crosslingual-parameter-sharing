@@ -1,19 +1,19 @@
 import os
 import glob
-from utils import general_utils as gu
+from utils import general_utils as utils
 
 class Cache:
 
     def __init__(self, config):
         self.config = config
+        self.task_langs = []  # tuples (task, lang)
 
     def create(self, tasks=None, languages=None):
         self.delete()
         if not tasks:
-            tasks = gu.directories(self.config.data_path)
-        self.task_langs = [] # tuples (task, lang)
+            tasks = utils.dirs(self.config.data_path)
         for task in tasks:
-            folder_languages = gu.directories(self.config.data_path+task+"/")
+            folder_languages = utils.dirs(self.config.data_path+task+"/")
             if not languages:
                 languages = folder_languages
             else:

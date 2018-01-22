@@ -1,0 +1,18 @@
+# Preprocessing
+
+## POS
+- vsetko z UD datasetu
+- pri CZ sme spojili vsetky train do jedneho
+- niektore mali rozlicne spojene slova (de el > del v spanielcine), tu sme zobrali len rozobrane slova.
+- v anglickom boli niektore slova presunute, pokial sa na to odkazovalo v text neskor (8.1), tieto som ignoroval
+
+## NER
+- english - CoNLL'03 (PER, LOC, ORG, MISC)
+- spanish - CoNLL'02 (PER, LOC, ORG, MISC)
+- german - germeval (PER, LOC, ORG, MISC)
+- czech - czech named entity corpus (p - PER, g - LOC, i+ms - ORG, oa+op - MISC)
+- only first level annotation (v Germeval mali aj second level, cize napr. v Univercity Jena bola Jena aj cast ORG, ale zaroven aj LOC)
+- Xpart (cast je NER nazov) a Xderiv (odvodene slova) vyhodene
+- v anotovani su nezrovnalosti, nemecky napr. anotuju omnoho viac javov ako anglicky (vratane napr. nazvov mien, znaciek)
+- vsetky konvertovat na BIO + PLOM
+- odstranene vety, kde viac ako 50% tvorili cisla
