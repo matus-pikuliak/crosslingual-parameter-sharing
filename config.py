@@ -1,5 +1,6 @@
 from paths import paths
 
+
 class Config:
 
     def __init__(self):
@@ -11,4 +12,7 @@ class Config:
         self.attributes[key] = value
 
     def __getitem__(self, key):
+        return self.attributes[key]
+
+    def __getattr__(self, key):
         return self.attributes[key]
