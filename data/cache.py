@@ -2,6 +2,7 @@ import os
 import glob
 import codecs
 import pickle
+import numpy as np
 from utils import general_utils as utils
 from dataset import Dataset
 
@@ -14,9 +15,11 @@ class Cache:
         self.lang_dicts = {}
         self.task_dicts = {}
         self.datasets = []
+        self.embeddings = None
 
     def create(self, tasks=None, languages=None):
         self.delete()
+        langs = set()
         if not tasks:
             tasks = utils.dirs(self.config.data_path)
         for task in tasks:
@@ -26,15 +29,30 @@ class Cache:
             else:
                 languages = [lang for lang in languages if lang in folder_languages]
             for lang in languages:
+                langs.add(lang)
                 self.task_langs.append((task, lang))
 
+        emb_dicts = {}
+        if self.config.word_emb_type == 'static':
+            for lang in langs:
+                emb_dicts[lang] = {'<unk>': np.zeros(self.config.word_emb_size)}
+                emb_file = os.path.join(self.config.emb_path, lang)
+                with codecs.open(emb_file) as f:
+                    f.readline() # first init line in emb files
+                    for line in f:
+                        word, values = line.split(' ', 1)
+                        values = np.array([float(val) for val in values.split(' ')])
+                        emb_dicts[lang][word] = values
+                        # TODO: check proper emb size
+
         for task, language in self.task_langs:
-            self.lang_dicts.setdefault(language, set())
+            self.lang_dicts.setdefault(language, {'<unk>'})
             self.task_dicts.setdefault(task, set())
 
             for sentence in self.load_files(task, language):
                 for word in sentence[0]:
-                    self.lang_dicts[language].add(word)
+                    if word in emb_dicts[language]:
+                        self.lang_dicts[language].add(word)
                 for tag in sentence[1]:
                     self.task_dicts[task].add(tag)
 
@@ -56,17 +74,24 @@ class Cache:
             for role in ['train', 'test', 'dev']:
                 sentences = self.load_files(task, lang, role)
                 for i in xrange(len(sentences)):
-                    sentence, labels = sentences[i]
-                    sentence = [self.lang_dicts[lang][1][token] for token in sentence]
+                    sentence_words, labels = sentences[i]
+                    sentence_ids = []
+                    for token in sentence_words:
+                        if token in emb_dicts[lang]:
+                            sentence_ids.append(self.lang_dicts[lang][1][token])
+                        else:
+                            sentence_ids.append(self.lang_dicts[lang][1]['<unk>'])
                     labels = [self.task_dicts[task][1][token] for token in labels]
-                    # TODO np array? radsej ho urobit raz ako zakazdym pri davkovani
-                    sentences[i] = (sentence, labels)
+                    sentences[i] = (np.array(sentence), np.array(labels))
                 self.datasets.append(Dataset(lang, task, role, sentences))
 
-        #vyries embeddingy
+        self.embeddings = np.zeros((counter, self.config.word_emb_size))
+        for lang in langs:
+            for id in self.lang_dicts[lang][0]:
+                word = self.lang_dicts[lang][0][id]
+                self.embeddings[id] = emb_dicts[lang][word]
 
-        pck = self.save()
-        return pck
+        self.save()
 
     def set_to_bidir_dict(self, set, starting_id=0):
         set = list(set)
@@ -103,21 +128,6 @@ class Cache:
     def save(self):
         return pickle.dumps(self)
 
-    # def load(self, name):
-    #     podla mena nacitaj pickle objekt
 
-    # def decode_sentence(word_ids, label, lang, task)
-
-    # def fetch_dataset(lang, task, role)
-    # najdi v dostupnych ten pravy
-    # zacachuj to do nejakeho pekneho hashu, nech to netreba zakazdym prehladavat vsetko
-
-# TODO: dataset v np.array
-#       embeddingy (zatial staticke)
-#       pickling (kedy load, kedy create?)
+# TODO: pickling (kedy load, kedy create?)
 #       opisat strukturu suboru, aby som ju mal poruke
-
-# Cache =
-# Dicts
-# Embeddings - ordered set of embeddings copying ids of words, unique set for each language
-# Data - each dataset transformed into easy to use format with ids instead of words
