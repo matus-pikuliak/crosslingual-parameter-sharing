@@ -15,6 +15,9 @@ class Config:
         self.proj_size = 100
 
         self.learning_rate = 1e-3
+        self.batch_size = 256
+
+        self.clip = 1
 
         for parameter in parameters:
             setattr(self, parameter, parameters[parameter])

@@ -4,19 +4,21 @@ from model.model import Model
 import pickle
 import os
 
-try:
-    config = Config()
-    cache = Cache(config)
-    cache.create(languages=['cs','en','de'])
-    model = Model(cache, config)
-    model.build_graph()
-    for i in xrange(10):
-        model.run_epoch(cache.datasets.train, cache.datasets.dev)
-    os.system('notify-send "SUCCESS" "well done beb"')
-except:
-    os.system('notify-send "FAIL" "oh no"')
+
+config = Config()
+cache = Cache(config)
+cache.create(languages=['en'], tasks=['ner'])
+
+model = Model(cache, config)
+model.build_graph()
+for i in xrange(1):
+    model.run_epoch(
+        cache.fetch_dataset(language='en', task='ner', role='train'),
+        cache.fetch_dataset(language='en', task='ner', role='dev'),
+    )
+os.system('notify-send "SUCCESS" "well done beb"')
 
 # todo: model saving
 #       summaries
 #       logging
-#
+#       cache saving

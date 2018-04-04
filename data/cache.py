@@ -19,7 +19,7 @@ class Cache:
 
     def create(self, tasks=None, languages=None):
         self.delete()
-        langs = set()
+        valid_languages = set()
         if not tasks:
             tasks = utils.dirs(self.config.data_path)
         for task in tasks:
@@ -29,16 +29,16 @@ class Cache:
             else:
                 languages = [lang for lang in languages if lang in folder_languages]
             for lang in languages:
-                langs.add(lang)
+                valid_languages.add(lang)
                 self.task_langs.append((task, lang))
 
         emb_dicts = {}
         if self.config.word_emb_type == 'static':
-            for lang in langs:
+            for lang in valid_languages:
                 emb_dicts[lang] = {'<unk>': np.zeros(self.config.word_emb_size)}
                 emb_file = os.path.join(self.config.emb_path, lang)
                 with codecs.open(emb_file) as f:
-                    f.readline() # first init line in emb files
+                    f.readline()  # first init line in emb files
                     for line in f:
                         word, values = line.split(' ', 1)
                         values = np.array([float(val) for val in values.split(' ')])
@@ -49,11 +49,11 @@ class Cache:
             self.lang_dicts.setdefault(language, {'<unk>'})
             self.task_dicts.setdefault(task, set())
 
-            for sentence in self.load_files(task, language):
-                for word in sentence[0]:
+            for (words, labels, _) in self.load_files(task, language):
+                for word in words:
                     if word in emb_dicts[language]:
                         self.lang_dicts[language].add(word)
-                for tag in sentence[1]:
+                for tag in labels:
                     self.task_dicts[task].add(tag)
 
         # Change to bidirectional hash (id_to_token, token_to_id)
@@ -72,26 +72,25 @@ class Cache:
 
         for task, lang in self.task_langs:
             for role in ['train', 'test', 'dev']:
-                sentences = self.load_files(task, lang, role)
-                for i in xrange(len(sentences)):
-                    sentence_words, labels = sentences[i]
-                    sentence_ids = []
-                    for token in sentence_words:
+                samples = self.load_files(task, lang, role)
+                for i, (sen_words, sen_labels, length) in enumerate(samples):
+                    sen_ids = []
+                    for token in sen_words:
                         if token in emb_dicts[lang]:
-                            sentence_ids.append(self.lang_dicts[lang][1][token])
+                            sen_ids.append(self.lang_dicts[lang][1][token])
                         else:
-                            sentence_ids.append(self.lang_dicts[lang][1]['<unk>'])
-                    labels = [self.task_dicts[task][1][token] for token in labels]
-                    sentences[i] = (np.array(sentence), np.array(labels))
-                self.datasets.append(Dataset(lang, task, role, sentences))
+                            sen_ids.append(self.lang_dicts[lang][1]['<unk>'])
+                    label_ids = [self.task_dicts[task][1][token] for token in sen_labels]
+                    samples[i] = (np.array(sen_ids), np.array(label_ids), length)
+                self.datasets.append(Dataset(lang, task, role, np.array(samples)))
 
         self.embeddings = np.zeros((counter, self.config.word_emb_size))
-        for lang in langs:
+        for lang in valid_languages:
             for id in self.lang_dicts[lang][0]:
                 word = self.lang_dicts[lang][0][id]
                 self.embeddings[id] = emb_dicts[lang][word]
 
-        self.save()
+        #self.save()
 
     def set_to_bidir_dict(self, set, starting_id=0):
         set = list(set)
@@ -106,19 +105,21 @@ class Cache:
     def load_files(self, task, language, set_names=None):
         if set_names is None: set_names = ["train", "dev", "test"]
         if not isinstance(set_names, list): set_names = [set_names]
-        sentences = []
+        samples = []
         for set_name in set_names:
             with codecs.open(os.path.join(self.config.data_path, task, language, set_name), encoding='utf-8') as f:
-                buffer = ([], [])
+                word_buffer = []
+                label_buffer = []
                 for line in f:
                     if line.strip():
                         word, tag = line.split('\t')
-                        buffer[0].append(word.strip())
-                        buffer[1].append(tag.strip())
+                        word_buffer.append(word.strip())
+                        label_buffer.append(tag.strip())
                     else:
-                        sentences.append(buffer)
-                        buffer = ([], [])
-        return sentences
+                        samples.append((word_buffer, label_buffer, len(word_buffer)))
+                        word_buffer = []
+                        label_buffer = []
+        return samples
 
     def delete(self):
         files = glob.glob('%s*' % self.config.cache_path)
@@ -128,6 +129,10 @@ class Cache:
     def save(self):
         return pickle.dumps(self)
 
+    def fetch_dataset(self, language, task, role):
+        for dataset in self.datasets:
+            if language == dataset.language and task == dataset.task and role == dataset.role: return dataset
+        raise 'No dataset with required parameters'
 
 # TODO: pickling (kedy load, kedy create?)
 #       opisat strukturu suboru, aby som ju mal poruke
