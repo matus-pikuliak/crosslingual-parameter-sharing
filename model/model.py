@@ -12,9 +12,11 @@ class Model:
     def build_graph(self):
 
         #
-        # parameters
+        # hyperparameters
         self.learning_rate = tf.placeholder(dtype=tf.float32, shape=[],
         name="lr")
+        self.clipping_threshold = tf.placeholder(dtype=tf.float32, shape=[],
+        name="clip")
 
         #
         # inputs
@@ -24,14 +26,6 @@ class Model:
         # shape = (batch size)
         self.sequence_lengths = tf.placeholder(tf.int32, shape=[None],
         name="sequence_lengths")
-
-        #
-        # expected output
-        # shape = (batch size, max length of sentence in batch)
-        ner_tags_count = len(self.cache.task_dicts['ner'][0])
-        self.ner_labels = tf.placeholder(tf.int32, shape=[None, None],
-        name="ner_labels")
-        self.ner_labels_one_hot = tf.one_hot(self.ner_labels, ner_tags_count)
 
         #
         # word embeddings
@@ -57,49 +51,53 @@ class Model:
 
         #
         # ner
-        # with tf.variable_scope("ner"):
+        with tf.variable_scope("ner"):
+            ner_tag_count = len(self.cache.task_dicts['ner'][0])
+
+            # expected output
+            # shape = (batch%size, max_length)
+            self.ner_true_labels = tf.placeholder(tf.int32, shape=[None, None],
+            name="labels")
             # projection
-            W = tf.get_variable("ner_proj_W", dtype=tf.float32,
-                                shape=[2 * self.config.lstm_size, ner_tags_count])
+            W = tf.get_variable(dtype=tf.float32, shape=[2 * self.config.lstm_size, ner_tag_count],
+            name="proj_weights")
+            b = tf.get_variable(dtype=tf.float32, shape=[ner_tag_count], initializer=tf.zeros_initializer(),
+            name="proj_biases")
 
-            b = tf.get_variable("ner_proj_b", shape=[ner_tags_count],
-                                dtype=tf.float32, initializer=tf.zeros_initializer())
-
-            nsteps = tf.shape(lstm_output)[1] # TODO: toto moze byt vstupom z vonku?
-            output = tf.reshape(lstm_output, [-1, 2 * self.config.lstm_size])
-            ner_proj = tf.matmul(output, W) + b
-            self.ner_proj = tf.reshape(ner_proj, [-1, nsteps, ner_tags_count])
+            max_length = tf.shape(lstm_output)[1] # TODO: toto moze byt vstupom z vonku?
+            reshaped_output = tf.reshape(lstm_output, [-1, 2 * self.config.lstm_size]) # We can apply the weight on all outputs of LSTM now
+            ner_proj = tf.matmul(reshaped_output, W) + b
+            self.ner_predicted_labels = tf.reshape(ner_proj, [-1, max_length, ner_tag_count])
 
             # loss
             log_likelihood, trans_params = tf.contrib.crf.crf_log_likelihood(
-                self.ner_proj, self.ner_labels, self.sequence_lengths)
+                self.ner_predicted_labels,
+                self.ner_true_labels,
+                self.sequence_lengths)
             self.ner_trans_params = trans_params  # need to evaluate it for decoding
             self.ner_loss = tf.reduce_mean(-log_likelihood)
 
             # training
-
-            optimizer = tf.train.RMSPropOptimizer(self.config.learning_rate)
-            if self.config.clip > 0:  # gradient clipping if clip is positive
+            optimizer = tf.train.RMSPropOptimizer(self.learning_rate)
+            if self.clipping_threshold > 0:  # gradient clipping if clip is positive
                 grads, vs = zip(*optimizer.compute_gradients(self.ner_loss))
-                grads, gnorm = tf.clip_by_global_norm(grads, self.config.clip)
+                grads, gnorm = tf.clip_by_global_norm(grads, self.clipping_threshold)
                 self.ner_train_op = optimizer.apply_gradients(zip(grads, vs))
             else:
                 self.ner_train_op = optimizer.minimize(self.ner_loss)
-
-        # CRF nad NER
-        # loss nad NER
-        # train_op nad NER
 
         #
         # pos
         #
 
-        # to iste nad POS
-
         self.sess = tf.Session()
-        self.sess.run(tf.global_variables_initializer())
+        self.sess.run(tf.global_variables_initializer()) # TODO: check what is default initializer
 
-    def run_epoch(self, train, dev):
+    def run_epoch(self,
+                  train,
+                  dev,
+                  learning_rate=None,
+                  clipping_threshold=None):
 
 
         minibatches = train.minibatches(self.config.batch_size)
@@ -109,8 +107,10 @@ class Model:
 
                 fd = {
                     self.word_ids: words,
-                    self.ner_labels: labels,
-                    self.sequence_lengths: lengths
+                    self.ner_true_labels: labels,
+                    self.sequence_lengths: lengths,
+                    self.learning_rate: (learning_rate or self.config.learning_rate),
+                    self.clipping_threshold: (clipping_threshold or self.config.clip)
                 }
 
                 _, train_loss = self.sess.run([self.ner_train_op, self.ner_loss], feed_dict=fd)
@@ -152,21 +152,3 @@ class Model:
             viterbi_sequences += [viterbi_seq]
 
         return viterbi_sequences, sequence_lengths
-
-    def get_feed_dict(self, words, labels=None, lr=None, dropout=None):
-        word_ids, sequence_lengths = gu.pad(words, 0)
-
-        # build feed dictionary
-        feed = {
-            self.word_ids: word_ids,
-            self.sequence_lengths: sequence_lengths
-        }
-
-        if labels is not None:
-            labels, _ = gu.pad(labels, 0)
-            feed[self.labels] = labels
-
-        if lr is not None:
-            feed[self.learning_rate] = self.config.learning_rate
-
-        return feed, sequence_lengths
