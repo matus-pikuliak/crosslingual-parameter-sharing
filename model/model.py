@@ -15,8 +15,6 @@ class Model:
         # hyperparameters
         self.learning_rate = tf.placeholder(dtype=tf.float32, shape=[],
         name="lr")
-        self.clipping_threshold = tf.placeholder(dtype=tf.float32, shape=[],
-        name="clip")
 
         #
         # inputs
@@ -52,7 +50,7 @@ class Model:
         #
         # ner
         with tf.variable_scope("ner"):
-            ner_tag_count = len(self.cache.task_dicts['ner'][0])
+            ner_tag_count = len(self.cache.task_dicts['pos'][0])
 
             # expected output
             # shape = (batch%size, max_length)
@@ -79,9 +77,9 @@ class Model:
 
             # training
             optimizer = tf.train.RMSPropOptimizer(self.learning_rate)
-            if self.clipping_threshold > 0:  # gradient clipping if clip is positive
+            if self.config.clip > 0:  # gradient clipping if clip is positive
                 grads, vs = zip(*optimizer.compute_gradients(self.ner_loss))
-                grads, gnorm = tf.clip_by_global_norm(grads, self.clipping_threshold)
+                grads, gnorm = tf.clip_by_global_norm(grads, self.config.clip)
                 self.ner_train_op = optimizer.apply_gradients(zip(grads, vs))
             else:
                 self.ner_train_op = optimizer.minimize(self.ner_loss)
@@ -96,12 +94,11 @@ class Model:
     def run_epoch(self,
                   train,
                   dev,
-                  learning_rate=None,
-                  clipping_threshold=None):
+                  learning_rate=None):
 
 
         minibatches = train.minibatches(self.config.batch_size)
-        for _ in xrange(100):
+        for _ in xrange(5):
 
             for i, (words, labels, lengths) in enumerate(minibatches):
 
@@ -109,8 +106,7 @@ class Model:
                     self.word_ids: words,
                     self.ner_true_labels: labels,
                     self.sequence_lengths: lengths,
-                    self.learning_rate: (learning_rate or self.config.learning_rate),
-                    self.clipping_threshold: (clipping_threshold or self.config.clip)
+                    self.learning_rate: (learning_rate or self.config.learning_rate)
                 }
 
                 _, train_loss = self.sess.run([self.ner_train_op, self.ner_loss], feed_dict=fd)
