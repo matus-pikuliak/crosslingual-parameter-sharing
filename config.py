@@ -13,9 +13,9 @@ class Config:
         self.train_embeddings = False
 
         self.lstm_size = 100
-        self.proj_size = 100
         self.learning_rate = 1e-3
-        self.batch_size = 256
+        self.batch_size = 32
+        self.epoch_steps = 256
 
         # settings
         self.clip = 1

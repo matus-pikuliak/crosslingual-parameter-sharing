@@ -90,8 +90,6 @@ class Cache:
                 word = self.lang_dicts[lang][0][id]
                 self.embeddings[id] = emb_dicts[lang][word]
 
-        #self.save()
-
     def set_to_bidir_dict(self, set, starting_id=0):
         set = list(set)
         id_to_token = {}
@@ -127,12 +125,15 @@ class Cache:
             os.remove(f)
 
     def save(self):
-        return pickle.dumps(self)
+        self.delete()
+        f = codecs.open('%scache.pckl' % self.config.cache_path, 'w')
+        return pickle.dump(self, f)
 
-    def fetch_dataset(self, language, task, role):
+    def load(self):
+        f = codecs.open('%scache.pckl' % self.config.cache_path, 'r')
+        return pickle.load(f)
+
+    def fetch_dataset(self, task, language, role):
         for dataset in self.datasets:
             if language == dataset.language and task == dataset.task and role == dataset.role: return dataset
-        raise 'No dataset with required parameters'
-
-# TODO: pickling (kedy load, kedy create?)
-#       opisat strukturu suboru, aby som ju mal poruke
+        raise BaseException('No dataset with required parameters '+language)

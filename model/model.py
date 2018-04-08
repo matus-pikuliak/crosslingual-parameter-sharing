@@ -35,6 +35,7 @@ class Model:
             name="word_embeddings")
         self.word_embeddings = tf.nn.embedding_lookup(_word_embeddings, self.word_ids,
         name="word_embeddings_lookup")
+        #self.word_embeddings = tf.nn.dropout(self.word_embeddings, 0.5)
 
         #
         # bi-lstm
@@ -46,83 +47,136 @@ class Model:
                 sequence_length=self.sequence_lengths, dtype=tf.float32)
             # shape(batch_size, max_length, 2 x lstm_size)
             lstm_output = tf.concat([output_fw, output_bw], axis=-1)
+            #lstm_output = tf.nn.dropout(lstm_output, 0.5)
 
         #
         # ner
-        with tf.variable_scope("ner"):
-            ner_tag_count = len(self.cache.task_dicts['pos'][0])
+        if "ner" in self.cache.task_dicts:
+            with tf.variable_scope("ner"):
+                ner_tag_count = len(self.cache.task_dicts['ner'][0])
 
-            # expected output
-            # shape = (batch%size, max_length)
-            self.ner_true_labels = tf.placeholder(tf.int32, shape=[None, None],
-            name="labels")
-            # projection
-            W = tf.get_variable(dtype=tf.float32, shape=[2 * self.config.lstm_size, ner_tag_count],
-            name="proj_weights")
-            b = tf.get_variable(dtype=tf.float32, shape=[ner_tag_count], initializer=tf.zeros_initializer(),
-            name="proj_biases")
+                # expected output
+                # shape = (batch%size, max_length)
+                self.ner_true_labels = tf.placeholder(tf.int32, shape=[None, None],
+                name="labels")
+                # projection
+                W = tf.get_variable(dtype=tf.float32, shape=[2 * self.config.lstm_size, ner_tag_count],
+                name="proj_weights")
+                b = tf.get_variable(dtype=tf.float32, shape=[ner_tag_count], initializer=tf.zeros_initializer(),
+                name="proj_biases")
 
-            max_length = tf.shape(lstm_output)[1] # TODO: toto moze byt vstupom z vonku?
-            reshaped_output = tf.reshape(lstm_output, [-1, 2 * self.config.lstm_size]) # We can apply the weight on all outputs of LSTM now
-            ner_proj = tf.matmul(reshaped_output, W) + b
-            self.ner_predicted_labels = tf.reshape(ner_proj, [-1, max_length, ner_tag_count])
+                max_length = tf.shape(lstm_output)[1] # TODO: toto moze byt vstupom z vonku?
+                reshaped_output = tf.reshape(lstm_output, [-1, 2 * self.config.lstm_size]) # We can apply the weight on all outputs of LSTM now
+                ner_proj = tf.matmul(reshaped_output, W) + b
+                self.ner_predicted_labels = tf.reshape(ner_proj, [-1, max_length, ner_tag_count])
 
-            # loss
-            log_likelihood, trans_params = tf.contrib.crf.crf_log_likelihood(
-                self.ner_predicted_labels,
-                self.ner_true_labels,
-                self.sequence_lengths)
-            self.ner_trans_params = trans_params  # need to evaluate it for decoding
-            self.ner_loss = tf.reduce_mean(-log_likelihood)
+                # loss
+                log_likelihood, trans_params = tf.contrib.crf.crf_log_likelihood(
+                    self.ner_predicted_labels,
+                    self.ner_true_labels,
+                    self.sequence_lengths)
+                self.ner_trans_params = trans_params  # need to evaluate it for decoding
+                self.ner_loss = tf.reduce_mean(-log_likelihood)
 
-            # training
-            optimizer = tf.train.RMSPropOptimizer(self.learning_rate)
-            if self.config.clip > 0:  # gradient clipping if clip is positive
-                grads, vs = zip(*optimizer.compute_gradients(self.ner_loss))
-                grads, gnorm = tf.clip_by_global_norm(grads, self.config.clip)
-                self.ner_train_op = optimizer.apply_gradients(zip(grads, vs))
-            else:
-                self.ner_train_op = optimizer.minimize(self.ner_loss)
+                # training
+                optimizer = tf.train.RMSPropOptimizer(self.learning_rate)
+                if self.config.clip > 0:  # gradient clipping if clip is positive
+                    grads, vs = zip(*optimizer.compute_gradients(self.ner_loss))
+                    grads, gnorm = tf.clip_by_global_norm(grads, self.config.clip)
+                    self.ner_train_op = optimizer.apply_gradients(zip(grads, vs))
+                else:
+                    self.ner_train_op = optimizer.minimize(self.ner_loss)
 
         #
         # pos
-        #
+        # the same code as ner part, if there are more sequence labeling tasks it would be worth it to abstract it into
+        # its own function perhaps.
+        if "pos" in self.cache.task_dicts:
+            with tf.variable_scope("pos"):
+                pos_tag_count = len(self.cache.task_dicts['pos'][0])
+
+                # expected output
+                # shape = (batch%size, max_length)
+                self.pos_true_labels = tf.placeholder(tf.int32, shape=[None, None],
+                name="labels")
+                # projection
+                W = tf.get_variable(dtype=tf.float32, shape=[2 * self.config.lstm_size, pos_tag_count],
+                name="proj_weights")
+                b = tf.get_variable(dtype=tf.float32, shape=[pos_tag_count], initializer=tf.zeros_initializer(),
+                name="proj_biases")
+
+                max_length = tf.shape(lstm_output)[1] # TODO: toto moze byt vstupom z vonku?
+                reshaped_output = tf.reshape(lstm_output, [-1, 2 * self.config.lstm_size]) # We can apply the weight on all outputs of LSTM now
+                pos_proj = tf.matmul(reshaped_output, W) + b
+                self.pos_predicted_labels = tf.reshape(pos_proj, [-1, max_length, pos_tag_count])
+
+                # loss
+                log_likelihood, trans_params = tf.contrib.crf.crf_log_likelihood(
+                    self.pos_predicted_labels,
+                    self.pos_true_labels,
+                    self.sequence_lengths)
+                self.pos_trans_params = trans_params  # need to evaluate it for decoding
+                self.pos_loss = tf.reduce_mean(-log_likelihood)
+
+                # training
+                optimizer = tf.train.RMSPropOptimizer(self.learning_rate)
+                if self.config.clip > 0:  # gradient clipping if clip is positive
+                    grads, vs = zip(*optimizer.compute_gradients(self.pos_loss))
+                    grads, gnorm = tf.clip_by_global_norm(grads, self.config.clip)
+                    self.pos_train_op = optimizer.apply_gradients(zip(grads, vs))
+                else:
+                    self.pos_train_op = optimizer.minimize(self.pos_loss)
 
         self.sess = tf.Session()
         self.sess.run(tf.global_variables_initializer()) # TODO: check what is default initializer
 
-    def run_epoch(self,
+    def run_epoch(self, epoch_id,
                   train,
-                  dev,
+                  test,
                   learning_rate=None):
 
+        train_sets = [self.cache.fetch_dataset(task, lang, 'train') for (task, lang) in train]
+        dev_sets = [self.cache.fetch_dataset(task, lang, 'dev') for (task, lang) in train]
+        dev_sets += [self.cache.fetch_dataset(task, lang, 'dev') for (task, lang) in test]
 
-        minibatches = train.minibatches(self.config.batch_size)
-        for _ in xrange(5):
+        for _ in xrange(self.config.epoch_steps):
+            for train_set in train_sets:
+                minibatch = train_set.next_batch(self.config.batch_size)
 
-            for i, (words, labels, lengths) in enumerate(minibatches):
+                if train_set.task == 'ner':
+                    (word_ids, labels, lengths) = minibatch
+                    fd = {
+                        self.word_ids: word_ids,
+                        self.ner_true_labels: labels,
+                        self.sequence_lengths: lengths,
+                        self.learning_rate: (learning_rate or self.config.learning_rate)
+                    }
+                    _, train_loss = self.sess.run([self.ner_train_op, self.ner_loss], feed_dict=fd)
 
-                fd = {
-                    self.word_ids: words,
-                    self.ner_true_labels: labels,
-                    self.sequence_lengths: lengths,
-                    self.learning_rate: (learning_rate or self.config.learning_rate)
-                }
+                if train_set.task == 'pos':
+                    (word_ids, labels, lengths) = minibatch
+                    fd = {
+                        self.word_ids: word_ids,
+                        self.pos_true_labels: labels,
+                        self.sequence_lengths: lengths,
+                        self.learning_rate: (learning_rate or self.config.learning_rate)
+                    }
+                    _, train_loss = self.sess.run([self.pos_train_op, self.pos_loss], feed_dict=fd)
 
-                _, train_loss = self.sess.run([self.ner_train_op, self.ner_loss], feed_dict=fd)
 
-                print train_loss
+        print "end of epoch"+str(epoch_id+1)
 
-        #metrics = self.run_evaluate(dev)
-        #print "dev acc: "+metrics["acc"]
+        for dev_set in dev_sets:
+            metrics = self.run_evaluate(dev_set)
+            print metrics
 
-    def run_evaluate(self, test):
+    def run_evaluate(self, dev_set):
         accs = []
-        for i, (words, labels) in enumerate(test.minibatches(self.config.batch_size)):
-            labels_pred, sequence_lengths = self.predict_batch(words)
 
-            for lab, lab_pred, length in zip(labels, labels_pred,
-                                             sequence_lengths):
+        for i, (words, labels, lengths) in enumerate(dev_set.dev_batches(self.config.batch_size)):
+            labels_predictions = self.predict_batch(words, lengths, dev_set.task)
+
+            for lab, lab_pred, length in zip(labels, labels_predictions, lengths):
                 lab = lab[:length]
                 lab_pred = lab_pred[:length]
                 accs += [a == b for (a, b) in zip(lab, lab_pred)]
@@ -131,20 +185,27 @@ class Model:
 
         return {"acc": 100 * acc}
 
-    def predict_batch(self, words):
+    def predict_batch(self, words, lengths, task):
 
-        fd, sequence_lengths = self.get_feed_dict(words)
+        fd = {
+            self.word_ids: words,
+            self.sequence_lengths: lengths
+        }
 
         # get tag scores and transition params of CRF
         viterbi_sequences = []
-        logits, trans_params = self.sess.run(
-            [self.ner_proj, self.ner_trans_params], feed_dict=fd)
+        if task == "ner":
+            logits, trans_params = self.sess.run(
+                [self.ner_predicted_labels, self.ner_trans_params], feed_dict=fd)
+        if task == "pos":
+            logits, trans_params = self.sess.run(
+                [self.pos_predicted_labels, self.pos_trans_params], feed_dict=fd)
 
         # iterate over the sentences because no batching in vitervi_decode
-        for logit, sequence_length in zip(logits, sequence_lengths):
+        for logit, sequence_length in zip(logits, lengths):
             logit = logit[:sequence_length]  # keep only the valid steps
             viterbi_seq, viterbi_score = tf.contrib.crf.viterbi_decode(
                 logit, trans_params)
             viterbi_sequences += [viterbi_seq]
 
-        return viterbi_sequences, sequence_lengths
+        return viterbi_sequences
