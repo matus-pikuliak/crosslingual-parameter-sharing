@@ -111,7 +111,7 @@ class Cache:
                 for line in f:
                     if line.strip():
                         word, tag = line.split('\t')
-                        word_buffer.append(word.strip())
+                        word_buffer.append(word.strip().lower())
                         label_buffer.append(tag.strip())
                     else:
                         samples.append((word_buffer, label_buffer, len(word_buffer)))

@@ -1,6 +1,7 @@
 import tensorflow as tf
 import numpy as np
-from utils import general_utils as gu
+import json
+from data import dataset
 
 class Model:
 
@@ -8,6 +9,10 @@ class Model:
         self.config = config
         self.cache = cache
         self.sess = None
+
+    def close(self):
+        self.sess.close()
+        tf.reset_default_graph()
 
     def build_graph(self):
 
@@ -24,6 +29,9 @@ class Model:
         # shape = (batch size)
         self.sequence_lengths = tf.placeholder(tf.int32, shape=[None],
         name="sequence_lengths")
+
+        # optimizer
+        optimizer = tf.train.RMSPropOptimizer(self.learning_rate)
 
         #
         # word embeddings
@@ -79,7 +87,6 @@ class Model:
                 self.ner_loss = tf.reduce_mean(-log_likelihood)
 
                 # training
-                optimizer = tf.train.RMSPropOptimizer(self.learning_rate)
                 if self.config.clip > 0:  # gradient clipping if clip is positive
                     grads, vs = zip(*optimizer.compute_gradients(self.ner_loss))
                     grads, gnorm = tf.clip_by_global_norm(grads, self.config.clip)
@@ -119,7 +126,6 @@ class Model:
                 self.pos_loss = tf.reduce_mean(-log_likelihood)
 
                 # training
-                optimizer = tf.train.RMSPropOptimizer(self.learning_rate)
                 if self.config.clip > 0:  # gradient clipping if clip is positive
                     grads, vs = zip(*optimizer.compute_gradients(self.pos_loss))
                     grads, gnorm = tf.clip_by_global_norm(grads, self.config.clip)
@@ -163,29 +169,37 @@ class Model:
                     }
                     _, train_loss = self.sess.run([self.pos_train_op, self.pos_loss], feed_dict=fd)
 
+        with open('./logs.txt', 'a') as f:
+            f.write('end of epoch '+str(epoch_id+1)+'\n')
 
-        print "end of epoch"+str(epoch_id+1)
-
-        for dev_set in dev_sets:
-            metrics = self.run_evaluate(dev_set)
-            print metrics
+        for sample_set in dev_sets + train_sets:
+            if sample_set.role == 'train':
+               sample_set = dataset.Dataset(sample_set.language, sample_set.task, "train-stats",
+                                                sample_set.samples[:1000])
+            acc, loss = self.run_evaluate(sample_set)
+            metrics = {'language': sample_set.language, 'task': sample_set.task, 'role': sample_set.role}
+            metrics['acc'] = acc
+            metrics['loss'] = loss
+            with open('./logs.txt', 'a') as f:
+                f.write(' '.join(['%s: %s' % (k, metrics[k]) for k in metrics])+'\n')
 
     def run_evaluate(self, dev_set):
         accs = []
+        losses = []
 
         for i, (words, labels, lengths) in enumerate(dev_set.dev_batches(self.config.batch_size)):
-            labels_predictions = self.predict_batch(words, lengths, dev_set.task)
+            labels_predictions, loss = self.predict_batch(words, labels, lengths, dev_set.task)
+            losses.append(loss)
 
             for lab, lab_pred, length in zip(labels, labels_predictions, lengths):
                 lab = lab[:length]
                 lab_pred = lab_pred[:length]
                 accs += [a == b for (a, b) in zip(lab, lab_pred)]
 
-        acc = np.mean(accs)
 
-        return {"acc": 100 * acc}
+        return 100 * np.mean(accs), np.mean(losses)
 
-    def predict_batch(self, words, lengths, task):
+    def predict_batch(self, words, labels, lengths, task):
 
         fd = {
             self.word_ids: words,
@@ -195,11 +209,13 @@ class Model:
         # get tag scores and transition params of CRF
         viterbi_sequences = []
         if task == "ner":
-            logits, trans_params = self.sess.run(
-                [self.ner_predicted_labels, self.ner_trans_params], feed_dict=fd)
+            fd[self.ner_true_labels] = labels
+            logits, trans_params, loss = self.sess.run(
+                [self.ner_predicted_labels, self.ner_trans_params, self.ner_loss], feed_dict=fd)
         if task == "pos":
-            logits, trans_params = self.sess.run(
-                [self.pos_predicted_labels, self.pos_trans_params], feed_dict=fd)
+            fd[self.pos_true_labels] = labels
+            logits, trans_params, loss = self.sess.run(
+                [self.pos_predicted_labels, self.pos_trans_params, self.pos_loss], feed_dict=fd)
 
         # iterate over the sentences because no batching in vitervi_decode
         for logit, sequence_length in zip(logits, lengths):
@@ -208,4 +224,4 @@ class Model:
                 logit, trans_params)
             viterbi_sequences += [viterbi_seq]
 
-        return viterbi_sequences
+        return viterbi_sequences, loss

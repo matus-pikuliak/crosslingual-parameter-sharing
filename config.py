@@ -13,7 +13,7 @@ class Config:
         self.train_embeddings = False
 
         self.lstm_size = 100
-        self.learning_rate = 1e-3
+        self.learning_rate = 1e-4
         self.batch_size = 32
         self.epoch_steps = 256
 
