@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 from data.cache import Cache
 from config import Config
 from model.model import Model
@@ -7,8 +9,9 @@ config = Config()
 cache = Cache(config)
 cache = cache.load()
 
-# dt = cache.fetch_dataset('ner', 'en', 'train')
-# unk = cache.lang_dicts['en'][1]['<unk>']
+# dt = cache.fetch_dataset('ner', 'de', 'train')
+# unk = cache.lang_dicts['de'][1]['<unk>']
+# print unk
 # zer = cache.task_dicts['ner'][1]['O']
 # all = 0
 # all_u = 0
@@ -93,7 +96,7 @@ train_sets = [
 ]
 
 for train_set in train_sets:
-    run_test(train_set, cache, config, 15)
+    run_test(train_set, cache, config, 30)
 
 os.system('notify-send "SUCCESS" "well done beb"')
 

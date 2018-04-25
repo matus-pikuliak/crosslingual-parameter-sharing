@@ -176,16 +176,19 @@ class Model:
             if sample_set.role == 'train':
                sample_set = dataset.Dataset(sample_set.language, sample_set.task, "train-stats",
                                                 sample_set.samples[:1000])
-            acc, loss = self.run_evaluate(sample_set)
             metrics = {'language': sample_set.language, 'task': sample_set.task, 'role': sample_set.role}
-            metrics['acc'] = acc
-            metrics['loss'] = loss
+            metrics.update(self.run_evaluate(sample_set))
             with open('./logs.txt', 'a') as f:
                 f.write(' '.join(['%s: %s' % (k, metrics[k]) for k in metrics])+'\n')
 
     def run_evaluate(self, dev_set):
         accs = []
         losses = []
+        expected_ner = 0
+        predicted_ner = 0
+        precision = 0
+        recall = 0
+        O_token = self.cache.task_dicts['ner'][1]['O']
 
         for i, (words, labels, lengths) in enumerate(dev_set.dev_batches(self.config.batch_size)):
             labels_predictions, loss = self.predict_batch(words, labels, lengths, dev_set.task)
@@ -194,10 +197,28 @@ class Model:
             for lab, lab_pred, length in zip(labels, labels_predictions, lengths):
                 lab = lab[:length]
                 lab_pred = lab_pred[:length]
-                accs += [a == b for (a, b) in zip(lab, lab_pred)]
+                for (true_t, pred_t) in zip(lab, lab_pred):
+                    accs.append(true_t == pred_t)
+                    if dev_set.task == 'ner':
+                        if true_t != O_token:
+                            expected_ner += 1
+                        if pred_t != O_token:
+                            predicted_ner += 1
+                        if true_t != O_token and true_t == pred_t:
+                            precision += 1
+                        if pred_t != O_token and true_t == pred_t:
+                            recall += 1
 
 
-        return 100 * np.mean(accs), np.mean(losses)
+        output = {'acc': 100 * np.mean(accs), 'loss': np.mean(losses)}
+        if dev_set.task == 'ner':
+            output.update({
+                'expected_ner_count': expected_ner,
+                'predicted_ner_count': predicted_ner,
+                'precision': float(precision) / (predicted_ner+0.001),
+                'recall': float(recall) / (expected_ner+0.001)
+            })
+        return output
 
     def predict_batch(self, words, labels, lengths, task):
 

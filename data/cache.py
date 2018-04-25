@@ -37,13 +37,16 @@ class Cache:
             for lang in valid_languages:
                 emb_dicts[lang] = {'<unk>': np.zeros(self.config.word_emb_size)}
                 emb_file = os.path.join(self.config.emb_path, lang)
-                with codecs.open(emb_file) as f:
+                with codecs.open(emb_file, encoding='utf-8') as f:
                     f.readline()  # first init line in emb files
                     for line in f:
-                        word, values = line.split(' ', 1)
-                        values = np.array([float(val) for val in values.split(' ')])
-                        emb_dicts[lang][word] = values
-                        # TODO: check proper emb size
+                        try:
+                            word, values = line.split(' ', 1)
+                            values = np.array([float(val) for val in values.split(' ')])
+                            emb_dicts[lang][word] = values
+                        except:
+                            print line
+                            # TODO: check proper emb size
 
         for task, language in self.task_langs:
             self.lang_dicts.setdefault(language, {'<unk>'})
