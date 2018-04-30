@@ -15,7 +15,7 @@ class Config:
         self.lstm_size = 100
         self.learning_rate = 1e-4
         self.batch_size = 32
-        self.epoch_steps = 256
+        self.epoch_steps = 512
 
         # settings
         self.clip = 1

@@ -18,12 +18,11 @@ class Cache:
         self.embeddings = None
 
     def create(self, tasks=None, languages=None):
-        self.delete()
         valid_languages = set()
         if not tasks:
             tasks = utils.dirs(self.config.data_path)
         for task in tasks:
-            folder_languages = utils.dirs(self.config.data_path+task+"/")
+            folder_languages = list(utils.dirs(self.config.data_path+task+"/"))
             if not languages:
                 languages = folder_languages
             else:
@@ -45,8 +44,8 @@ class Cache:
                             values = np.array([float(val) for val in values.split(' ')])
                             emb_dicts[lang][word] = values
                         except:
-                            print line
-                            # TODO: check proper emb size
+                            print(">%s<"%line)
+                        # TODO: check proper emb size
 
         for task, language in self.task_langs:
             self.lang_dicts.setdefault(language, {'<unk>'})
@@ -129,14 +128,14 @@ class Cache:
 
     def save(self):
         self.delete()
-        f = codecs.open('%scache.pckl' % self.config.cache_path, 'w')
+        f = codecs.open('%scache.pckl' % self.config.cache_path, 'wb')
         return pickle.dump(self, f)
 
     def load(self):
-        f = codecs.open('%scache.pckl' % self.config.cache_path, 'r')
+        f = codecs.open('%scache.pckl' % self.config.cache_path, 'rb')
         return pickle.load(f)
 
     def fetch_dataset(self, task, language, role):
         for dataset in self.datasets:
             if language == dataset.language and task == dataset.task and role == dataset.role: return dataset
-        raise BaseException('No dataset with required parameters '+language)
+        raise BaseException('No dataset with required parameters: %s %s %s' % (language, task, role))

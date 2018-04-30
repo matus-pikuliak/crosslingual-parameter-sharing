@@ -9,9 +9,8 @@ config = Config()
 cache = Cache(config)
 cache = cache.load()
 
-# dt = cache.fetch_dataset('ner', 'de', 'train')
-# unk = cache.lang_dicts['de'][1]['<unk>']
-# print unk
+# dt = cache.fetch_dataset('ner', 'en', 'train')
+# unk = cache.lang_dicts['en'][1]['<unk>']
 # zer = cache.task_dicts['ner'][1]['O']
 # all = 0
 # all_u = 0
@@ -44,6 +43,7 @@ def run_test(train, cache, config, epoch):
             test=[]
         )
     model.close()
+
 
 train_sets = [
     [('ner', 'en')],
@@ -95,19 +95,24 @@ train_sets = [
 
 ]
 
+train_sets = [
+    [('ner', 'en')]
+]
+
 for train_set in train_sets:
     run_test(train_set, cache, config, 30)
 
 os.system('notify-send "SUCCESS" "well done beb"')
 
 # TODO:
-#       - check NER datasets
+#       - check engglish NER datasets
 #       - vytvor small testing set
 #       - summaries
+#       - saving
+#       - spusti trening na 100+epoch
 #       - regularization
 #       - logging
-#       - v cache.py pouzivam lower(). Treba vlastne embeddings
-#       - model saving
+#       - v cache.py pouzivam lower(). Treba vlastne embeddings + konvo?
 #       - dependency parsing
 #       - machine translation
 #       - language modeling

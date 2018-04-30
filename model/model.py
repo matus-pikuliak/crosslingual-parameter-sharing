@@ -37,13 +37,13 @@ class Model:
         # word embeddings
         _word_embeddings = tf.get_variable(
             dtype=tf.float32,
-            #shape=[None, self.config.word_emb_size],
+            # shape=[None, self.config.word_emb_size],
             initializer=tf.cast(self.cache.embeddings, tf.float32),
             trainable=self.config.train_embeddings,
             name="word_embeddings")
         self.word_embeddings = tf.nn.embedding_lookup(_word_embeddings, self.word_ids,
         name="word_embeddings_lookup")
-        #self.word_embeddings = tf.nn.dropout(self.word_embeddings, 0.5)
+        # self.word_embeddings = tf.nn.dropout(self.word_embeddings, 0.5)
 
         #
         # bi-lstm
@@ -174,7 +174,7 @@ class Model:
 
         for sample_set in dev_sets + train_sets:
             if sample_set.role == 'train':
-               sample_set = dataset.Dataset(sample_set.language, sample_set.task, "train-stats",
+               sample_set = dataset.Dataset(sample_set.language, sample_set.task, "train",
                                                 sample_set.samples[:1000])
             metrics = {'language': sample_set.language, 'task': sample_set.task, 'role': sample_set.role}
             metrics.update(self.run_evaluate(sample_set))
