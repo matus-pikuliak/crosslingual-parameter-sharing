@@ -1,14 +1,15 @@
 import tensorflow as tf
 import numpy as np
-import json
 from data import dataset
+
 
 class Model:
 
-    def __init__(self, cache, config):
+    def __init__(self, cache, config, logger):
         self.config = config
         self.cache = cache
         self.sess = None
+        self.logger = logger
 
     def close(self):
         self.sess.close()
@@ -136,6 +137,12 @@ class Model:
         self.sess = tf.Session()
         self.sess.run(tf.global_variables_initializer()) # TODO: check what is default initializer
 
+    def run_experiment(self, train, test, epochs):
+        self.name = ' '.join([' '.join(t) for t in train])
+        self.logger.log_m("Now training " + self.name)
+        for i in xrange(epochs):
+            self.run_epoch(i, train=train, test=test )
+
     def run_epoch(self, epoch_id,
                   train,
                   test,
@@ -169,17 +176,15 @@ class Model:
                     }
                     _, train_loss = self.sess.run([self.pos_train_op, self.pos_loss], feed_dict=fd)
 
-        with open('./logs.txt', 'a') as f:
-            f.write('end of epoch '+str(epoch_id+1)+'\n')
+        self.logger.log_m("End of epoch " + str(epoch_id+1))
 
         for sample_set in dev_sets + train_sets:
             if sample_set.role == 'train':
-               sample_set = dataset.Dataset(sample_set.language, sample_set.task, "train",
+               sample_set = dataset.Dataset(sample_set.language, sample_set.task, "train-1k",
                                                 sample_set.samples[:1000])
-            metrics = {'language': sample_set.language, 'task': sample_set.task, 'role': sample_set.role}
+            metrics = {'language': sample_set.language, 'task': sample_set.task, 'role': sample_set.role, 'epoch': epoch_id+1, 'run': self.name}
             metrics.update(self.run_evaluate(sample_set))
-            with open('./logs.txt', 'a') as f:
-                f.write(' '.join(['%s: %s' % (k, metrics[k]) for k in metrics])+'\n')
+            self.logger.log_r(metrics)
 
     def run_evaluate(self, dev_set):
         accs = []
@@ -209,14 +214,17 @@ class Model:
                         if pred_t != O_token and true_t == pred_t:
                             recall += 1
 
-
         output = {'acc': 100 * np.mean(accs), 'loss': np.mean(losses)}
         if dev_set.task == 'ner':
+            precision = float(precision) / (predicted_ner+1)
+            recall = float(recall) / (expected_ner+1)
+            f1 = 2*precision*recall/(precision+recall+1)
             output.update({
                 'expected_ner_count': expected_ner,
                 'predicted_ner_count': predicted_ner,
-                'precision': float(precision) / (predicted_ner+0.001),
-                'recall': float(recall) / (expected_ner+0.001)
+                'precision': precision,
+                'recall': recall,
+                'f1': f1
             })
         return output
 

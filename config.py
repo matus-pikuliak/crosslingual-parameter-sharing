@@ -16,6 +16,7 @@ class Config:
         self.learning_rate = 1e-4
         self.batch_size = 32
         self.epoch_steps = 512
+        self.epochs = 120
 
         # settings
         self.clip = 1
