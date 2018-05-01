@@ -4,10 +4,11 @@ from data.cache import Cache
 from config import Config
 from model.model import Model
 import os
+import sys
 from logs.logger import Logger
 import time
 
-config = Config()
+config = Config(sys.argv[1:])
 cache = Cache(config)
 cache = cache.load()
 

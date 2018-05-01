@@ -17,11 +17,23 @@ class Config:
         self.batch_size = 32
         self.epoch_steps = 512
         self.epochs = 120
-
-        # settings
         self.clip = 1
 
-        for parameter in parameters:
-            setattr(self, parameter, parameters[parameter])
+        # settings
+        self.use_gpu = True
 
+        for i in xrange(0, len(parameters)-1,2):
+            parameter = parameters[i]
+            value = parameters[i+1]
+            try:
+                if isinstance(getattr(self, parameter), bool):
+                    setattr(self, parameter, True if value == 'True' else False)
+                elif isinstance(getattr(self, parameter), str):
+                    setattr(self, parameter, value)
+                elif isinstance(getattr(self, parameter), int):
+                    setattr(self, parameter, int(value))
+                elif isinstance(getattr(self, parameter), float):
+                    setattr(self, parameter, float(value))
+            except AttributeError:
+                print "Wrong parameter provided: "+parameter
 
