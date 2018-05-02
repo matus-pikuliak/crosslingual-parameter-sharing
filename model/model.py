@@ -133,8 +133,10 @@ class Model:
                     self.pos_train_op = optimizer.apply_gradients(zip(grads, vs))
                 else:
                     self.pos_train_op = optimizer.minimize(self.pos_loss)
-
-        self.sess = tf.Session()
+        if self.config.use_gpu:
+            self.sess = tf.Session()
+        else:
+            self.sess = tf.Session(config=tf.ConfigProto(device_count={'GPU': 0, 'CPU': 1}))
         self.sess.run(tf.global_variables_initializer()) # TODO: check what is default initializer
 
     def run_experiment(self, train, test, epochs):
