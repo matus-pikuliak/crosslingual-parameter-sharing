@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 
+import os
+import time
+import sys
 from data.cache import Cache
 from config import Config
 from model.model import Model
-import os
-import sys
 from logs.logger import Logger
-import time
 
 config = Config(sys.argv[1:])
 cache = Cache(config)
@@ -76,7 +76,7 @@ for train_set in train_sets:
 os.system('notify-send "SUCCESS" "well done beb"')
 
 # TODO:
-#       - check engglish NER datasets
+#       - process engglish NER datasets
 #       - vytvor small testing set
 #       - saving
 #       - regularization

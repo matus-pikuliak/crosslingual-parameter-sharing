@@ -1,6 +1,7 @@
 import tensorflow as tf
 import numpy as np
 from data import dataset
+import datetime
 
 
 class Model:
@@ -142,6 +143,7 @@ class Model:
     def run_experiment(self, train, test, epochs):
         self.name = ' '.join([' '.join(t) for t in train])
         self.logger.log_m("Now training " + self.name)
+        self.logger.log_m(str(datetime.datetime.now()))
         for i in xrange(epochs):
             self.run_epoch(i, train=train, test=test )
 
