@@ -76,7 +76,6 @@ for train_set in train_sets:
 os.system('notify-send "SUCCESS" "well done beb"')
 
 # TODO:
-#       - check engglish NER datasets
 #       - vytvor small testing set
 #       - saving
 #       - regularization

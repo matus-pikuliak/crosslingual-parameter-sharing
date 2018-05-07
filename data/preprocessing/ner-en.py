@@ -1,7 +1,7 @@
 import codecs
 import csv
 
-filename = '/media/fiit/5016BD1B16BD0350/Users/PC/FIIT Google Drive/data/cll-para-sharing/raw_data/ner/en/ner_dataset.csv'
+filename = '/media/fiit/5016BD1B16BD0350/Users/PC/FIIT Google Drive/data/cll-para-sharing/raw_data/ner/en/utf8.csv'
 
 tags = set()
 
@@ -43,12 +43,13 @@ second = int(pocet*0.9)
 a = sentences[:first]
 b = sentences[first:second]
 c = sentences[second:]
-print len(sentences)
-print len(a)
-print len(b)
-print len(c)
+
 with codecs.open('/media/fiit/5016BD1B16BD0350/Users/PC/FIIT Google Drive/data/cll-para-sharing/raw_data/ner/en/train', 'w', encoding='utf-8') as f:
-    f.write('\n'.join(sentences))
+    f.write('\n'.join(a))
+with codecs.open('/media/fiit/5016BD1B16BD0350/Users/PC/FIIT Google Drive/data/cll-para-sharing/raw_data/ner/en/dev', 'w', encoding='utf-8') as f:
+    f.write('\n'.join(b))
+with codecs.open('/media/fiit/5016BD1B16BD0350/Users/PC/FIIT Google Drive/data/cll-para-sharing/raw_data/ner/en/test', 'w', encoding='utf-8') as f:
+    f.write('\n'.join(c))
 
 #print '\n'.join(sentences)
 
