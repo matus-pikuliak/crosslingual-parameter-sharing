@@ -12,11 +12,11 @@ class Config:
         self.word_emb_size = 300
         self.train_embeddings = False
 
-        self.lstm_size = 100
+        self.lstm_size = 150
         self.learning_rate = 1e-4
         self.batch_size = 32
         self.epoch_steps = 512
-        self.epochs = 120
+        self.epochs = 60
         self.clip = 1
 
         # settings
