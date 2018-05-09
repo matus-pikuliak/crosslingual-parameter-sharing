@@ -220,9 +220,9 @@ class Model:
 
         output = {'acc': 100 * np.mean(accs), 'loss': np.mean(losses)}
         if dev_set.task == 'ner':
-            precision = float(precision) / (predicted_ner+1)
-            recall = float(recall) / (expected_ner+1)
-            f1 = 2*precision*recall/(precision+recall+1)
+            precision = float(precision+1) / (predicted_ner+1)
+            recall = (float(recall) / expected_ner)
+            f1 = 2*precision*recall/(precision+recall)
             output.update({
                 'expected_ner_count': expected_ner,
                 'predicted_ner_count': predicted_ner,
