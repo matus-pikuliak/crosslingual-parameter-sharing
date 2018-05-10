@@ -56,7 +56,6 @@ class Run:
                 max_id = i+1
         return max_id
 
-
 def is_int(str):
     try:
         int(str)
@@ -77,7 +76,7 @@ def is_str(str):
     return not (is_float(str) or is_int(str))
 
 import glob
-files = glob.glob('/media/piko/Data/fiit/data/cll-para-sharing/logs/60_epoch/*')
+files = glob.glob('/media/fiit/5016BD1B16BD0350/Users/PC/FIIT Google Drive/data/cll-para-sharing/logs/60_epoch/*')
 records = []
 for file in files:
     with open(file, 'r') as f:

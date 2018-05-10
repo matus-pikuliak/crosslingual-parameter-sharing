@@ -65,6 +65,8 @@ train_sets = [
 
 ]
 
+train_sets = [[('ner', 'cs')]]
+
 for train_set in train_sets:
     logger = Logger(config.log_path, time.strftime('%Y-%m-%d-%H%M%S', time.gmtime()))
     model = Model(cache, config, logger)
@@ -80,6 +82,7 @@ os.system('notify-send "SUCCESS" "well done beb"')
 
 # TODO:
 #       - vytvor small testing set
+#       - learning rate decay
 #       - saving
 #       - regularization
 #       - v cache.py pouzivam lower(). Treba vlastne embeddings + konvo?
