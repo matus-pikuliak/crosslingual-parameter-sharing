@@ -66,6 +66,9 @@ class Model:
         self.learning_rate = tf.placeholder(dtype=tf.float32, shape=[],
         name="lr")
 
+        self.dropout = tf.placeholder(dtype=tf.float32, shape=[],
+        name="dropout")
+
         #
         # inputs
         # shape = (batch size, max length of sentence in batch)
@@ -88,7 +91,7 @@ class Model:
             name="word_embeddings")
         self.word_embeddings = tf.nn.embedding_lookup(_word_embeddings, self.word_ids,
         name="word_embeddings_lookup")
-        # self.word_embeddings = tf.nn.dropout(self.word_embeddings, 0.5)
+        self.word_embeddings = tf.nn.dropout(self.word_embeddings, self.dropout)
 
         #
         # bi-lstm
@@ -100,7 +103,7 @@ class Model:
                 sequence_length=self.sequence_lengths, dtype=tf.float32)
             # shape(batch_size, max_length, 2 x lstm_size)
             self.lstm_output = tf.concat([output_fw, output_bw], axis=-1)
-            #lstm_output = tf.nn.dropout(lstm_output, 0.5)
+            self.lstm_output = tf.nn.dropout(self.lstm_output, self.dropout)
 
         self.true_labels = dict()
         self.predicted_labels = dict()
@@ -146,7 +149,8 @@ class Model:
                     self.word_ids: word_ids,
                     self.true_labels[task_code]: labels,
                     self.sequence_lengths: lengths,
-                    self.learning_rate: (learning_rate or self.config.learning_rate)
+                    self.learning_rate: (learning_rate or self.config.learning_rate),
+                    self.dropout: self.config.dropout
                 }
                 _, train_loss = self.sess.run([self.train_op[task_code], self.loss[task_code]], feed_dict=fd)
 
@@ -208,7 +212,8 @@ class Model:
         fd = {
             self.word_ids: words,
             self.sequence_lengths: lengths,
-            self.true_labels[task_code]: labels
+            self.true_labels[task_code]: labels,
+            self.dropout: 1
         }
 
         # get tag scores and transition params of CRF

@@ -19,6 +19,7 @@ class Config:
         self.epoch_steps = 512
         self.epochs = 60
         self.clip = 1
+        self.dropout = 0.5
 
         # settings
         self.use_gpu = True
