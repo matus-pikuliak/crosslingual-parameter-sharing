@@ -77,7 +77,7 @@ def is_str(str):
     return not (is_float(str) or is_int(str))
 
 import glob
-files = glob.glob('/media/piko/Data/fiit/data/cll-para-sharing/logs/60_epoch/*')
+files = glob.glob('/media/piko/Data/fiit/data/cll-para-sharing/logs/300dim/*')
 records = []
 for file in files:
     with open(file, 'r') as f:
@@ -96,8 +96,9 @@ for file in files:
 
 import matplotlib.pyplot as plt
 
-en_pos = Run.get_runs(lang='es', task='ner', role='dev')
+en_pos = Run.get_runs(lang='cs', task='pos', role='dev')
 for run in en_pos:
-    plt.plot(run.read_metric('f1'), label=run.run)
+    print run.max_metric('acc'), run.run
+    plt.plot(run.read_metric('acc'), label=run.run)
 plt.legend()
 plt.show()

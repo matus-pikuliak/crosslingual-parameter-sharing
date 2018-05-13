@@ -16,6 +16,49 @@ class Model:
         self.sess.close()
         tf.reset_default_graph()
 
+    def task_code(self, task, lang):
+        if self.config.crf_sharing:
+            return task
+        else:
+            return task+lang
+
+    def add_crf(self, task, task_code):
+        with tf.variable_scope(task_code):
+            tag_count = len(self.cache.task_dicts[task][0])
+
+            # expected output
+            # shape = (batch%size, max_length)
+            self.true_labels[task_code] = tf.placeholder(tf.int32, shape=[None, None],
+                                                  name="labels")
+            # projection
+            W = tf.get_variable(dtype=tf.float32, shape=[2 * self.config.lstm_size, tag_count],
+                                name="proj_weights")
+            b = tf.get_variable(dtype=tf.float32, shape=[tag_count], initializer=tf.zeros_initializer(),
+                                name="proj_biases")
+
+            max_length = tf.shape(self.lstm_output)[1]  # TODO: toto moze byt vstupom z vonku?
+            reshaped_output = tf.reshape(self.lstm_output, [-1,
+                                                       2 * self.config.lstm_size])  # We can apply the weight on all outputs of LSTM now
+            proj = tf.matmul(reshaped_output, W) + b
+            self.predicted_labels[task_code] = tf.reshape(proj, [-1, max_length, tag_count])
+
+            # loss
+            log_likelihood, trans_params = tf.contrib.crf.crf_log_likelihood(
+                self.predicted_labels[task_code],
+                self.true_labels[task_code],
+                self.sequence_lengths)
+            self.trans_params[task_code] = trans_params  # need to evaluate it for decoding
+            self.loss[task_code] = tf.reduce_mean(-log_likelihood)
+
+            # training
+            if self.config.clip > 0:  # gradient clipping if clip is positive
+                grads, vs = zip(*self.optimizer.compute_gradients(self.loss[task_code]))
+                grads, gnorm = tf.clip_by_global_norm(grads, self.config.clip)
+                self.train_op[task_code] = self.optimizer.apply_gradients(zip(grads, vs))
+            else:
+                self.train_op[task_code] = self.optimizer.minimize(self.loss[task_code])
+
+
     def build_graph(self):
 
         #
@@ -33,7 +76,7 @@ class Model:
         name="sequence_lengths")
 
         # optimizer
-        optimizer = tf.train.RMSPropOptimizer(self.learning_rate)
+        self.optimizer = tf.train.RMSPropOptimizer(self.learning_rate)
 
         #
         # word embeddings
@@ -56,84 +99,22 @@ class Model:
                 cell_fw, cell_bw, self.word_embeddings,
                 sequence_length=self.sequence_lengths, dtype=tf.float32)
             # shape(batch_size, max_length, 2 x lstm_size)
-            lstm_output = tf.concat([output_fw, output_bw], axis=-1)
+            self.lstm_output = tf.concat([output_fw, output_bw], axis=-1)
             #lstm_output = tf.nn.dropout(lstm_output, 0.5)
 
-        #
-        # ner
-        if "ner" in self.cache.task_dicts:
-            with tf.variable_scope("ner"):
-                ner_tag_count = len(self.cache.task_dicts['ner'][0])
+        self.true_labels = dict()
+        self.predicted_labels = dict()
+        self.trans_params = dict()
+        self.loss = dict()
+        self.train_op = dict()
 
-                # expected output
-                # shape = (batch%size, max_length)
-                self.ner_true_labels = tf.placeholder(tf.int32, shape=[None, None],
-                name="labels")
-                # projection
-                W = tf.get_variable(dtype=tf.float32, shape=[2 * self.config.lstm_size, ner_tag_count],
-                name="proj_weights")
-                b = tf.get_variable(dtype=tf.float32, shape=[ner_tag_count], initializer=tf.zeros_initializer(),
-                name="proj_biases")
+        used_task_codes = []
+        for (task, lang) in self.cache.task_langs:
+            task_code = self.task_code(task, lang)
+            if task_code not in used_task_codes:
+                self.add_crf(task, task_code)
+                used_task_codes.append(task_code)
 
-                max_length = tf.shape(lstm_output)[1] # TODO: toto moze byt vstupom z vonku?
-                reshaped_output = tf.reshape(lstm_output, [-1, 2 * self.config.lstm_size]) # We can apply the weight on all outputs of LSTM now
-                ner_proj = tf.matmul(reshaped_output, W) + b
-                self.ner_predicted_labels = tf.reshape(ner_proj, [-1, max_length, ner_tag_count])
-
-                # loss
-                log_likelihood, trans_params = tf.contrib.crf.crf_log_likelihood(
-                    self.ner_predicted_labels,
-                    self.ner_true_labels,
-                    self.sequence_lengths)
-                self.ner_trans_params = trans_params  # need to evaluate it for decoding
-                self.ner_loss = tf.reduce_mean(-log_likelihood)
-
-                # training
-                if self.config.clip > 0:  # gradient clipping if clip is positive
-                    grads, vs = zip(*optimizer.compute_gradients(self.ner_loss))
-                    grads, gnorm = tf.clip_by_global_norm(grads, self.config.clip)
-                    self.ner_train_op = optimizer.apply_gradients(zip(grads, vs))
-                else:
-                    self.ner_train_op = optimizer.minimize(self.ner_loss)
-
-        #
-        # pos
-        # the same code as ner part, if there are more sequence labeling tasks it would be worth it to abstract it into
-        # its own function perhaps.
-        if "pos" in self.cache.task_dicts:
-            with tf.variable_scope("pos"):
-                pos_tag_count = len(self.cache.task_dicts['pos'][0])
-
-                # expected output
-                # shape = (batch%size, max_length)
-                self.pos_true_labels = tf.placeholder(tf.int32, shape=[None, None],
-                name="labels")
-                # projection
-                W = tf.get_variable(dtype=tf.float32, shape=[2 * self.config.lstm_size, pos_tag_count],
-                name="proj_weights")
-                b = tf.get_variable(dtype=tf.float32, shape=[pos_tag_count], initializer=tf.zeros_initializer(),
-                name="proj_biases")
-
-                max_length = tf.shape(lstm_output)[1] # TODO: toto moze byt vstupom z vonku?
-                reshaped_output = tf.reshape(lstm_output, [-1, 2 * self.config.lstm_size]) # We can apply the weight on all outputs of LSTM now
-                pos_proj = tf.matmul(reshaped_output, W) + b
-                self.pos_predicted_labels = tf.reshape(pos_proj, [-1, max_length, pos_tag_count])
-
-                # loss
-                log_likelihood, trans_params = tf.contrib.crf.crf_log_likelihood(
-                    self.pos_predicted_labels,
-                    self.pos_true_labels,
-                    self.sequence_lengths)
-                self.pos_trans_params = trans_params  # need to evaluate it for decoding
-                self.pos_loss = tf.reduce_mean(-log_likelihood)
-
-                # training
-                if self.config.clip > 0:  # gradient clipping if clip is positive
-                    grads, vs = zip(*optimizer.compute_gradients(self.pos_loss))
-                    grads, gnorm = tf.clip_by_global_norm(grads, self.config.clip)
-                    self.pos_train_op = optimizer.apply_gradients(zip(grads, vs))
-                else:
-                    self.pos_train_op = optimizer.minimize(self.pos_loss)
         if self.config.use_gpu:
             self.sess = tf.Session()
         else:
@@ -158,27 +139,16 @@ class Model:
 
         for _ in xrange(self.config.epoch_steps):
             for train_set in train_sets:
+                task_code = self.task_code(train_set.task, train_set.language)
                 minibatch = train_set.next_batch(self.config.batch_size)
-
-                if train_set.task == 'ner':
-                    (word_ids, labels, lengths) = minibatch
-                    fd = {
-                        self.word_ids: word_ids,
-                        self.ner_true_labels: labels,
-                        self.sequence_lengths: lengths,
-                        self.learning_rate: (learning_rate or self.config.learning_rate)
-                    }
-                    _, train_loss = self.sess.run([self.ner_train_op, self.ner_loss], feed_dict=fd)
-
-                if train_set.task == 'pos':
-                    (word_ids, labels, lengths) = minibatch
-                    fd = {
-                        self.word_ids: word_ids,
-                        self.pos_true_labels: labels,
-                        self.sequence_lengths: lengths,
-                        self.learning_rate: (learning_rate or self.config.learning_rate)
-                    }
-                    _, train_loss = self.sess.run([self.pos_train_op, self.pos_loss], feed_dict=fd)
+                (word_ids, labels, lengths) = minibatch
+                fd = {
+                    self.word_ids: word_ids,
+                    self.true_labels[task_code]: labels,
+                    self.sequence_lengths: lengths,
+                    self.learning_rate: (learning_rate or self.config.learning_rate)
+                }
+                _, train_loss = self.sess.run([self.train_op[task_code], self.loss[task_code]], feed_dict=fd)
 
         self.logger.log_m("End of epoch " + str(epoch_id+1))
 
@@ -198,9 +168,10 @@ class Model:
         precision = 0
         recall = 0
         O_token = self.cache.task_dicts['ner'][1]['O']
+        task_code = self.task_code(dev_set.task, dev_set.language)
 
         for i, (words, labels, lengths) in enumerate(dev_set.dev_batches(self.config.batch_size)):
-            labels_predictions, loss = self.predict_batch(words, labels, lengths, dev_set.task)
+            labels_predictions, loss = self.predict_batch(words, labels, lengths, task_code)
             losses.append(loss)
 
             for lab, lab_pred, length in zip(labels, labels_predictions, lengths):
@@ -232,23 +203,18 @@ class Model:
             })
         return output
 
-    def predict_batch(self, words, labels, lengths, task):
+    def predict_batch(self, words, labels, lengths, task_code):
 
         fd = {
             self.word_ids: words,
-            self.sequence_lengths: lengths
+            self.sequence_lengths: lengths,
+            self.true_labels[task_code]: labels
         }
 
         # get tag scores and transition params of CRF
         viterbi_sequences = []
-        if task == "ner":
-            fd[self.ner_true_labels] = labels
-            logits, trans_params, loss = self.sess.run(
-                [self.ner_predicted_labels, self.ner_trans_params, self.ner_loss], feed_dict=fd)
-        if task == "pos":
-            fd[self.pos_true_labels] = labels
-            logits, trans_params, loss = self.sess.run(
-                [self.pos_predicted_labels, self.pos_trans_params, self.pos_loss], feed_dict=fd)
+        logits, trans_params, loss = self.sess.run(
+            [self.predicted_labels[task_code], self.trans_params[task_code], self.loss[task_code]], feed_dict=fd)
 
         # iterate over the sentences because no batching in vitervi_decode
         for logit, sequence_length in zip(logits, lengths):

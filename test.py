@@ -15,7 +15,7 @@ config = Config(sys.argv[1:])
 cache = Cache(config)
 cache = cache.load()
 
-train_sets = [
+a = [
     [('ner', 'en')],
     [('ner', 'es')],
     [('ner', 'de')],
@@ -24,6 +24,8 @@ train_sets = [
     [('pos', 'es')],
     [('pos', 'de')],
     [('pos', 'cs')],
+    ]
+b = [
     [
         ('ner', 'en'),
         ('pos', 'en')
@@ -39,7 +41,9 @@ train_sets = [
     [
         ('ner', 'cs'),
         ('pos', 'cs')
-    ],
+    ]
+    ]
+c = [
     [
         ('pos', 'en'),
         ('pos', 'es'),
@@ -51,7 +55,9 @@ train_sets = [
         ('ner', 'es'),
         ('ner', 'de'),
         ('ner', 'cs'),
-    ],
+    ]
+    ]
+d = [
     [
         ('pos', 'en'),
         ('pos', 'es'),
@@ -62,8 +68,9 @@ train_sets = [
         ('ner', 'de'),
         ('ner', 'cs'),
     ]
+    ]
 
-]
+train_sets = a+b+c+d
 
 for train_set in train_sets:
     logger = Logger(config.log_path, time.strftime('%Y-%m-%d-%H%M%S', time.gmtime()))

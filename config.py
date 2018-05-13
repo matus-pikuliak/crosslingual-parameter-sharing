@@ -11,6 +11,7 @@ class Config:
         self.word_emb_type = 'static' # static/fasttext
         self.word_emb_size = 300
         self.train_embeddings = False
+        self.crf_sharing = False # Share CRF across languages?
 
         self.lstm_size = 150
         self.learning_rate = 1e-4
