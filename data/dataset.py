@@ -21,7 +21,9 @@ class Dataset():
     def next_batch(self, batch_size): # If cyclic is set to true it will fill the batch to batch_size if it reaches the end of dataset
         samples = np.take(self.samples, xrange(self.reader, self.reader + batch_size), axis=0, mode='wrap')
         self.reader += batch_size
-        if self.reader > len(self.samples): self.reader = len(self.samples) % self.reader
+        if self.reader > len(self.samples):
+            self.reader = len(self.samples) % self.reader
+            np.random.shuffle(self.samples)
         return self.final_batch(samples)
 
     def dev_batches(self, batch_size):

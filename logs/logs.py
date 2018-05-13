@@ -56,7 +56,6 @@ class Run:
                 max_id = i+1
         return max_id
 
-
 def is_int(str):
     try:
         int(str)
