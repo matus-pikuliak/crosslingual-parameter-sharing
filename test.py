@@ -72,8 +72,6 @@ d = [
 
 train_sets = a+b+c+d
 
-train_sets = [[('ner', 'cs')]]
-
 for train_set in train_sets:
     logger = Logger(config.log_path, time.strftime('%Y-%m-%d-%H%M%S', time.gmtime()))
     model = Model(cache, config, logger)
