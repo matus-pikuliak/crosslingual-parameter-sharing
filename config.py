@@ -13,7 +13,7 @@ class Config:
         self.train_embeddings = False
         self.crf_sharing = False # Share CRF across languages?
 
-        self.lstm_size = 150
+        self.lstm_size = 300
         self.learning_rate = 1e-4
         self.batch_size = 32
         self.epoch_steps = 512

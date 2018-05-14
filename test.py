@@ -86,6 +86,7 @@ for train_set in train_sets:
 os.system('notify-send "SUCCESS" "well done beb"')
 
 # TODO:
+#       - train-1k nemozu byt zakazdym ine vety, vysledna statistika je potom ovplyvnena tym, co sa vlastne vyberie
 #       - vytvor small testing set
 #       - learning rate decay
 #       - saving
