@@ -3,20 +3,21 @@ class Run:
     runs = []
 
     @classmethod
-    def get_runs(cls, lang=None, task=None, role=None, run=None):
+    def get_runs(cls, lang=None, task=None, role=None, run=None, file=None):
         relevant_runs = []
         for r in cls.runs:
             if (
             (r.lang == lang or lang is None) and
             (r.task == task or task is None) and
             (r.role == role or role is None) and
-            (r.run == run or run is None)):
+            (r.run == run or run is None) and
+            (r.file == file or file is None)):
                 relevant_runs.append(r)
         return relevant_runs
 
     @classmethod
     def process_epoch(cls, epoch):
-        run = cls.get_runs(epoch['language'], epoch['task'], epoch['role'], epoch['run'])
+        run = cls.get_runs(epoch['language'], epoch['task'], epoch['role'], epoch['run'], epoch['file'])
         if not run:
             run = [Run(epoch)]
         run[0].add_epoch(epoch)
@@ -26,6 +27,7 @@ class Run:
         self.task = epoch['task']
         self.role = epoch['role']
         self.run = epoch['run']
+        self.file = epoch['file']
         self.results = {}
         self.max_epoch = 0
         self.__class__.runs.append(self)
@@ -76,7 +78,7 @@ def is_str(str):
     return not (is_float(str) or is_int(str))
 
 import glob
-files = glob.glob('/media/piko/Data/fiit/data/cll-para-sharing/logs/crf_sharing/with/*')
+files = glob.glob('/media/piko/Data/fiit/data/cll-para-sharing/logs/300dim_dropout_with_crfsharing/*')
 records = []
 for file in files:
     with open(file, 'r') as f:
@@ -91,13 +93,14 @@ for file in files:
                     r = dct['recall']+1e-3
                     p = dct['precision']
                     dct['f1'] = 2*p*r/(p+r)
+                dct['file'] = f
                 Run.process_epoch(dct)
 
 import matplotlib.pyplot as plt
 
-en_pos = Run.get_runs(role='dev', task='ner')
+en_pos = Run.get_runs(role='dev', task='pos', lang='cs')
 for run in en_pos:
-    print run.max_metric('f1'), run.run
-    plt.plot(run.read_metric('f1'), label=run.run)
+    print run.max_metric('acc'), run.run
+    plt.plot(run.read_metric('acc'), label=run.run)
 plt.legend()
 plt.show()

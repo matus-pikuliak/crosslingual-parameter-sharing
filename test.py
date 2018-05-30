@@ -72,6 +72,9 @@ d = [
 
 train_sets = a+b+c+d
 
+train_sets = [
+    [('ner', 'en')]]
+
 for train_set in train_sets:
     logger = Logger(config.log_path, time.strftime('%Y-%m-%d-%H%M%S', time.gmtime()))
     model = Model(cache, config, logger)
@@ -89,6 +92,9 @@ os.system('notify-send "SUCCESS" "well done beb"')
 #       - train-1k nemozu byt zakazdym ine vety, vysledna statistika je potom ovplyvnena tym, co sa vlastne vyberie
 #       - vytvor small testing set
 #       - learning rate decay
+#       - adversarial training
+#       - smaller data for some task
+#       - task specific parts
 #       - saving
 #       - regularization
 #       - v cache.py pouzivam lower(). Treba vlastne embeddings + konvo?
