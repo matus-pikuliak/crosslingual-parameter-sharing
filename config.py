@@ -7,6 +7,8 @@ class Config:
         for path in paths:
             setattr(self, path, paths[path])
 
+        self.setup = 'default'
+
         # hyperparameters
         self.word_emb_type = 'static' # static/fasttext
         self.word_emb_size = 300
@@ -20,11 +22,12 @@ class Config:
         self.epochs = 60
         self.clip = 1
         self.dropout = 0.5
+        self.optimizer = 'rmsprop' # rmsprop/adagrad/adam/sgd
 
         # settings
         self.use_gpu = True
 
-        for i in xrange(0, len(parameters)-1,2):
+        for i in xrange(0, len(parameters)-1, 2):
             parameter = parameters[i]
             value = parameters[i+1]
             try:

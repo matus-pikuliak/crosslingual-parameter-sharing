@@ -1,3 +1,5 @@
+import paths
+
 class Run:
 
     runs = []
@@ -78,7 +80,7 @@ def is_str(str):
     return not (is_float(str) or is_int(str))
 
 import glob
-files = glob.glob('/media/piko/Data/fiit/data/cll-para-sharing/logs/300dim_dropout_with_crfsharing/*')
+files = glob.glob(paths.paths['log_path']+'/ner_es_lr/*')
 records = []
 for file in files:
     with open(file, 'r') as f:
@@ -89,18 +91,14 @@ for file in files:
                 for key in dct:
                     if is_int(dct[key]): dct[key] = int(dct[key])
                     if is_float(dct[key]): dct[key] = float(dct[key])
-                if 'recall' in dct:
-                    r = dct['recall']+1e-3
-                    p = dct['precision']
-                    dct['f1'] = 2*p*r/(p+r)
                 dct['file'] = f
                 Run.process_epoch(dct)
 
 import matplotlib.pyplot as plt
 
-en_pos = Run.get_runs(role='dev', task='pos', lang='cs')
+en_pos = Run.get_runs(role='dev')
 for run in en_pos:
-    print run.max_metric('acc'), run.run
-    plt.plot(run.read_metric('acc'), label=run.run)
+    print run.max_metric('f1'), run.run
+    plt.plot(run.read_metric('f1'), label=run.file)
 plt.legend()
 plt.show()

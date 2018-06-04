@@ -70,10 +70,14 @@ d = [
     ]
     ]
 
-train_sets = a+b+c+d
+if config.setup == 'default':
+    train_sets = a+b+c+d
 
-train_sets = [
-    [('ner', 'en')]]
+if config.setup == 'posen':
+    train_sets = [[('pos', 'en')]]
+
+if config.setup == 'neres':
+    train_sets = [[('ner', 'es')]]
 
 for train_set in train_sets:
     logger = Logger(config.log_path, time.strftime('%Y-%m-%d-%H%M%S', time.gmtime()))
@@ -87,17 +91,3 @@ for train_set in train_sets:
     model.close()
 
 os.system('notify-send "SUCCESS" "well done beb"')
-
-# TODO:
-#       - train-1k nemozu byt zakazdym ine vety, vysledna statistika je potom ovplyvnena tym, co sa vlastne vyberie
-#       - vytvor small testing set
-#       - learning rate decay
-#       - adversarial training
-#       - smaller data for some task
-#       - task specific parts
-#       - saving
-#       - regularization
-#       - v cache.py pouzivam lower(). Treba vlastne embeddings + konvo?
-#       - dependency parsing
-#       - machine translation
-#       - language modeling

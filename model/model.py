@@ -79,7 +79,14 @@ class Model:
         name="sequence_lengths")
 
         # optimizer
-        self.optimizer = tf.train.RMSPropOptimizer(self.learning_rate)
+        available_optimizers = {
+            'rmsprop': tf.train.RMSPropOptimizer,
+            'adagrad': tf.train.AdagradOptimizer,
+            'adam': tf.train.AdamOptimizer,
+            'sgd': tf.train.GradientDescentOptimizer
+        }
+        selected_optimizer = available_optimizers[self.config.optimizer]
+        self.optimizer = selected_optimizer(self.learning_rate)
 
         #
         # word embeddings
