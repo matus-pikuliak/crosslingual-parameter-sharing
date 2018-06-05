@@ -9,11 +9,12 @@ class Run:
         relevant_runs = []
         for r in cls.runs:
             if (
-            (r.lang == lang or lang is None) and
-            (r.task == task or task is None) and
-            (r.role == role or role is None) and
-            (r.run == run or run is None) and
-            (r.file == file or file is None)):
+                (r.lang == lang or lang is None) and
+                (r.task == task or task is None) and
+                (r.role == role or role is None) and
+                (r.run == run or run is None) and
+                (r.file == file or file is None)
+            ):
                 relevant_runs.append(r)
         return relevant_runs
 

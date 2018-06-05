@@ -4,8 +4,3 @@ paths = {
     'emb_path': "/path/to/embedding_dict/",     # This is where your embedding files are
     'log_path': "/path/to/log_dict/"            # This is where your logs are
 }
-db_config = {
-    'db_user': 'db',
-    'db_passwd': 'db',
-    'db_name': 'db'
-}
