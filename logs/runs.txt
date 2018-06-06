@@ -1,0 +1,31 @@
+# python ./test.py epochs 100 learning_rate 0.01 &&
+# python ./test.py epochs 100 learning_rate 0.003 &&
+# python ./test.py epochs 100 learning_rate 0.001 &&
+# python ./test.py epochs 100 learning_rate 0.0003 &&
+# python ./test.py epochs 100 learning_rate 0.0001 &
+
+# python ./test.py epochs 100 learning_rate 0.01 &&
+# python ./test.py epochs 100 learning_rate 0.003 &&
+# python ./test.py epochs 100 learning_rate 0.001 &&
+# python ./test.py epochs 100 learning_rate 0.0003 &&
+# python ./test.py epochs 100 learning_rate 0.0001 &
+
+# python ./test.py epochs 100 learning_rate 0.03 setup posen &&
+# python ./test.py epochs 100 learning_rate 0.03 setup neres &&
+# python ./test.py epochs 100 learning_rate 0.003 setup posen optimizer rmsprop &&
+# python ./test.py epochs 100 learning_rate 0.003 setup posen optimizer adagrad &&
+# python ./test.py epochs 100 learning_rate 0.003 setup posen optimizer adam &&
+# python ./test.py epochs 100 learning_rate 0.003 setup posen optimizer sgd &&
+# python ./test.py epochs 100 learning_rate 0.003 setup neres optimizer rmsprop &&
+# python ./test.py epochs 100 learning_rate 0.003 setup neres optimizer adagrad &&
+# python ./test.py epochs 100 learning_rate 0.003 setup neres optimizer adam &&
+# python ./test.py epochs 100 learning_rate 0.003 setup neres optimizer sgd &
+
+# python ./test.py epochs 100 learning_rate 0.01 setup neres optimizer adagrad &&
+# python ./test.py epochs 100 learning_rate 0.01 setup neres optimizer sgd &&
+# python ./test.py epochs 100 learning_rate 0.03 setup neres optimizer adagrad &&
+# python ./test.py epochs 100 learning_rate 0.03 setup neres optimizer sgd &
+# python ./test.py epochs 100 learning_rate 0.003 setup posen train_embeddings True
+
+# vacsi batch size
+# lr na CSPOS

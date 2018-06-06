@@ -167,7 +167,13 @@ class Model:
             if sample_set.role == 'train':
                sample_set = dataset.Dataset(sample_set.language, sample_set.task, "train-1k",
                                                 sample_set.samples[:1000])
-            metrics = {'language': sample_set.language, 'task': sample_set.task, 'role': sample_set.role, 'epoch': epoch_id+1, 'run': self.name}
+            metrics = {
+                'language': sample_set.language,
+                'task': sample_set.task,
+                'role': sample_set.role,
+                'epoch': epoch_id+1,
+                'run': self.name
+            }
             metrics.update(self.run_evaluate(sample_set))
             self.logger.log_r(metrics)
 

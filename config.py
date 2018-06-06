@@ -9,14 +9,14 @@ class Config:
 
         self.setup = 'default'
 
-        # hyperparameters
         self.word_emb_type = 'static' # static/fasttext
         self.word_emb_size = 300
         self.train_embeddings = False
-        self.crf_sharing = False # Share CRF across languages?
 
+        self.crf_sharing = False # Share CRF across languages?
         self.lstm_size = 300
-        self.learning_rate = 1e-4
+
+        self.learning_rate = 0.003
         self.batch_size = 32
         self.epoch_steps = 512
         self.epochs = 60

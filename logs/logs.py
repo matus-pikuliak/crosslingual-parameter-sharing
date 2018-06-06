@@ -80,7 +80,7 @@ def is_str(str):
     return not (is_float(str) or is_int(str))
 
 import glob
-files = glob.glob(paths.paths['log_path']+'/ner_es_lr/*')
+files = glob.glob(paths.paths['log_path']+'/pos_en_lr/*')
 records = []
 for file in files:
     with open(file, 'r') as f:
@@ -91,14 +91,14 @@ for file in files:
                 for key in dct:
                     if is_int(dct[key]): dct[key] = int(dct[key])
                     if is_float(dct[key]): dct[key] = float(dct[key])
-                dct['file'] = f
+                dct['file'] = f.name.split('/')[-1]
                 Run.process_epoch(dct)
 
 import matplotlib.pyplot as plt
 
 en_pos = Run.get_runs(role='dev')
 for run in en_pos:
-    print run.max_metric('f1'), run.run
-    plt.plot(run.read_metric('f1'), label=run.file)
+    print run.max_metric('acc'), run.file
+    plt.plot(run.read_metric('acc'), label=run.file)
 plt.legend()
 plt.show()
