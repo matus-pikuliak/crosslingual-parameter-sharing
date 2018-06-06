@@ -134,9 +134,13 @@ class Model:
     def run_experiment(self, train, test, epochs):
         self.name = ' '.join([' '.join(t) for t in train])
         self.logger.log_m("Now training " + self.name)
-        self.logger.log_m(str(datetime.datetime.now()))
+        start_time = datetime.datetime.now()
+        self.logger.log_m(str(start_time))
         for i in xrange(epochs):
             self.run_epoch(i, train=train, test=test)
+        end_time = datetime.datetime.now()
+        self.logger.log_m(str(end_time))
+        self.logger.log_m('Training took:'+str(end_time-start_time))
 
     def run_epoch(self, epoch_id,
                   train,
