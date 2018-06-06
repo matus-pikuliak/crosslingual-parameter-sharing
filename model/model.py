@@ -129,14 +129,14 @@ class Model:
             self.sess = tf.Session()
         else:
             self.sess = tf.Session(config=tf.ConfigProto(device_count={'GPU': 0, 'CPU': 1}))
-        self.sess.run(tf.global_variables_initializer()) # TODO: check what is default initializer
+        self.sess.run(tf.global_variables_initializer())
 
     def run_experiment(self, train, test, epochs):
         self.name = ' '.join([' '.join(t) for t in train])
         self.logger.log_m("Now training " + self.name)
         self.logger.log_m(str(datetime.datetime.now()))
         for i in xrange(epochs):
-            self.run_epoch(i, train=train, test=test )
+            self.run_epoch(i, train=train, test=test)
 
     def run_epoch(self, epoch_id,
                   train,
@@ -146,6 +146,10 @@ class Model:
         train_sets = [self.cache.fetch_dataset(task, lang, 'train') for (task, lang) in train]
         dev_sets = [self.cache.fetch_dataset(task, lang, 'dev') for (task, lang) in train]
         dev_sets += [self.cache.fetch_dataset(task, lang, 'dev') for (task, lang) in test]
+
+        for train_set in train_sets:
+            train_set.eval_set = dataset.Dataset(train_set.language, train_set.task, "train-1k",
+                                                train_set.samples[:1000])
 
         for _ in xrange(self.config.epoch_steps):
             for train_set in train_sets:
@@ -165,13 +169,12 @@ class Model:
 
         for sample_set in dev_sets + train_sets:
             if sample_set.role == 'train':
-               sample_set = dataset.Dataset(sample_set.language, sample_set.task, "train-1k",
-                                                sample_set.samples[:1000])
+               sample_set = sample_set.eval_set
             metrics = {
                 'language': sample_set.language,
                 'task': sample_set.task,
                 'role': sample_set.role,
-                'epoch': epoch_id+1,
+                'epoch': epoch_id + 1,
                 'run': self.name
             }
             metrics.update(self.run_evaluate(sample_set))
@@ -187,7 +190,7 @@ class Model:
         O_token = self.cache.task_dicts['ner'][1]['O']
         task_code = self.task_code(dev_set.task, dev_set.language)
 
-        for i, (words, labels, lengths) in enumerate(dev_set.dev_batches(self.config.batch_size)):
+        for i, (words, labels, lengths) in enumerate(dev_set.dev_batches(512)): # TODO: toto netreba robit v malych batchoch
             labels_predictions, loss = self.predict_batch(words, labels, lengths, task_code)
             losses.append(loss)
 

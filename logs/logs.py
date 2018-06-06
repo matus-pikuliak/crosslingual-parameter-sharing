@@ -81,7 +81,7 @@ def is_str(str):
     return not (is_float(str) or is_int(str))
 
 import glob
-files = glob.glob(paths.paths['log_path']+'/pos_en_lr/*')
+files = glob.glob(paths.paths['log_path']+'/posen_train_emb/*')
 records = []
 for file in files:
     with open(file, 'r') as f:
@@ -99,7 +99,7 @@ import matplotlib.pyplot as plt
 
 en_pos = Run.get_runs(role='dev')
 for run in en_pos:
-    print run.max_metric('acc'), run.file
-    plt.plot(run.read_metric('acc'), label=run.file)
+    print run.max_metric('loss'), run.file
+    plt.plot(run.read_metric('loss'), label=run.file)
 plt.legend()
 plt.show()
