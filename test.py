@@ -8,6 +8,10 @@ import sys
 from logs.logger import Logger
 import time
 
+from logs.slack_notifier import SlackNotifier
+from private import slack_config
+slack_notifier = SlackNotifier(slack_config['token'], slack_config['channel'])
+
 config = Config(sys.argv[1:])
 cache = Cache(config)
 cache = cache.load()
@@ -86,5 +90,6 @@ for train_set in train_sets:
         epochs=config.epochs
     )
     model.close()
+    slack_notifier.send('Run done.')
 
 os.system('notify-send "SUCCESS" "well done beb"')

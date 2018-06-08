@@ -1,4 +1,4 @@
-import paths
+import private
 
 class Run:
 
@@ -81,7 +81,7 @@ def is_str(str):
     return not (is_float(str) or is_int(str))
 
 import glob
-files = glob.glob(paths.paths['log_path']+'/posen_train_emb/*')
+files = glob.glob(private.paths['log_path'] + '/posen_train_emb/*')
 records = []
 for file in files:
     with open(file, 'r') as f:

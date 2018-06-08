@@ -1,4 +1,4 @@
-from paths import paths
+from private import paths
 
 
 class Config:
