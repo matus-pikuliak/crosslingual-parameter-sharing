@@ -136,6 +136,9 @@ class Model:
         self.logger.log_m("Now training " + self.name)
         start_time = datetime.datetime.now()
         self.logger.log_m(str(start_time))
+        self.logger.log_m('lr: %f' % self.config.learning_rate)
+        self.logger.log_m('opt: %s' % self.config.optimizer)
+        self.logger.log_m('batch_size: %i' % self.config.batch_size)
         for i in xrange(epochs):
             self.run_epoch(i, train=train, test=test)
         end_time = datetime.datetime.now()
