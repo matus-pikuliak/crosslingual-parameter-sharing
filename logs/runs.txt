@@ -27,13 +27,13 @@
 # python ./test.py epochs 100 learning_rate 0.03 setup neres optimizer sgd &
 # python ./test.py epochs 100 learning_rate 0.003 setup posen train_embeddings True
 
-python ./test.py epochs 100 learning_rate 0.001 setup posen optimizer rmsprop batch_size 16 &&
-python ./test.py epochs 100 learning_rate 0.001 setup posen optimizer rmsprop batch_size 32 &&
-python ./test.py epochs 100 learning_rate 0.001 setup posen optimizer rmsprop batch_size 64 &&
-python ./test.py epochs 100 learning_rate 0.003 setup posen optimizer rmsprop batch_size 16 &&
-python ./test.py epochs 100 learning_rate 0.003 setup posen optimizer rmsprop batch_size 32 &&
-python ./test.py epochs 100 learning_rate 0.003 setup posen optimizer rmsprop batch_size 64 &&
-python ./test.py epochs 100 learning_rate 0.01 setup posen optimizer rmsprop batch_size 16 &&
+# python ./test.py epochs 100 learning_rate 0.001 setup posen optimizer rmsprop batch_size 16 &&
+# python ./test.py epochs 100 learning_rate 0.001 setup posen optimizer rmsprop batch_size 32 &&
+# python ./test.py epochs 100 learning_rate 0.001 setup posen optimizer rmsprop batch_size 64 &&
+# python ./test.py epochs 100 learning_rate 0.003 setup posen optimizer rmsprop batch_size 16 &&
+# python ./test.py epochs 100 learning_rate 0.003 setup posen optimizer rmsprop batch_size 32 &&
+# python ./test.py epochs 100 learning_rate 0.003 setup posen optimizer rmsprop batch_size 64 &&
+# python ./test.py epochs 100 learning_rate 0.01 setup posen optimizer rmsprop batch_size 16 &&
 python ./test.py epochs 100 learning_rate 0.01 setup posen optimizer rmsprop batch_size 32 &&
 python ./test.py epochs 100 learning_rate 0.01 setup posen optimizer rmsprop batch_size 64 &&
 python ./test.py epochs 100 learning_rate 0.001 setup posen optimizer adam batch_size 16 &&
@@ -46,5 +46,11 @@ python ./test.py epochs 100 learning_rate 0.01 setup posen optimizer adam batch_
 python ./test.py epochs 100 learning_rate 0.01 setup posen optimizer adam batch_size 32 &&
 python ./test.py epochs 100 learning_rate 0.01 setup posen optimizer adam batch_size 64 &&
 
-# vacsi batch size
-# lr na CSPOS
+python ./test.py epochs 100 learning_rate 0.003 setup posen optimizer adam batch_size 8 &&
+python ./test.py epochs 100 learning_rate 0.003 setup posen optimizer adam batch_size 128 &&
+python ./test.py epochs 100 learning_rate 0.01 setup posen optimizer adam batch_size 8 &&
+python ./test.py epochs 100 learning_rate 0.01 setup posen optimizer adam batch_size 128 &&
+
+256 batch size
+sputis SL-ST + ML-MT default setup
+dropout?

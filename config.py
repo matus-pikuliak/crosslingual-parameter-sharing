@@ -16,13 +16,13 @@ class Config:
         self.crf_sharing = False # Share CRF across languages?
         self.lstm_size = 300
 
-        self.learning_rate = 0.003
-        self.batch_size = 32
+        self.learning_rate = 0.01
+        self.batch_size = 128
         self.epoch_steps = 512
         self.epochs = 60
         self.clip = 1
         self.dropout = 0.5
-        self.optimizer = 'rmsprop' # rmsprop/adagrad/adam/sgd
+        self.optimizer = 'adam' # rmsprop/adagrad/adam/sgd
 
         # settings
         self.use_gpu = True
