@@ -73,6 +73,12 @@ class Cache:
             counter += addition
 
         alphabet = dict() #
+        lengths = [0 for _ in xrange(500)]
+        # Kazdy znak, ktory sa vyskytne menej ako 10x treba nahradit nejakym OOV znakom
+        # Aka je maximalna dlzka slova?
+        # max acceptable string = 30
+        max_l = 0 #
+        w = ''
 
         for task, lang in self.task_langs:
             if lang not in alphabet: alphabet[lang] = dict() #
@@ -81,7 +87,12 @@ class Cache:
                 for i, (sen_words, sen_labels, length) in enumerate(samples):
                     sen_ids = []
                     for token in sen_words:
-                        for char in token:
+                        l = len(token) #
+                        lengths[l] += 1
+                        if l > max_l:
+                            max_l = l #
+                            w = token
+                        for char in token: #
                             if char not in alphabet[lang]: #
                                 alphabet[lang][char] = 1 #
                             else: #
@@ -95,6 +106,9 @@ class Cache:
                 self.datasets.append(Dataset(lang, task, role, np.array(samples)))
         import pprint #
         pprint.pprint(alphabet)  #
+        print lengths
+        print max_l
+        print w
         exit() #
 
         self.embeddings = np.zeros((counter, self.config.word_emb_size))

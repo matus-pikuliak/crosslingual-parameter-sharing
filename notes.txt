@@ -1,5 +1,7 @@
 # Preprocessing
 
+Slova pri spracovani na urovni znakov berieme do maximalnej dlzky 30.
+
 ## POS
 - vsetko z UD datasetu
 - pri CZ sme spojili vsetky train do jedneho
