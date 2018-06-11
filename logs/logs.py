@@ -81,7 +81,7 @@ def is_str(str):
     return not (is_float(str) or is_int(str))
 
 import glob
-files = glob.glob(private.paths['log_path'] + '/failed/*')
+files = glob.glob(private.paths['log_path'] + '/grid_search/adam/*')
 records = []
 for file in files:
     with open(file, 'r') as f:

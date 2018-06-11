@@ -14,7 +14,7 @@ class Config:
         self.train_embeddings = False
 
         self.crf_sharing = False # Share CRF across languages?
-        self.lstm_size = 300
+        self.lstm_size = 150
 
         self.learning_rate = 0.003
         self.batch_size = 32
@@ -41,4 +41,7 @@ class Config:
                     setattr(self, parameter, float(value))
             except AttributeError:
                 print "Wrong parameter provided: "+parameter
+
+    def dump(self):
+        return ["%s: %s" % (value, parameter) for value, parameter in vars(self).iteritems()]
 

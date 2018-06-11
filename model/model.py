@@ -51,12 +51,11 @@ class Model:
             self.loss[task_code] = tf.reduce_mean(-log_likelihood)
 
             # training
-            if self.config.clip > 0:  # gradient clipping if clip is positive
-                grads, vs = zip(*self.optimizer.compute_gradients(self.loss[task_code]))
-                grads, gnorm = tf.clip_by_global_norm(grads, self.config.clip)
-                self.train_op[task_code] = self.optimizer.apply_gradients(zip(grads, vs))
-            else:
-                self.train_op[task_code] = self.optimizer.minimize(self.loss[task_code])
+            grads, vs = zip(*self.optimizer.compute_gradients(self.loss[task_code]))
+            self.gradient_norm[task_code] = tf.global_norm(grads)
+            if self.config.clip > 0:
+                grads, _ = tf.clip_by_global_norm(grads, self.config.clip)
+            self.train_op[task_code] = self.optimizer.apply_gradients(zip(grads, vs))
 
 
     def build_graph(self):
@@ -117,6 +116,7 @@ class Model:
         self.trans_params = dict()
         self.loss = dict()
         self.train_op = dict()
+        self.gradient_norm = dict()
 
         used_task_codes = []
         for (task, lang) in self.cache.task_langs:
@@ -136,9 +136,7 @@ class Model:
         self.logger.log_m("Now training " + self.name)
         start_time = datetime.datetime.now()
         self.logger.log_m(str(start_time))
-        self.logger.log_m('lr: %f' % self.config.learning_rate)
-        self.logger.log_m('opt: %s' % self.config.optimizer)
-        self.logger.log_m('batch_size: %i' % self.config.batch_size)
+        self.logger.log_m(self.config.dump())
         for i in xrange(epochs):
             self.run_epoch(i, train=train, test=test)
         end_time = datetime.datetime.now()
@@ -170,7 +168,7 @@ class Model:
                     self.learning_rate: (learning_rate or self.config.learning_rate),
                     self.dropout: self.config.dropout
                 }
-                _, train_loss = self.sess.run([self.train_op[task_code], self.loss[task_code]], feed_dict=fd)
+                _, train_loss, gradient_norm = self.sess.run([self.train_op[task_code], self.loss[task_code], self.gradient_norm[task_code]], feed_dict=fd)
 
         self.logger.log_m("End of epoch " + str(epoch_id+1))
 

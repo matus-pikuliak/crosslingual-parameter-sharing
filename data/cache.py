@@ -72,12 +72,20 @@ class Cache:
             self.lang_dicts[key] = self.set_to_bidir_dict(self.lang_dicts[key], counter)
             counter += addition
 
+        alphabet = dict() #
+
         for task, lang in self.task_langs:
+            if lang not in alphabet: alphabet[lang] = dict() #
             for role in ['train', 'test', 'dev']:
                 samples = self.load_files(task, lang, role)
                 for i, (sen_words, sen_labels, length) in enumerate(samples):
                     sen_ids = []
                     for token in sen_words:
+                        for char in token:
+                            if char not in alphabet[lang]: #
+                                alphabet[lang][char] = 1 #
+                            else: #
+                                alphabet[lang][char] += 1 #
                         if token in emb_dicts[lang]:
                             sen_ids.append(self.lang_dicts[lang][1][token])
                         else:
@@ -85,6 +93,9 @@ class Cache:
                     label_ids = [self.task_dicts[task][1][token] for token in sen_labels]
                     samples[i] = (np.array(sen_ids), np.array(label_ids), length)
                 self.datasets.append(Dataset(lang, task, role, np.array(samples)))
+        import pprint #
+        pprint.pprint(alphabet)  #
+        exit() #
 
         self.embeddings = np.zeros((counter, self.config.word_emb_size))
         for lang in valid_languages:
