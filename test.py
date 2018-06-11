@@ -80,7 +80,7 @@ if config.setup == 'posen':
 if config.setup == 'neres':
     train_sets = [[('ner', 'es')]]
 
-for train_set in train_sets
+for train_set in train_sets:
     slack_notifier.send('Run started.')
     logger = Logger(config.log_path, time.strftime('%Y-%m-%d-%H%M%S', time.gmtime()))
     model = Model(cache, config, logger)

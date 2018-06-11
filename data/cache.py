@@ -8,19 +8,25 @@ from dataset import Dataset
 
 
 class Cache:
+    '''Cache object contains following parts:
+    config - Config file with the information about various configuration settings that were used to create this cache file.
+    task_langs - list of (task, language) tuples of present datasets
+    lang_dicts - dictionaries of words for individual languages
+    task_dicts - dictionaries of tags for individual tasks
+    datasets - Dataset objects for individual datasets
+    embeddings - cached embeddings for all the words
+    '''
 
     def __init__(self, config):
         self.config = config
         self.task_langs = []    # tuples (task, lang)
-        self.lang_dicts = {}
-        self.task_dicts = {}
         self.datasets = []
+        self.token_to_id = {}
+        self.id_to_token = {}
         self.embeddings = None
 
-    def create(self, tasks=None, languages=None):
-        valid_languages = set()
-        if not tasks:
-            tasks = utils.dirs(self.config.data_path)
+    def get_task_langs(self, tasks, languages):
+        task_langs = []
         for task in tasks:
             folder_languages = list(utils.dirs(self.config.data_path+task+"/"))
             if not languages:
@@ -28,13 +34,26 @@ class Cache:
             else:
                 languages = [lang for lang in languages if lang in folder_languages]
             for lang in languages:
-                valid_languages.add(lang)
-                self.task_langs.append((task, lang))
+                task_langs.append((task, lang))
+        # TODO: Vyhod chybu ak sa meno jazyka a ulohy rovna.
+        return task_langs
 
-        emb_dicts = {}
+    def valid_languages(self, task_langs):
+        return set([lang for _, lang in task_langs])
+
+    def load_embeddings(self, task_langs):
+        '''
+        Return a dict:
+        {
+            'lang1': {'word1': np.array([d1, d2, d3]), 'word2' ... },
+            'lang2': ...
+        }
+        '''
+        embeddings = {}
         if self.config.word_emb_type == 'static':
-            for lang in valid_languages:
-                emb_dicts[lang] = {'<unk>': np.zeros(self.config.word_emb_size)}
+            for lang in self.valid_languages(task_langs):
+                # zero vector for unknown words
+                embeddings[lang] = {'<unk>': np.zeros(self.config.word_emb_size)}
                 emb_file = os.path.join(self.config.emb_path, lang)
                 with codecs.open(emb_file, encoding='utf-8') as f:
                     f.readline()  # first init line in emb files
@@ -42,80 +61,69 @@ class Cache:
                         try:
                             word, values = line.split(' ', 1)
                             values = np.array([float(val) for val in values.split(' ')])
-                            emb_dicts[lang][word] = values
+                            embeddings[lang][word] = values
                         except:
-                            print(">%s<"%line)
-                        # TODO: check proper emb size
+                            print("Warning: there is a ill formatted line for language %s: '%s'" % (lang, line))
+        return embeddings
 
-        for task, language in self.task_langs:
-            self.lang_dicts.setdefault(language, {'<unk>'})
+    def generate_dicts(self, task_langs, embeddings):
+        lang_dicts = {}
+        task_dicts = {}
+
+        for task, language in task_langs:
+            self.lang_dicts.setdefault(language, {'<unk>'}) # Unkown word token for each language
             self.task_dicts.setdefault(task, set())
 
-            for (words, labels, _) in self.load_files(task, language):
+            for (words, labels) in self.load_files(task, language):
                 for word in words:
-                    if word in emb_dicts[language]:
-                        self.lang_dicts[language].add(word)
+                    if word in embeddings[language]:
+                        lang_dicts[language].add(word)
                 for tag in labels:
-                    self.task_dicts[task].add(tag)
+                    task_dicts[task].add(tag)
+
+        return lang_dicts, task_dicts
+
+    def create(self, tasks=None, languages=None):
+        if not tasks:
+            tasks = utils.dirs(self.config.data_path)
+        self.task_langs = self.get_task_langs(tasks, languages)
+
+        _embeddings = self.load_embeddings(self.task_langs)
+
+        self.lang_dicts, self.task_dicts = self.generate_dicts(self.task_langs, _embeddings)
 
         # Change to bidirectional hash (id_to_token, token_to_id)
-
         if 'ner' in tasks:
-            self.task_dicts['ner'] = self.set_to_bidir_dict(self.task_dicts['ner'])
+            self.id_to_token['ner'], self.token_to_id['ner'] = self.set_to_bidir_dict(self.task_dicts['ner'])
 
         if 'pos' in tasks:
-            self.task_dicts['pos'] = self.set_to_bidir_dict(self.task_dicts['pos'])
+            self.id_to_token['pos'], self.token_to_id['pos'] = self.set_to_bidir_dict(self.task_dicts['pos'])
 
         counter = 0
-        for key in self.lang_dicts.keys():
-            addition = len(self.lang_dicts[key])
-            self.lang_dicts[key] = self.set_to_bidir_dict(self.lang_dicts[key], counter)
+        for lang in self.lang_dicts.keys():
+            addition = len(self.lang_dicts[lang])
+            self.id_to_token[lang], self.token_to_id[lang] = self.set_to_bidir_dict(self.lang_dicts[lang], counter)
             counter += addition
 
-        alphabet = dict() #
-        lengths = [0 for _ in xrange(500)]
-        # Kazdy znak, ktory sa vyskytne menej ako 10x treba nahradit nejakym OOV znakom
-        # Aka je maximalna dlzka slova?
-        # max acceptable string = 30
-        max_l = 0 #
-        w = ''
-
         for task, lang in self.task_langs:
-            if lang not in alphabet: alphabet[lang] = dict() #
             for role in ['train', 'test', 'dev']:
                 samples = self.load_files(task, lang, role)
-                for i, (sen_words, sen_labels, length) in enumerate(samples):
-                    sen_ids = []
-                    for token in sen_words:
-                        l = len(token) #
-                        lengths[l] += 1
-                        if l > max_l:
-                            max_l = l #
-                            w = token
-                        for char in token: #
-                            if char not in alphabet[lang]: #
-                                alphabet[lang][char] = 1 #
-                            else: #
-                                alphabet[lang][char] += 1 #
-                        if token in emb_dicts[lang]:
-                            sen_ids.append(self.lang_dicts[lang][1][token])
+                for i, (words, labels) in enumerate(samples):
+                    word_ids = []
+                    for token in words:
+                        if token in _embeddings[lang]:
+                            word_ids.append(self.token_to_id[lang][token])
                         else:
-                            sen_ids.append(self.lang_dicts[lang][1]['<unk>'])
-                    label_ids = [self.task_dicts[task][1][token] for token in sen_labels]
-                    samples[i] = (np.array(sen_ids), np.array(label_ids), length)
+                            word_ids.append(self.token_to_id[lang]['<unk>'])
+                    label_ids = [self.token_to_id[task][token] for token in labels]
+                    samples[i] = (np.array(word_ids), np.array(label_ids), len(words))
                 self.datasets.append(Dataset(lang, task, role, np.array(samples)))
-        import pprint #
-        pprint.pprint(alphabet)  #
-        print lengths
-        print max_l
-        print w
-        exit() #
 
         self.embeddings = np.zeros((counter, self.config.word_emb_size))
-        for lang in valid_languages:
-            for id in self.lang_dicts[lang][0]:
-                word = self.lang_dicts[lang][0][id]
-                self.embeddings[id] = emb_dicts[lang][word]
+        for lang in self.valid_languages(self.task_langs):
+            for id in self.id_to_token[lang]:
+                word = self.id_to_token[lang][id]
+                self.embeddings[id] = _embeddings[lang][word]
 
     def set_to_bidir_dict(self, set, starting_id=0):
         set = list(set)
@@ -128,8 +136,13 @@ class Cache:
         return id_to_token, token_to_id
 
     def load_files(self, task, language, set_names=None):
-        if set_names is None: set_names = ["train", "dev", "test"]
-        if not isinstance(set_names, list): set_names = [set_names]
+
+        if set_names is None:
+            set_names = ["train", "dev", "test"]
+
+        if not isinstance(set_names, list):
+            set_names = [set_names]
+
         samples = []
         for set_name in set_names:
             with codecs.open(os.path.join(self.config.data_path, task, language, set_name), encoding='utf-8') as f:
@@ -138,10 +151,10 @@ class Cache:
                 for line in f:
                     if line.strip():
                         word, tag = line.split('\t')
-                        word_buffer.append(word.strip().lower())
+                        word_buffer.append(word.strip().lower()) # TODO: Toto dat do configu, niekedy mozeme mat case sensitive embeddings
                         label_buffer.append(tag.strip())
                     else:
-                        samples.append((word_buffer, label_buffer, len(word_buffer)))
+                        samples.append((word_buffer, label_buffer))
                         word_buffer = []
                         label_buffer = []
         return samples
