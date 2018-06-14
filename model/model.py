@@ -24,7 +24,7 @@ class Model:
 
     def add_crf(self, task, task_code):
         with tf.variable_scope(task_code):
-            tag_count = len(self.cache.task_dicts[task][0])
+            tag_count = len(self.cache.task_dicts[task])
 
             # expected output
             # shape = (batch%size, max_length)
@@ -168,7 +168,10 @@ class Model:
                     self.learning_rate: (learning_rate or self.config.learning_rate),
                     self.dropout: self.config.dropout
                 }
-                _, train_loss, gradient_norm = self.sess.run([self.train_op[task_code], self.loss[task_code], self.gradient_norm[task_code]], feed_dict=fd)
+                _, train_loss, gradient_norm = self.sess.run(
+                    [self.train_op[task_code], self.loss[task_code], self.gradient_norm[task_code]]
+                    , feed_dict=fd
+                )
 
         self.logger.log_m("End of epoch " + str(epoch_id+1))
 
@@ -192,7 +195,7 @@ class Model:
         predicted_ner = 0
         precision = 0
         recall = 0
-        O_token = self.cache.task_dicts['ner'][1]['O']
+        O_token = self.cache.token_to_id['ner']['O']
         task_code = self.task_code(dev_set.task, dev_set.language)
 
         for i, (words, labels, lengths) in enumerate(dev_set.dev_batches(512)): # TODO: toto netreba robit v malych batchoch

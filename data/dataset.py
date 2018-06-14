@@ -36,14 +36,14 @@ class Dataset():
         samples = np.copy(samples)
         max_length = np.max(samples[:, 2])
         for _, sample in enumerate(samples):
-            sentence, labels, length = sample
+            sentence, labels, length, char_ids, word_lengths = sample
             padding = max_length - length
             sample[0] = np.append(sentence, np.zeros(padding))
             sample[1] = np.append(labels, np.zeros(padding))
-        return (np.vstack(samples[:, 0]),
-                np.vstack(samples[:, 1]),
-                samples[:, 2])
-
-
-
-
+        return (
+            np.vstack(samples[:, 0]),
+            np.vstack(samples[:, 1]),
+            samples[:, 2],
+            samples[:, 3],
+            samples[:, 4]
+        )

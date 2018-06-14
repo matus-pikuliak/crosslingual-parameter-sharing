@@ -133,10 +133,10 @@ class Cache:
                             word_ids.append(self.token_to_id[lang][token])
                         else:
                             word_ids.append(self.token_to_id[lang]['<unk>'])
-                        word_lengths.append(len(token))
-                        char_id_lists.append(self.pad_word(token, self.character_dict))
+                        # word_lengths.append(len(token))
+                        # char_id_lists.append(self.pad_word(token, self.character_dict))
                     label_ids = [self.token_to_id[task][token] for token in labels]
-                    samples[i] = (np.array(word_ids), np.array(label_ids), len(words), np.array(char_id_lists), np.array(word_lengths))
+                    samples[i] = (np.array(word_ids, dtype=np.int32), np.array(label_ids, dtype=np.int32), len(words), np.array(char_id_lists, dtype=np.int32), np.array(word_lengths, dtype=np.int32))
                 self.datasets.append(Dataset(lang, task, role, np.array(samples)))
 
         self.embeddings = np.zeros((counter, self.config.word_emb_size))
@@ -157,14 +157,12 @@ class Cache:
 
     def pad_word(self, token, character_dict):
         max_length = 30
-        token = token.ljust(max_length, self.__class__.empty_char_token)
         token = list(token)
         token = token[:max_length]
         for i, character in enumerate(token):
             if character not in character_dict:
                 token[i] = self.__class__.unk_char_token
         return np.array([character_dict[character] for character in token])
-
 
     def load_files(self, task, language, set_names=None):
 
@@ -191,7 +189,7 @@ class Cache:
         return samples
 
     def delete(self):
-        files = glob.glob('%s*' % self.config.cache_path)
+        files = glob.glob('%scache.pckl' % self.config.cache_path)
         for f in files:
             os.remove(f)
 
