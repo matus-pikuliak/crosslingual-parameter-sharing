@@ -1,51 +1,4 @@
-import os
-import glob
-import codecs
-import pickle
-import numpy as np
-from utils import general_utils as utils
-from dataset import Dataset
 
-
-class Cache:
-    '''Cache object contains following parts:
-    config - Config file with the information about various configuration settings that were used to create this cache file.
-    task_langs - list of (task, language) tuples of present datasets
-    lang_dicts - dictionaries of words for individual languages
-    task_dicts - dictionaries of tags for individual tasks
-    datasets - Dataset objects for individual datasets
-    embeddings - cached embeddings for all the words
-    '''
-    unk_word_token = '<unk>'
-    unk_char_token = u'\u2716'
-    empty_char_token = u'\u2717'
-
-    def __init__(self, config):
-        self.config = config
-        self.task_langs = []    # tuples (task, lang)
-        self.datasets = []
-        self.token_to_id = {}
-        self.id_to_token = {}
-        self.lang_dicts = {}
-        self.task_dicts = {}
-        self.character_dict = {}
-        self.embeddings = None
-
-    def get_task_langs(self, tasks, languages):
-        task_langs = []
-        for task in tasks:
-            folder_languages = list(utils.dirs(self.config.data_path+task+"/"))
-            if not languages:
-                languages = folder_languages
-            else:
-                languages = [lang for lang in languages if lang in folder_languages]
-            for lang in languages:
-                task_langs.append((task, lang))
-        # TODO: Vyhod chybu ak sa meno jazyka a ulohy rovna.
-        return task_langs
-
-    def valid_languages(self, task_langs):
-        return set([lang for _, lang in task_langs])
 
     def load_embeddings(self, task_langs):
         '''
@@ -100,13 +53,7 @@ class Cache:
         return lang_dicts, task_dicts, character_dict
 
     def create(self, tasks=None, languages=None):
-        if not tasks:
-            tasks = utils.dirs(self.config.data_path)
-        self.task_langs = self.get_task_langs(tasks, languages)
 
-        _embeddings = self.load_embeddings(self.task_langs)
-
-        self.lang_dicts, self.task_dicts, self.character_dict = self.generate_dicts(self.task_langs, _embeddings)
 
         # Change to bidirectional hash (id_to_token, token_to_id)
         if 'ner' in tasks:
@@ -163,46 +110,3 @@ class Cache:
             if character not in character_dict:
                 token[i] = self.__class__.unk_char_token
         return np.array([character_dict[character] for character in token])
-
-    def load_files(self, task, language, set_names=None):
-
-        if set_names is None:
-            set_names = ["train", "dev", "test"]
-
-        if not isinstance(set_names, list):
-            set_names = [set_names]
-
-        samples = []
-        for set_name in set_names:
-            with codecs.open(os.path.join(self.config.data_path, task, language, set_name), encoding='utf-8') as f:
-                word_buffer = []
-                label_buffer = []
-                for line in f:
-                    if line.strip():
-                        word, tag = line.split('\t')
-                        word_buffer.append(word.strip())
-                        label_buffer.append(tag.strip())
-                    else:
-                        samples.append((word_buffer, label_buffer))
-                        word_buffer = []
-                        label_buffer = []
-        return samples
-
-    def delete(self):
-        files = glob.glob('%scache.pckl' % self.config.cache_path)
-        for f in files:
-            os.remove(f)
-
-    def save(self):
-        self.delete()
-        f = codecs.open('%scache.pckl' % self.config.cache_path, 'wb')
-        return pickle.dump(self, f)
-
-    def load(self):
-        f = codecs.open('%scache.pckl' % self.config.cache_path, 'rb')
-        return pickle.load(f)
-
-    def fetch_dataset(self, task, language, role):
-        for dataset in self.datasets:
-            if language == dataset.language and task == dataset.task and role == dataset.role: return dataset
-        raise BaseException('No dataset with required parameters: %s %s %s' % (language, task, role))

@@ -9,7 +9,8 @@ Slova pri spracovani na urovni znakov berieme do maximalnej dlzky 30.
 - v anglickom boli niektore slova presunute, pokial sa na to odkazovalo v text neskor (8.1), tieto som ignoroval
 
 ## NER
-- english - CoNLL'03 (PER, LOC, ORG, MISC) - toto neplati, zobral som nejaky iny dataset a dal som ho 80-10-10
+- english - CoNLL'03 (PER, LOC, ORG, MISC)
+    - toto neplati, zobral som nejaky iny dataset a dal som ho 80-10-10 - treba pozriet preprocessing script
 - spanish - CoNLL'02 (PER, LOC, ORG, MISC)
 - german - germeval (PER, LOC, ORG, MISC)
 - czech - czech named entity corpus (p - PER, g - LOC, i+ms - ORG, oa+op - MISC)
