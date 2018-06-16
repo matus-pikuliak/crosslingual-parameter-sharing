@@ -1,6 +1,8 @@
-import numpy as np
 import codecs
-from sample import Sample
+
+import numpy as np
+
+from data.sample import Sample
 
 
 class Dataset():
@@ -10,7 +12,7 @@ class Dataset():
         self.task = task
         self.role = role
         self.samples = self.load_file(filename)
-        self.prepared = False
+        self.reader = 0
 
     def __len__(self):
         return len(self.samples)
@@ -31,33 +33,35 @@ class Dataset():
                     label_buffer = []
         return samples
 
-    def word_dictionary(self):
-        d = set()
+    def lang_vocab(self, embedding_vocab=set()):
+        vocab = set()
         for sample in self.samples:
             for word in sample.words:
-                d.add(word)
-        return d
+                if word.lower() in embedding_vocab: # TODO: lower() bcs of MUSE embeddings
+                    vocab.add(word.lower())
+        return vocab
 
-    def label_dictionary(self):
-        d = set()
+    def task_vocab(self):
+        vocab = set()
         for sample in self.samples:
             for label in sample.labels:
-                d.add(label)
-        return d
+                vocab.add(label)
+        return vocab
 
-    def char_histogram(self):
-        h = dict()
+    def char_hist(self):
+        hist = dict()
         for sample in self.samples:
             for word in sample.words:
                 for char in word:
-                    h.setdefault(char, 0)
-                    h[char] += 1
-        return h
+                    hist.setdefault(char, 0)
+                    hist[char] += 1
+        return hist
 
-    def prepare(self):
-        return 1
-        # kroky na pripravu
-        # nastav prepared na True
+    def prepare(self, lang_vocab, task_vocab, char_vocab):
+        for sample in self.samples:
+            sample.prepare()
+        self.samples = np.array(self.samples)
+        np.random.shuffle(self.samples)
 
     def get_sample(self):
         return self.samples[0]
@@ -77,17 +81,8 @@ class Dataset():
         return batches
 
     def final_batch(self, samples):
-        samples = np.copy(samples)
-        max_length = np.max(samples[:, 2])
-        for _, sample in enumerate(samples):
-            sentence, labels, length, char_ids, word_lengths = sample
-            padding = max_length - length
-            sample[0] = np.append(sentence, np.zeros(padding))
-            sample[1] = np.append(labels, np.zeros(padding))
-        return (
-            np.vstack(samples[:, 0]),
-            np.vstack(samples[:, 1]),
-            samples[:, 2],
-            samples[:, 3],
-            samples[:, 4]
-        )
+        max_sentence_length = np.max(samples[:, 2])
+        max_word_length = np.max([np.max(l) for l in samples[:, 3]])
+        return np.array([
+            sample.padded(max_word_length, max_sentence_length) for sample in samples
+        ])

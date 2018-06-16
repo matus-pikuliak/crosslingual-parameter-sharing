@@ -46,8 +46,7 @@
                     task_dicts[task].add(tag)
 
         character_dict = set([character for character in character_dict if character_dict[character] > 30])
-        character_dict.add(self.__class__.unk_char_token)
-        character_dict.add(self.__class__.empty_char_token)
+
         character_dict = self.set_to_bidir_dict(character_dict)[1]
 
         return lang_dicts, task_dicts, character_dict
@@ -92,21 +91,3 @@
                 word = self.id_to_token[lang][id]
                 self.embeddings[id] = _embeddings[lang][word.lower()]
 
-    def set_to_bidir_dict(self, set, starting_id=0):
-        set = list(set)
-        id_to_token = {}
-        token_to_id = {}
-        for i in xrange(len(set)):
-            i_ = i + starting_id
-            id_to_token[i_] = set[i]
-            token_to_id[set[i]] = i_
-        return id_to_token, token_to_id
-
-    def pad_word(self, token, character_dict):
-        max_length = 30
-        token = list(token)
-        token = token[:max_length]
-        for i, character in enumerate(token):
-            if character not in character_dict:
-                token[i] = self.__class__.unk_char_token
-        return np.array([character_dict[character] for character in token])
