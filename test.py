@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from data.cache import Cache
+from data.data_manager import DataManager
 from config import Config
 from model.model import Model
 import os
@@ -13,8 +13,8 @@ from private import slack_config
 slack_notifier = SlackNotifier(slack_config['token'], slack_config['channel'])
 
 config = Config(sys.argv[1:])
-cache = Cache(config)
-cache = cache.load()
+dm = DataManager(tasks=['pos', 'ner'], languages=['en'], config=config)
+dm.prepare()
 
 a = [
     [('ner', 'en')],
@@ -83,7 +83,7 @@ if config.setup == 'neres':
 for train_set in train_sets:
     slack_notifier.send('Run started.')
     logger = Logger(config.log_path, time.strftime('%Y-%m-%d-%H%M%S', time.gmtime()))
-    model = Model(cache, config, logger)
+    model = Model(dm, config, logger)
     model.build_graph()
     model.run_experiment(
         train=train_set,

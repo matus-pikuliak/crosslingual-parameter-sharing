@@ -25,7 +25,7 @@ class DataManager:
                 if not os.path.isfile(filename):
                     raise ValueError('File %s does not exist.' % filename)
 
-                dt = Dataset(task, lang, role, filename)
+                dt = Dataset(task, lang, role, filename=filename)
                 self.datasets.append(dt)
 
     def prepare(self):
@@ -78,6 +78,10 @@ class DataManager:
         self.char_vocab.add(constants.EMPTY_CHAR)
         self.char_vocab = Bidir(self.char_vocab)
 
+        # create test-dev datasets?
+        for dt in self.filter_datasets(role="train"):
+            self.datasets.append(Dataset(dt.task, dt.lang, 'train-dev', samples=dt.get_samples(1024)))
+
         # create final datasets and remove fulltext information
         for dt in self.datasets:
             dt.prepare(self.lang_vocabs[dt.lang], self.task_vocabs[dt.task], self.char_vocab)
@@ -87,6 +91,16 @@ class DataManager:
 
     def languages(self):
         return set([tl[1] for tl in self.tls])
+
+    def fetch_dataset(self, task, lang, role):
+        for dt in self.datasets:
+            if (
+                task == dt.task and
+                lang == dt.lang and
+                role == dt.role
+            ):
+                return dt
+        raise AttributeError('No dataset with required parameters: %s %s %s' % (task, lang, role))
 
     def filter_datasets(self, task=None, lang=None, role=None):
         result = []

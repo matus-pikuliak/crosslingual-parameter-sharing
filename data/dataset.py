@@ -7,11 +7,14 @@ from data.sample import Sample
 
 class Dataset():
 
-    def __init__(self, task, lang, role, filename):
+    def __init__(self, task, lang, role, filename=None, samples=None):
         self.lang = lang
         self.task = task
         self.role = role
-        self.samples = self.load_file(filename)
+        if filename is not None:
+            self.samples = self.load_file(filename)
+        else:
+            self.samples = samples
         self.reader = 0
 
     def __len__(self):
@@ -59,17 +62,17 @@ class Dataset():
 
     def prepare(self, lang_vocab, task_vocab, char_vocab):
         for sample in self.samples:
-            sample.prepare()
+            sample.prepare(lang_vocab, task_vocab, char_vocab)
         self.samples = np.array(self.samples)
         np.random.shuffle(self.samples)
 
-    def get_sample(self):
-        return self.samples[0]
+    def get_samples(self, amount=1):
+        return self.samples[:amount]
 
     def next_batch(self, batch_size): # If cyclic is set to true it will fill the batch to batch_size if it reaches the end of dataset
         samples = np.take(self.samples, xrange(self.reader, self.reader + batch_size), axis=0, mode='wrap')
         self.reader += batch_size
-        if self.reader > len(self.samples):
+        if self.reader >= len(self.samples):
             self.reader = len(self.samples) % self.reader
             np.random.shuffle(self.samples)
         return self.final_batch(samples)
@@ -81,8 +84,16 @@ class Dataset():
         return batches
 
     def final_batch(self, samples):
-        max_sentence_length = np.max(samples[:, 2])
-        max_word_length = np.max([np.max(l) for l in samples[:, 3]])
-        return np.array([
-            sample.padded(max_word_length, max_sentence_length) for sample in samples
+        max_sentence_length = max([sample.word_count for sample in samples])
+        max_word_length = max([max(sample.char_count) for sample in samples])
+        data = np.array([
+            sample.padded(max_sentence_length, max_word_length) for sample in samples
         ])
+        return (
+            np.stack(data[:, 0]),
+            data[:, 1]
+            ,
+            np.stack(data[:, 2]),
+            data[:, 3],
+            data[:, 4]
+        )

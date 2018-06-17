@@ -7,3 +7,6 @@ class Bidir():
         for i, el in enumerate(st):
             self.token_to_id[el] = i+start
             self.id_to_token[i+start] = el
+
+    def __len__(self):
+        return len(self.token_to_id)

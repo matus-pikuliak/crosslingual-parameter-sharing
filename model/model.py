@@ -6,9 +6,9 @@ import datetime
 
 class Model:
 
-    def __init__(self, cache, config, logger):
+    def __init__(self, data_manager, config, logger):
         self.config = config
-        self.cache = cache
+        self.dm = data_manager
         self.sess = None
         self.logger = logger
 
@@ -24,7 +24,7 @@ class Model:
 
     def add_crf(self, task, task_code):
         with tf.variable_scope(task_code):
-            tag_count = len(self.cache.task_dicts[task])
+            tag_count = len(self.dm.task_vocabs[task])
 
             # expected output
             # shape = (batch%size, max_length)
@@ -92,7 +92,7 @@ class Model:
         _word_embeddings = tf.get_variable(
             dtype=tf.float32,
             # shape=[None, self.config.word_emb_size],
-            initializer=tf.cast(self.cache.embeddings, tf.float32),
+            initializer=tf.cast(self.dm.embeddings, tf.float32),
             trainable=self.config.train_embeddings,
             name="word_embeddings")
         self.word_embeddings = tf.nn.embedding_lookup(_word_embeddings, self.word_ids,
@@ -119,7 +119,7 @@ class Model:
         self.gradient_norm = dict()
 
         used_task_codes = []
-        for (task, lang) in self.cache.task_langs:
+        for (task, lang) in self.dm.tls:
             task_code = self.task_code(task, lang)
             if task_code not in used_task_codes:
                 self.add_crf(task, task_code)
@@ -148,23 +148,23 @@ class Model:
                   test,
                   learning_rate=None):
 
-        train_sets = [self.cache.fetch_dataset(task, lang, 'train') for (task, lang) in train]
-        dev_sets = [self.cache.fetch_dataset(task, lang, 'dev') for (task, lang) in train]
-        dev_sets += [self.cache.fetch_dataset(task, lang, 'dev') for (task, lang) in test]
+        train_sets = [self.dm.fetch_dataset(task, lang, 'train') for (task, lang) in train]
+        dev_sets = [self.dm.fetch_dataset(task, lang, 'dev') for (task, lang) in train]
+        dev_sets += [self.dm.fetch_dataset(task, lang, 'train-dev') for (task, lang) in train]
+        dev_sets += [self.dm.fetch_dataset(task, lang, 'dev') for (task, lang) in test]
 
-        for train_set in train_sets:
-            train_set.eval_set = dataset.Dataset(train_set.language, train_set.task, "train-1k",
-                                                train_set.samples[:1000])
 
         for _ in xrange(self.config.epoch_steps):
-            for train_set in train_sets:
-                task_code = self.task_code(train_set.task, train_set.language)
-                minibatch = train_set.next_batch(self.config.batch_size)
-                (word_ids, labels, lengths) = minibatch
+            for st in train_sets:
+                task_code = self.task_code(st.task, st.lang)
+
+                minibatch = st.next_batch(self.config.batch_size)
+                word_ids, char_ids, label_ids, sentence_lengths, word_lengths = minibatch
+
                 fd = {
                     self.word_ids: word_ids,
-                    self.true_labels[task_code]: labels,
-                    self.sequence_lengths: lengths,
+                    self.true_labels[task_code]: label_ids,
+                    self.sequence_lengths: sentence_lengths,
                     self.learning_rate: (learning_rate or self.config.learning_rate),
                     self.dropout: self.config.dropout
                 }
@@ -175,17 +175,15 @@ class Model:
 
         self.logger.log_m("End of epoch " + str(epoch_id+1))
 
-        for sample_set in dev_sets + train_sets:
-            if sample_set.role == 'train':
-               sample_set = sample_set.eval_set
+        for st in dev_sets:
             metrics = {
-                'language': sample_set.language,
-                'task': sample_set.task,
-                'role': sample_set.role,
+                'language': st.lang,
+                'task': st.task,
+                'role': st.role,
                 'epoch': epoch_id + 1,
                 'run': self.name
             }
-            metrics.update(self.run_evaluate(sample_set))
+            metrics.update(self.run_evaluate(st))
             self.logger.log_r(metrics)
 
     def run_evaluate(self, dev_set):
@@ -195,14 +193,15 @@ class Model:
         predicted_ner = 0
         precision = 0
         recall = 0
-        O_token = self.cache.token_to_id['ner']['O']
-        task_code = self.task_code(dev_set.task, dev_set.language)
+        O_token = self.dm.task_vocabs['ner'].token_to_id['O']
+        task_code = self.task_code(dev_set.task, dev_set.lang)
 
-        for i, (words, labels, lengths) in enumerate(dev_set.dev_batches(512)): # TODO: toto netreba robit v malych batchoch
-            labels_predictions, loss = self.predict_batch(words, labels, lengths, task_code)
+        for i, minibatch in enumerate(dev_set.dev_batches(512)):
+            word_ids, char_ids, label_ids, sentence_lengths, word_lengths = minibatch
+            labels_ids_predictions, loss = self.predict_batch(word_ids, label_ids, sentence_lengths, task_code)
             losses.append(loss)
 
-            for lab, lab_pred, length in zip(labels, labels_predictions, lengths):
+            for lab, lab_pred, length in zip(label_ids, labels_ids_predictions, sentence_lengths):
                 lab = lab[:length]
                 lab_pred = lab_pred[:length]
                 for (true_t, pred_t) in zip(lab, lab_pred):
