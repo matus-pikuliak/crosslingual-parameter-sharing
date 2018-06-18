@@ -89,11 +89,11 @@ class Dataset():
         data = np.array([
             sample.padded(max_sentence_length, max_word_length) for sample in samples
         ])
+
         return (
             np.stack(data[:, 0]),
-            data[:, 1]
-            ,
+            np.stack(data[:, 1]),
             np.stack(data[:, 2]),
-            data[:, 3],
-            data[:, 4]
+            np.stack(data[:, 3]),
+            np.stack(data[:, 4]),
         )

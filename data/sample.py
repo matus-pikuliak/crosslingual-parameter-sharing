@@ -38,11 +38,14 @@ class Sample:
             self.pad_matrix(self.char_ids, max_word_length, max_sentence_length),
             self.pad_sequence(self.label_ids, max_sentence_length),
             self.word_count,
-            self.char_count
+            self.pad_sequence(self.char_count, max_sentence_length)
         ])
 
     def pad_sequence(self, seq, width):
         return np.pad(seq, (0, width - len(seq)), mode='constant', constant_values=0)
 
     def pad_matrix(self, matrix, width, height):
-        return np.stack([self.pad_sequence(row, width) for row in matrix])
+        current_height = len(matrix)
+        m = np.stack([self.pad_sequence(row, width) for row in matrix])
+        m = np.append(m, np.zeros((height - current_height, width)), axis=0)
+        return m

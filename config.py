@@ -12,9 +12,12 @@ class Config:
         self.word_emb_type = 'static' # static/fasttext
         self.word_emb_size = 300
         self.train_embeddings = False
+        self.char_emb_size = 30
+        self.char_level = True
 
         self.crf_sharing = False # Share CRF across languages?
-        self.lstm_size = 150
+        self.word_lstm_size = 150
+        self.char_lstm_size = 100
 
         self.learning_rate = 0.01
         self.batch_size = 128
@@ -44,4 +47,3 @@ class Config:
 
     def dump(self):
         return ["%s: %s" % (value, parameter) for value, parameter in vars(self).iteritems()]
-

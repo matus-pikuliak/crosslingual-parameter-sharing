@@ -92,6 +92,9 @@ class DataManager:
     def languages(self):
         return set([tl[1] for tl in self.tls])
 
+    def char_count(self):
+        return len(self.char_vocab)
+
     def fetch_dataset(self, task, lang, role):
         for dt in self.datasets:
             if (
