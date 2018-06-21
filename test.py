@@ -5,14 +5,11 @@ from config import Config
 from model.model import Model
 import os
 import sys
-from logs.logger import Logger
 import time
-
-from logs.slack_notifier import SlackNotifier
-from private import slack_config
-slack_notifier = SlackNotifier(slack_config['token'], slack_config['channel'])
+from logs.logger import Logger
 
 config = Config(sys.argv[1:])
+Logger.initialize(config) # Logger can now be used
 dm = DataManager(tasks=['pos', 'ner'], languages=['en'], config=config)
 dm.prepare()
 
@@ -71,8 +68,7 @@ d = [
     ]
     ]
 
-if config.setup == 'default':
-    train_sets = a+b+c+d
+train_sets = a+b+c+d
 
 if config.setup == 'posen':
     train_sets = [[('pos', 'en')]]
@@ -81,9 +77,9 @@ if config.setup == 'neres':
     train_sets = [[('ner', 'es')]]
 
 for train_set in train_sets:
-    slack_notifier.send('Run started.')
+    Logger().log_critical('Run started.')
     logger = Logger(config.log_path, time.strftime('%Y-%m-%d-%H%M%S', time.gmtime()))
-    model = Model(dm, config, logger)
+    model = Model(dm, config, Logger())
     model.build_graph()
     model.run_experiment(
         train=train_set,
@@ -91,6 +87,6 @@ for train_set in train_sets:
         epochs=config.epochs
     )
     model.close()
-    slack_notifier.send('Run done.')
+    Logger().log_critical('Run done.')
 
 os.system('notify-send "SUCCESS" "well done beb"')

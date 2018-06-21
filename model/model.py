@@ -166,15 +166,15 @@ class Model:
 
     def run_experiment(self, train, test, epochs):
         self.name = ' '.join([' '.join(t) for t in train])
-        self.logger.log_m("Now training " + self.name)
+        self.logger.log_message("Now training " + self.name)
         start_time = datetime.datetime.now()
-        self.logger.log_m(str(start_time))
-        self.logger.log_m(self.config.dump())
+        self.logger.log_message(start_time)
+        self.logger.log_message(self.config.dump())
         for i in xrange(epochs):
             self.run_epoch(i, train=train, test=test)
         end_time = datetime.datetime.now()
-        self.logger.log_m(str(end_time))
-        self.logger.log_m('Training took:'+str(end_time-start_time))
+        self.logger.log_message(end_time)
+        self.logger.log_message('Training took:'+str(end_time-start_time))
 
     def run_epoch(self, epoch_id,
                   train,
@@ -208,7 +208,7 @@ class Model:
                     , feed_dict=fd
                 )
 
-        self.logger.log_m("End of epoch " + str(epoch_id+1))
+        self.logger.log_message("End of epoch " + str(epoch_id+1))
 
         for st in dev_sets:
             metrics = {
@@ -219,7 +219,7 @@ class Model:
                 'run': self.name
             }
             metrics.update(self.run_evaluate(st))
-            self.logger.log_r(metrics)
+            self.logger.log_result(metrics)
 
     def run_evaluate(self, dev_set):
         accs = []

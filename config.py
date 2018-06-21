@@ -16,7 +16,7 @@ class Config:
         self.char_level = True
 
         self.crf_sharing = False # Share CRF across languages?
-        self.word_lstm_size = 150
+        self.word_lstm_size = 300
         self.char_lstm_size = 100
 
         self.learning_rate = 0.01
@@ -29,6 +29,11 @@ class Config:
 
         # settings
         self.use_gpu = True
+        self.logger = 'default'
+
+        from private import slack_config
+        self.slack_token = slack_config['token']
+        self.slack_channel = slack_config['channel']
 
         for i in xrange(0, len(parameters)-1, 2):
             parameter = parameters[i]
