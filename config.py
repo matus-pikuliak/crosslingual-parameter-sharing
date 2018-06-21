@@ -1,3 +1,6 @@
+from logs.debug_logger import DebugLogger
+from logs.default_logger import DefaultLogger
+from logs.production_logger import ProductionLogger
 from private import paths
 
 
@@ -29,7 +32,7 @@ class Config:
 
         # settings
         self.use_gpu = True
-        self.logger = 'default'
+        self.logger = 'production'
 
         from private import slack_config
         self.slack_token = slack_config['token']
@@ -52,3 +55,14 @@ class Config:
 
     def dump(self):
         return ["%s: %s" % (value, parameter) for value, parameter in vars(self).iteritems()]
+
+    def initialize_logger(self):
+        filename = self.log_path
+        slack_channel = self.slack_channel
+        slack_token = self.slack_token
+        logger = {
+            'default': DefaultLogger,
+            'debug': DebugLogger,
+            'production': ProductionLogger
+        }[self.logger]
+        logger(filename=filename, slack_channel=slack_channel, slack_token=slack_token)

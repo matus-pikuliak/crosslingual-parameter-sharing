@@ -1,7 +1,4 @@
 import sys, codecs
-from logs.default_logger import DefaultLogger
-from logs.debug_logger import DebugLogger
-from logs.production_logger import ProductionLogger
 
 
 class Logger(object):
@@ -23,21 +20,11 @@ class Logger(object):
         return Logger.instance
 
     def __init__(self, filename=None, slack_channel=None, slack_token=None):
+        print self
+        print filename
         self.filename = filename
         self.slack_channel = slack_channel
         self.slack_token = slack_token
-
-    @staticmethod
-    def initialize(config):
-        filename = config.log_path
-        slack_channel = config.slack_channel
-        slack_token = config.slack_token
-        logger = {
-            'default': DefaultLogger,
-            'debug': DebugLogger,
-            'production': ProductionLogger
-        }[config.logger]
-        logger(filename=filename, slack_channel=slack_channel, slack_token=slack_token)
 
     def log_debug(self, msg):
         raise TypeError('This method needs to be defined in subclass.')
@@ -61,6 +48,8 @@ class Logger(object):
         sys.stderr.write(str(msg))
 
     def file(self, msg):
+        print self
+        print self.filename
         with codecs.open(self.filename, 'a', encoding='utf-8') as f:
             f.write(str(msg))
 

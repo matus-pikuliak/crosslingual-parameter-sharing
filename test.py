@@ -9,7 +9,7 @@ import time
 from logs.logger import Logger
 
 config = Config(sys.argv[1:])
-Logger.initialize(config) # Logger can now be used
+config.initialize_logger() # Logger can now be used
 dm = DataManager(tasks=['pos', 'ner'], languages=['en'], config=config)
 dm.prepare()
 
