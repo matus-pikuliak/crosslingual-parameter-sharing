@@ -1,7 +1,0 @@
-default: &default
-  a: true
-  b: nazdar
-
-debug:
-  <<: *default
-  a:

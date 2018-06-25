@@ -6,6 +6,7 @@ from bidir import Bidir
 from embedding_manager import EmbeddingManager
 import constants
 
+
 class DataManager:
 
     def __init__(self, tls=None, tasks=None, languages=None, config=None):

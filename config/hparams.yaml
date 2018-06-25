@@ -1,0 +1,33 @@
+default: &default
+
+  word_emb_type: static
+  word_emb_size: 300
+  train_emb: false
+  char_emb_size: 30
+  char_emb: true
+
+  crf_sharing: false
+  word_lstm_size: 300
+  char_lstm_size: 100
+
+  learning_rate: 0.01
+  batch_size: 128
+  epoch_steps: 512
+  epochs: 60
+  clip: 1
+  dropout: 0.5
+  optimizer: adam # rmsprop/adam/adagrad/sgd
+
+  setup: default
+  tasks: null
+
+debug:
+  <<: *default
+  word_lstm_size: 10
+  char_lstm_size: 10
+  batch_size: 8
+  epoch_steps: 10
+  epochs: 1
+
+production:
+  <<: *default

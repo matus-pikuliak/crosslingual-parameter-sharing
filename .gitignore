@@ -1,4 +1,4 @@
 .idea
 private.py
 sandbox.py
-config/private.yaml
+config/settings.yaml

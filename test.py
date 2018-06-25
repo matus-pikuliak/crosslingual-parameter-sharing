@@ -1,17 +1,16 @@
 # -*- coding: utf-8 -*-
 
-from data.data_manager import DataManager
-from config import Config
-from model.model import Model
 import os
 import sys
 import time
+
+from config.config import Config
+from data.data_manager import DataManager
 from logs.logger import Logger
+from model.model import Model
 
 config = Config(sys.argv[1:])
-config.initialize_logger() # Logger can now be used
-dm = DataManager(tasks=['pos', 'ner'], languages=['en'], config=config)
-dm.prepare()
+config.initialize_logger()  # Logger can now be used
 
 a = [
     [('ner', 'en')],
@@ -68,13 +67,15 @@ d = [
     ]
     ]
 
-train_sets = a+b+c+d
+if config.tasks is None:
+    train_sets = a+b+c+d
+    tls = [(task, lang) for task in ['ner', 'pos'] for lang in ['en', 'es', 'de', 'cs']]
+else:
+    train_sets = config.tasks
+    tls = config.tasks
 
-if config.setup == 'posen':
-    train_sets = [[('pos', 'en')]]
-
-if config.setup == 'neres':
-    train_sets = [[('ner', 'es')]]
+dm = DataManager(tls=tls, config=config)
+dm.prepare()
 
 for train_set in train_sets:
     Logger().log_critical('Run started.')

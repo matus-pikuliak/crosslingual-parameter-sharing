@@ -1,0 +1,13 @@
+default: &default
+  use_gpu: true
+  slack_token: token_here
+  slack_channel: channel_name
+  data_path: /path/to/data
+  emb_path: /path/to/embeddings
+  log_path: /logs/will/be/here
+
+debug:
+  <<: *default
+
+production:
+  <<: *default
