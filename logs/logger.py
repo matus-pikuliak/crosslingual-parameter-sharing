@@ -20,6 +20,8 @@ class Logger(object):
         return Logger.instance
 
     def __init__(self, filename=None, slack_channel=None, slack_token=None):
+        print self
+        print filename
         self.filename = filename
         self.slack_channel = slack_channel
         self.slack_token = slack_token
