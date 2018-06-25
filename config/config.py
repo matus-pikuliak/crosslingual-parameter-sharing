@@ -27,7 +27,7 @@ class Config:
                 continue
 
             if arg == 'tasks':
-                values['tasks'] = args[i+1:]
+                values['tasks'] = [tuple(a.split('-')) for a in args[i+1:]]
                 break
 
             if arg == 'setup' and i != 0:
@@ -56,14 +56,3 @@ class Config:
     def dump(self):
         return ["%s: %s" % (value, parameter) for value, parameter in vars(self).iteritems()]
 
-    def initialize_logger(self):
-        filename = self.log_path
-        slack_channel = self.slack_channel
-        slack_token = self.slack_token
-        logger = {
-            'default': DefaultLogger,
-            'debug': DebugLogger,
-            'production': ProductionLogger
-        }[self.setup]
-
-        logger(filename=filename, slack_channel=slack_channel, slack_token=slack_token)

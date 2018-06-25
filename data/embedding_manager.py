@@ -2,6 +2,7 @@ import os
 import codecs
 import numpy as np
 
+
 class EmbeddingManager:
 
     def __init__(self, languages, config):

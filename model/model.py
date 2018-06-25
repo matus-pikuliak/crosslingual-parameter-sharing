@@ -1,16 +1,17 @@
 import tensorflow as tf
 import numpy as np
-from data import dataset
 import datetime
+import os
+from logs.logger_init import LoggerInit
 
 
 class Model:
 
-    def __init__(self, data_manager, config, logger):
+    def __init__(self, data_manager, config):
         self.config = config
         self.dm = data_manager
         self.sess = None
-        self.logger = logger
+        self.logger = self.initialize_logger()
 
     def close(self):
         self.sess.close()
@@ -57,7 +58,6 @@ class Model:
                 grads, _ = tf.clip_by_global_norm(grads, self.config.clip)
             self.train_op[task_code] = self.optimizer.apply_gradients(zip(grads, vs))
 
-
     def build_graph(self):
 
         #
@@ -99,7 +99,7 @@ class Model:
             dtype=tf.float32,
             # shape=[None, self.config.word_emb_size],
             initializer=tf.cast(self.dm.embeddings, tf.float32),
-            trainable=self.config.train_embeddings,
+            trainable=self.config.train_emb,
             name="word_embeddings")
         self.word_embeddings = tf.nn.embedding_lookup(_word_embeddings, self.word_ids,
         name="word_embeddings_lookup")
@@ -165,6 +165,7 @@ class Model:
         self.sess.run(tf.global_variables_initializer())
 
     def run_experiment(self, train, test, epochs):
+        self.logger.log_critical('Run started.')
         self.name = ' '.join([' '.join(t) for t in train])
         self.logger.log_message("Now training " + self.name)
         start_time = datetime.datetime.now()
@@ -175,6 +176,7 @@ class Model:
         end_time = datetime.datetime.now()
         self.logger.log_message(end_time)
         self.logger.log_message('Training took:'+str(end_time-start_time))
+        self.logger.log_critical('Run done.')
 
     def run_epoch(self, epoch_id,
                   train,
@@ -228,7 +230,6 @@ class Model:
         predicted_ner = 0
         precision = 0
         recall = 0
-        O_token = self.dm.task_vocabs['ner'].token_to_id['O']
         task_code = self.task_code(dev_set.task, dev_set.lang)
 
         for i, minibatch in enumerate(dev_set.dev_batches(32)):
@@ -243,6 +244,7 @@ class Model:
                 for (true_t, pred_t) in zip(lab, lab_pred):
                     accs.append(true_t == pred_t)
                     if dev_set.task == 'ner':
+                        O_token = self.dm.task_vocabs['ner'].token_to_id['O']
                         if true_t != O_token:
                             expected_ner += 1
                         if pred_t != O_token:
@@ -290,3 +292,12 @@ class Model:
             viterbi_sequences += [viterbi_seq]
 
         return viterbi_sequences, loss
+
+    def initialize_logger(self):
+        timestamp = datetime.datetime.now().strftime('%Y-%m-%d-%H%M%S')
+        return LoggerInit(
+            self.config.setup,
+            filename=os.path.join(self.config.log_path, timestamp),
+            slack_channel=self.config.slack_channel,
+            slack_token=self.config.slack_token
+        ).logger

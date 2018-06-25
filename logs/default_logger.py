@@ -1,4 +1,5 @@
 from logger import Logger
+import os
 
 
 class DefaultLogger(Logger):
@@ -17,3 +18,4 @@ class DefaultLogger(Logger):
 
     def log_critical(self, msg):
         self.file('# %s' % msg)
+        os.system('notify-send %s' % msg)
