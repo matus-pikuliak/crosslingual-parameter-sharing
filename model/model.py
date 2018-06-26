@@ -180,8 +180,7 @@ class Model:
 
     def run_epoch(self, epoch_id,
                   train,
-                  test,
-                  learning_rate=None):
+                  test):
 
         train_sets = [self.dm.fetch_dataset(task, lang, 'train') for (task, lang) in train]
         dev_sets = [self.dm.fetch_dataset(task, lang, 'dev') for (task, lang) in train]
@@ -199,7 +198,7 @@ class Model:
                     self.word_ids: word_ids,
                     self.true_labels[task_code]: label_ids,
                     self.sequence_lengths: sentence_lengths,
-                    self.learning_rate: (learning_rate or self.config.learning_rate),
+                    self.learning_rate: self.config.learning_rate,
                     self.dropout: self.config.dropout,
                     self.word_lengths: word_lengths,
                     self.char_ids: char_ids
