@@ -21,6 +21,8 @@ default: &default
   setup: default
   tasks: null
 
+  cudnn_lstm: True
+
 debug:
   <<: *default
   word_lstm_size: 10
