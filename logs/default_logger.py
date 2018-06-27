@@ -11,11 +11,14 @@ class DefaultLogger(Logger):
         self.stderr(msg)
 
     def log_message(self, msg):
+        self.stdout(msg)
         self.file('# %s' % msg)
 
     def log_result(self, msg):
+        self.stdout(msg)
         self.file(msg)
 
     def log_critical(self, msg):
+        self.stdout(msg)
         self.file('# %s' % msg)
         os.system('notify-send %s' % msg)
