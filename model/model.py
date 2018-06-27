@@ -29,7 +29,7 @@ class Model:
 
             # expected output
             # shape = (batch%size, max_length)
-            self.true_labels[task_code] = tf.placeholder(tf.int32, shape=[None, None],
+            self.true_labels[task_code] = tf.placeholder(tf.int32, shape=[None, None, None],
                                                   name="labels")
             # projection
             W = tf.get_variable(dtype=tf.float32, shape=[2 * self.config.word_lstm_size, tag_count],
@@ -46,8 +46,8 @@ class Model:
             # loss
             log_likelihood, trans_params = tf.contrib.crf.crf_log_likelihood(
                 self.predicted_labels[task_code],
-                self.true_labels[task_code],
-                self.sequence_lengths)
+                tf.squeeze(self.true_labels[task_code]),
+                tf.reshape(self.sequence_lengths, [-1]))
             self.trans_params[task_code] = trans_params  # need to evaluate it for decoding
             self.loss[task_code] = tf.reduce_mean(-log_likelihood)
 
@@ -57,6 +57,16 @@ class Model:
             if self.config.clip > 0:
                 grads, _ = tf.clip_by_global_norm(grads, self.config.clip)
             self.train_op[task_code] = self.optimizer.apply_gradients(zip(grads, vs))
+
+            self.dataset[task_code] = tf.data.Dataset.from_tensor_slices((
+                self.word_ids,
+                self.char_ids,
+                self.true_labels[task_code],
+                self.sequence_lengths,
+                self.word_lengths
+            ))
+            self.iterator[task_code] = self.dataset[task_code].make_initializable_iterator()
+            self.next_element = self.iterator[task_code].get_next()
 
     def build_graph(self):
 
@@ -71,16 +81,17 @@ class Model:
         #
         # inputs
         # shape = (batch size, max_sentence_length)
-        self.word_ids = tf.placeholder(tf.int32, shape=[None, None],
+        # TODO: Treba zjednotit tieto nazvy s nazvami v module dataset
+        self.word_ids = tf.placeholder(tf.int32, shape=[None, None, None],
         name="word_ids")
         # shape = (batch size)
-        self.sequence_lengths = tf.placeholder(tf.int32, shape=[None],
+        self.sequence_lengths = tf.placeholder(tf.int32, shape=[None, None],
         name="sequence_lengths")
         # shape = (batch_size, max_sentence_length, max_word_length)
-        self.char_ids = tf.placeholder(tf.int32, shape=[None, None, None],
+        self.char_ids = tf.placeholder(tf.int32, shape=[None, None, None, None],
         name="char_ids")
         # shape = (batch_size, max_sentence_length)
-        self.word_lengths = tf.placeholder(tf.int32, shape=[None, None],
+        self.word_lengths = tf.placeholder(tf.int32, shape=[None, None, None],
         name="word_lengths")
 
         # optimizer
@@ -116,8 +127,8 @@ class Model:
             with tf.variable_scope("char_bi-lstm"):
                 max_sentence_length = tf.shape(self.char_embeddings)[1]
                 max_word_length = tf.shape(self.char_embeddings)[2]
-                self.char_embeddings = tf.reshape(self.char_embeddings, [-1, max_word_length, self.config.char_emb_size], name="abc")
-                self.word_lengths_seq = tf.reshape(self.word_lengths, [-1], name="bcd")
+                self.char_embeddings = tf.reshape(self.char_embeddings, [-1, max_word_length, self.config.char_emb_size])
+                self.word_lengths_seq = tf.reshape(self.word_lengths, [-1])
                 cell_fw = tf.contrib.rnn.LSTMCell(self.config.char_lstm_size)
                 cell_bw = tf.contrib.rnn.LSTMCell(self.config.char_lstm_size)
                 (output_fw, output_bw), _ = tf.nn.bidirectional_dynamic_rnn(
@@ -127,18 +138,20 @@ class Model:
                 self.char_lstm_output = tf.concat([output_fw, output_bw], axis=-1)
                 self.char_lstm_output = tf.reduce_mean(self.char_lstm_output, 1)
                 self.char_lstm_output = tf.reshape(self.char_lstm_output, (-1, max_sentence_length, 2*self.config.char_lstm_size))
-                self.word_embeddings = tf.concat([self.word_embeddings, self.char_lstm_output], axis=-1)
+                self.word_embeddings = tf.concat([tf.squeeze(self.word_embeddings), self.char_lstm_output], axis=-1)
 
         self.word_embeddings = tf.nn.dropout(self.word_embeddings, self.dropout)
 
         #
         # bi-lstm
+        _sequence_lengths = tf.reshape(self.sequence_lengths, [10])
+        print _sequence_lengths.shape
         with tf.variable_scope("word_bi-lstm"):
             cell_fw = tf.contrib.cudnn_rnn.CudnnCompatibleLSTMCell(self.config.word_lstm_size)
             cell_bw = tf.contrib.cudnn_rnn.CudnnCompatibleLSTMCell(self.config.word_lstm_size)
             (output_fw, output_bw), _ = tf.nn.bidirectional_dynamic_rnn(
-                cell_fw, cell_bw, self.word_embeddings,
-                sequence_length=self.sequence_lengths, dtype=tf.float32)
+                cell_fw, cell_bw, tf.reshape(self.word_embeddings, [-1, 50, 300]),
+                sequence_length=_sequence_lengths, dtype=tf.float32)
             # shape(batch_size, max_length, 2 x word_lstm_size)
             self.word_lstm_output = tf.concat([output_fw, output_bw], axis=-1)
 
@@ -150,6 +163,8 @@ class Model:
         self.loss = dict()
         self.train_op = dict()
         self.gradient_norm = dict()
+        self.dataset = dict()
+        self.iterator = dict()
 
         used_task_codes = []
         for (task, lang) in self.dm.tls:
@@ -187,27 +202,49 @@ class Model:
         dev_sets += [self.dm.fetch_dataset(task, lang, 'train-dev') for (task, lang) in train]
         dev_sets += [self.dm.fetch_dataset(task, lang, 'dev') for (task, lang) in test]
 
+        fd = [[] for _ in xrange(7)]
         for _ in xrange(self.config.epoch_steps):
             for st in train_sets:
                 task_code = self.task_code(st.task, st.lang)
 
                 minibatch = st.next_batch(self.config.batch_size)
-                word_ids, char_ids, label_ids, sentence_lengths, word_lengths = minibatch
+                for i, part in enumerate(minibatch):
+                    fd[i].append(part)
+                fd[5].append(self.config.learning_rate)
+                fd[6].append(self.config.dropout)
 
-                fd = {
-                    self.word_ids: word_ids,
-                    self.true_labels[task_code]: label_ids,
-                    self.sequence_lengths: sentence_lengths,
-                    self.learning_rate: self.config.learning_rate,
-                    self.dropout: self.config.dropout,
-                    self.word_lengths: word_lengths,
-                    self.char_ids: char_ids
-                }
+        fd = [np.array(i) for i in fd]
 
-                _, train_loss, gradient_norm = self.sess.run(
-                    [self.train_op[task_code], self.loss[task_code], self.gradient_norm[task_code]]
-                    , feed_dict=fd
-                )
+        for st in train_sets:
+            task_code = self.task_code(st.task, st.lang)
+            self.sess.run(self.iterator[task_code].initializer, feed_dict={
+                self.word_ids: fd[0],
+                self.char_ids: fd[1],
+                self.true_labels[task_code]: fd[2],
+                self.sequence_lengths: fd[3],
+                self.word_lengths: fd[4],
+                self.learning_rate: self.config.learning_rate,
+                self.dropout: self.config.dropout
+            })
+        for i in range(10):
+            value = self.sess.run(self.next_element)
+
+                # word_ids, char_ids, label_ids, sentence_lengths, word_lengths = minibatch
+                #
+                # fd = {
+                #     self.word_ids: word_ids,
+                #     self.true_labels[task_code]: label_ids,
+                #     self.sequence_lengths: sentence_lengths,
+                #     self.word_lengths: word_lengths,
+                #     self.char_ids: char_ids,
+                #     self.learning_rate: self.config.learning_rate,
+                #     self.dropout: self.config.dropout
+                # }
+                #
+                # _, train_loss, gradient_norm = self.sess.run(
+                #     [self.train_op[task_code], self.loss[task_code], self.gradient_norm[task_code]]
+                #     , feed_dict=fd
+                # )
 
         self.logger.log_message("End of epoch " + str(epoch_id+1))
 

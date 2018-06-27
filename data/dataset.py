@@ -87,7 +87,7 @@ class Dataset():
         max_sentence_length = max([sample.word_count for sample in samples])
         max_word_length = max([max(sample.char_count) for sample in samples])
         data = np.array([
-            sample.padded(max_sentence_length, max_word_length) for sample in samples
+            sample.padded(50, 30) for sample in samples
         ])
 
         return tuple([np.stack(data[:, i]) for i in xrange(data.shape[1])])

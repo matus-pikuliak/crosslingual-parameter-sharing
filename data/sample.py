@@ -42,10 +42,13 @@ class Sample:
         ])
 
     def pad_sequence(self, seq, width):
-        return np.pad(seq, (0, width - len(seq)), mode='constant', constant_values=0)
+        if width <= len(seq):
+            return seq[:width]
+        else:
+            return np.pad(seq, (0, width - len(seq)), mode='constant', constant_values=0)
 
     def pad_matrix(self, matrix, width, height):
         current_height = len(matrix)
         m = np.stack([self.pad_sequence(row, width) for row in matrix])
-        m = np.append(m, np.zeros((height - current_height, width)), axis=0)
-        return m
+        m = np.append(m, np.zeros((max(0, height - current_height), width)), axis=0)
+        return m[:height]
