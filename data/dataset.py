@@ -91,3 +91,10 @@ class Dataset():
         ])
 
         return tuple([np.stack(data[:, i]) for i in xrange(data.shape[1])])
+
+    def final_samples(self):
+        data = np.array([
+            sample.padded(50, 30) for sample in self.samples
+        ])
+
+        return tuple([np.stack(data[:, i]) for i in xrange(data.shape[1])])

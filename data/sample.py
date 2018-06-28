@@ -29,7 +29,7 @@ class Sample:
         self.char_ids = np.array(char_ids)
 
         self.word_count = len(self.words)
-        self.char_count = np.array([len(word) for word in self.words])
+        self.char_count = np.array([min(len(word),30) for word in self.words])
         self.label_ids = np.array([task_vocab.token_to_id[label] for label in self.labels])
 
     def padded(self, max_sentence_length, max_word_length):
@@ -37,7 +37,7 @@ class Sample:
             self.pad_sequence(self.word_ids, max_sentence_length),
             self.pad_matrix(self.char_ids, max_word_length, max_sentence_length),
             self.pad_sequence(self.label_ids, max_sentence_length),
-            self.word_count,
+            min(self.word_count, 50),
             self.pad_sequence(self.char_count, max_sentence_length)
         ])
 
