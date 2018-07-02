@@ -134,8 +134,14 @@ class Model:
         #
         # bi-lstm
         with tf.variable_scope("word_bi-lstm"):
-            cell_fw = tf.contrib.rnn.LSTMCell(self.config.word_lstm_size)
-            cell_bw = tf.contrib.rnn.LSTMCell(self.config.word_lstm_size)
+            if self.config.cudnn_lstm:
+                print 1
+                cell_fw = tf.contrib.cudnn_rnn.CudnnCompatibleLSTMCell(self.config.word_lstm_size)
+                cell_bw = tf.contrib.cudnn_rnn.CudnnCompatibleLSTMCell(self.config.word_lstm_size)
+            else:
+                print 2
+                cell_fw = tf.contrib.rnn.LSTMCell(self.config.word_lstm_size)
+                cell_bw = tf.contrib.rnn.LSTMCell(self.config.word_lstm_size)
             (output_fw, output_bw), _ = tf.nn.bidirectional_dynamic_rnn(
                 cell_fw, cell_bw, self.word_embeddings,
                 sequence_length=self.sequence_lengths, dtype=tf.float32)

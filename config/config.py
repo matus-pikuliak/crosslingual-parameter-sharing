@@ -43,7 +43,10 @@ class Config:
                     raise AttributeError('Argument \'%s\' is not permitted.' % arg)
                 arg_type = type(values[arg])
                 try:
-                    value = arg_type(value)
+                    if arg_type == bool:
+                        value = (value.lower() == 'true')
+                    else:
+                        value = arg_type(value)
                 except:
                     raise AttributeError('Could not type value of %s to %s' % (arg, arg_type))
                 values[arg] = value

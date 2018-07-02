@@ -12,14 +12,16 @@ default: &default
 
   learning_rate: 0.01
   batch_size: 16
-  epoch_steps: 512
-  epochs: 60
+  epoch_steps: 1024
+  epochs: 30
   clip: 1
   dropout: 0.5
   optimizer: adam # rmsprop/adam/adagrad/sgd
 
   setup: default
   tasks: null
+
+  cudnn_lstm: false
 
 debug:
   <<: *default
