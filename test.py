@@ -1,11 +1,9 @@
 # -*- coding: utf-8 -*-
 
 import sys
-import time
 
 from config.config import Config
 from data.data_manager import DataManager
-from logs.logger import Logger
 from model.model import Model
 
 config = Config(sys.argv[1:])
@@ -66,8 +64,10 @@ d = [
     ]
 
 if config.tasks is None:
-    train_sets = a+b+c+d
-    tls = [(task, lang) for task in ['ner', 'pos'] for lang in ['en', 'es', 'de', 'cs']]
+    # train_sets = a+b+c+d
+    # tls = [(task, lang) for task in ['ner', 'pos'] for lang in ['en', 'es', 'de', 'cs']]
+    train_sets = [[('pos','en'), ('pos','es'), ('ner','en'), ('ner', 'es')]]
+    tls = [(task, lang) for task in ['ner', 'pos'] for lang in ['en', 'es']]
 else:
     train_sets = [[t] for t in config.tasks]
     tls = config.tasks

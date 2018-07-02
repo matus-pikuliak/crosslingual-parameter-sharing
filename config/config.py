@@ -57,5 +57,5 @@ class Config:
             setattr(self, k, v)
 
     def dump(self):
-        return ["%s: %s" % (value, parameter) for value, parameter in vars(self).iteritems()]
-
+        s = ', '.join(["%s: %s" % (value, parameter) for value, parameter in vars(self).iteritems()])
+        return "{%s}" % s

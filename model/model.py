@@ -51,12 +51,13 @@ class Model:
             self.trans_params[task_code] = trans_params  # need to evaluate it for decoding
             self.loss[task_code] = tf.reduce_mean(-log_likelihood)
 
-            # training
-            grads, vs = zip(*self.optimizer.compute_gradients(self.loss[task_code]))
-            self.gradient_norm[task_code] = tf.global_norm(grads)
-            if self.config.clip > 0:
-                grads, _ = tf.clip_by_global_norm(grads, self.config.clip)
-            self.train_op[task_code] = self.optimizer.apply_gradients(zip(grads, vs))
+        # training
+        # Rremoving this part from task scope lets the graph reuse optimizer parameters
+        grads, vs = zip(*self.optimizer.compute_gradients(self.loss[task_code]))
+        self.gradient_norm[task_code] = tf.global_norm(grads)
+        if self.config.clip > 0:
+            grads, _ = tf.clip_by_global_norm(grads, self.config.clip)
+        self.train_op[task_code] = self.optimizer.apply_gradients(zip(grads, vs))
 
     def build_graph(self):
 
@@ -118,12 +119,8 @@ class Model:
                 max_word_length = tf.shape(self.char_embeddings)[2]
                 self.char_embeddings = tf.reshape(self.char_embeddings, [-1, max_word_length, self.config.char_emb_size], name="abc")
                 self.word_lengths_seq = tf.reshape(self.word_lengths, [-1], name="bcd")
-                if self.config.cudnn_lstm:
-                    cell_fw = tf.contrib.cudnn_rnn.CudnnCompatibleLSTMCell(self.config.char_lstm_size)
-                    cell_bw = tf.contrib.cudnn_rnn.CudnnCompatibleLSTMCell(self.config.char_lstm_size)
-                else:
-                    cell_fw = tf.contrib.rnn.LSTMCell(self.config.char_lstm_size)
-                    cell_bw = tf.contrib.rnn.LSTMCell(self.config.char_lstm_size)
+                cell_fw = tf.contrib.cudnn_rnn.CudnnCompatibleLSTMCell(self.config.char_lstm_size)
+                cell_bw = tf.contrib.cudnn_rnn.CudnnCompatibleLSTMCell(self.config.char_lstm_size)
                 (output_fw, output_bw), _ = tf.nn.bidirectional_dynamic_rnn(
                     cell_fw, cell_bw, self.char_embeddings,
                     sequence_length=self.word_lengths_seq, dtype=tf.float32)
@@ -138,12 +135,8 @@ class Model:
         #
         # bi-lstm
         with tf.variable_scope("word_bi-lstm"):
-            if self.config.cudnn_lstm:
-                cell_fw = tf.contrib.cudnn_rnn.CudnnCompatibleLSTMCell(self.config.word_lstm_size)
-                cell_bw = tf.contrib.cudnn_rnn.CudnnCompatibleLSTMCell(self.config.word_lstm_size)
-            else:
-                cell_fw = tf.contrib.rnn.LSTMCell(self.config.word_lstm_size)
-                cell_bw = tf.contrib.rnn.LSTMCell(self.config.word_lstm_size)
+            cell_fw = tf.contrib.cudnn_rnn.CudnnCompatibleLSTMCell(self.config.word_lstm_size)
+            cell_bw = tf.contrib.cudnn_rnn.CudnnCompatibleLSTMCell(self.config.word_lstm_size)
             (output_fw, output_bw), _ = tf.nn.bidirectional_dynamic_rnn(
                 cell_fw, cell_bw, self.word_embeddings,
                 sequence_length=self.sequence_lengths, dtype=tf.float32)
@@ -167,10 +160,17 @@ class Model:
                 used_task_codes.append(task_code)
 
         if self.config.use_gpu:
-            self.sess = tf.Session()
+            self.sess = tf.Session(config=tf.ConfigProto(
+            ))
         else:
-            self.sess = tf.Session(config=tf.ConfigProto(device_count={'GPU': 0, 'CPU': 1}))
+            self.sess = tf.Session(config=tf.ConfigProto(
+                device_count={'GPU': 0, 'CPU': 1},
+            ))
         self.sess.run(tf.global_variables_initializer())
+
+        #tf.summary.FileWriter('.', self.sess.graph)
+        for variable in tf.global_variables():
+            print variable
 
     def run_experiment(self, train, test, epochs):
         self.logger.log_critical('Run started.')
@@ -183,7 +183,7 @@ class Model:
             self.run_epoch(i, train=train, test=test)
         end_time = datetime.datetime.now()
         self.logger.log_message(end_time)
-        self.logger.log_message('Training took:'+str(end_time-start_time))
+        self.logger.log_message('Training took: '+str(end_time-start_time))
         self.logger.log_critical('Run done.')
 
     def run_epoch(self, epoch_id,
