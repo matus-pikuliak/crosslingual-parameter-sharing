@@ -118,8 +118,12 @@ class Model:
                 max_word_length = tf.shape(self.char_embeddings)[2]
                 self.char_embeddings = tf.reshape(self.char_embeddings, [-1, max_word_length, self.config.char_emb_size], name="abc")
                 self.word_lengths_seq = tf.reshape(self.word_lengths, [-1], name="bcd")
-                cell_fw = tf.contrib.rnn.LSTMCell(self.config.char_lstm_size)
-                cell_bw = tf.contrib.rnn.LSTMCell(self.config.char_lstm_size)
+                if self.config.cudnn_lstm:
+                    cell_fw = tf.contrib.cudnn_rnn.CudnnCompatibleLSTMCell(self.config.char_lstm_size)
+                    cell_bw = tf.contrib.cudnn_rnn.CudnnCompatibleLSTMCell(self.config.char_lstm_size)
+                else:
+                    cell_fw = tf.contrib.rnn.LSTMCell(self.config.char_lstm_size)
+                    cell_bw = tf.contrib.rnn.LSTMCell(self.config.char_lstm_size)
                 (output_fw, output_bw), _ = tf.nn.bidirectional_dynamic_rnn(
                     cell_fw, cell_bw, self.char_embeddings,
                     sequence_length=self.word_lengths_seq, dtype=tf.float32)
@@ -135,11 +139,9 @@ class Model:
         # bi-lstm
         with tf.variable_scope("word_bi-lstm"):
             if self.config.cudnn_lstm:
-                print 1
                 cell_fw = tf.contrib.cudnn_rnn.CudnnCompatibleLSTMCell(self.config.word_lstm_size)
                 cell_bw = tf.contrib.cudnn_rnn.CudnnCompatibleLSTMCell(self.config.word_lstm_size)
             else:
-                print 2
                 cell_fw = tf.contrib.rnn.LSTMCell(self.config.word_lstm_size)
                 cell_bw = tf.contrib.rnn.LSTMCell(self.config.word_lstm_size)
             (output_fw, output_bw), _ = tf.nn.bidirectional_dynamic_rnn(

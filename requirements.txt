@@ -1,4 +1,5 @@
 slackclient
 numpy
 tensorflow
+tensorflow-gpu
 pyyaml

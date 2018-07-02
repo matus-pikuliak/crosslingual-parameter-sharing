@@ -37,19 +37,19 @@ class Config:
                 setup = args[i+1]
                 values.update(hparams[setup])
                 values.update(settings[setup])
-            else:
-                value = args[i+1]
-                if arg not in values:
-                    raise AttributeError('Argument \'%s\' is not permitted.' % arg)
-                arg_type = type(values[arg])
-                try:
-                    if arg_type == bool:
-                        value = (value.lower() == 'true')
-                    else:
-                        value = arg_type(value)
-                except:
-                    raise AttributeError('Could not type value of %s to %s' % (arg, arg_type))
-                values[arg] = value
+
+            value = args[i+1]
+            if arg not in values:
+                raise AttributeError('Argument \'%s\' is not permitted.' % arg)
+            arg_type = type(values[arg])
+            try:
+                if arg_type == bool:
+                    value = (value.lower() == 'true')
+                else:
+                    value = arg_type(value)
+            except:
+                raise AttributeError('Could not type value of %s to %s' % (arg, arg_type))
+            values[arg] = value
 
             skip_next = True
 
