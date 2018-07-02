@@ -21,7 +21,9 @@ default: &default
   setup: default
   tasks: null
 
-  cudnn_lstm: false
+  # settings
+  use_gpu: true
+  show_graph: false
 
 debug:
   <<: *default

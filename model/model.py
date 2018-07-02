@@ -168,9 +168,10 @@ class Model:
             ))
         self.sess.run(tf.global_variables_initializer())
 
-        #tf.summary.FileWriter('.', self.sess.graph)
-        for variable in tf.global_variables():
-            print variable
+        if self.config.show_graph:
+            tf.summary.FileWriter(self.config.log_path, self.sess.graph)
+            for variable in tf.global_variables():
+                print variable
 
     def run_experiment(self, train, test, epochs):
         self.logger.log_critical('Run started.')
