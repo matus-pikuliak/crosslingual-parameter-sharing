@@ -1,7 +1,7 @@
 import tensorflow as tf
 
 
-a = tf.placeholder(tf.float32, shape=[None, None, None])
+a = tf.placeholder(tf.float32, shape=[None, None, None]) # batch size x lenght x dim
 
 root = tf.get_variable("root_vector", dtype=tf.float32, shape=[2]) # dim
 root = tf.expand_dims(root, 0)
@@ -24,12 +24,12 @@ c = tf.concat([tile_a, tile_b], axis=3)
 
 W = tf.get_variable("w", dtype=tf.float32, shape=[4, 20])
 W2 = tf.get_variable("w2", dtype=tf.float32, shape=[20, 1])
-sh = c.shape
+
 c = tf.reshape(c, [-1, 4]) # 4 = dim * 2
 d = tf.matmul(c, W)
 d = tf.nn.relu(d)
 d = tf.matmul(d, W2)
-d = tf.reshape(d, [-1, 4]) # length+1 (root)
+d = tf.reshape(d, [-1, 4]) # length+1 (root), toto nie je taka ista 4 ako +3 riadky hore
 e = tf.nn.softmax(d)
 
 tags_ph = tf.placeholder(tf.int32, shape=[2, 3]) # batch size x length
@@ -56,15 +56,12 @@ tags = [
 
 sess = tf.Session()
 
-
-
 sess.run(tf.global_variables_initializer())
 
 for _ in xrange(100000):
     _loss, _train_op = sess.run([loss, train_op], feed_dict={a: data, tags_ph: tags})
     print _loss
-import pprint
-pprint.pprint(sess.run([c,W,d,e], feed_dict={a: data, tags_ph: tags}))
+
 # print
 # print res[1]
 
