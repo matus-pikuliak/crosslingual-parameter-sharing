@@ -1,6 +1,7 @@
 # Preprocessing
 
 Slova pri spracovani na urovni znakov berieme do maximalnej dlzky 30.
+Dlzka vety je maximalne 70.
 
 ## POS
 - vsetko z UD datasetu
@@ -19,3 +20,7 @@ Slova pri spracovani na urovni znakov berieme do maximalnej dlzky 30.
 - v anotovani su nezrovnalosti, nemecky napr. anotuju omnoho viac javov ako anglicky (vratane napr. nazvov mien, znaciek)
 - vsetky konvertovat na BIO + PLOM
 - odstranene vety, kde viac ako 50% tvorili cisla
+
+## DEP
+- podobne ako pri POS beriem do uvahy tie slova z UD, ktore maju svoje id. Rozlicne zhluky neberieme do uvahy
+- z labelov vztahov berieme len prvu cast, druhu language-specific ignorujeme

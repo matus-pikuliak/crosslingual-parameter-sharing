@@ -26,7 +26,7 @@ class DataManager:
                 if not os.path.isfile(filename):
                     raise ValueError('File %s does not exist.' % filename)
 
-                dt = Dataset(task, lang, role, filename=filename)
+                dt = Dataset(task, lang, role, filename=filename, config=self.config)
                 self.datasets.append(dt)
 
     def prepare(self):

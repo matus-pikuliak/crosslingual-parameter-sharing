@@ -2,15 +2,22 @@ import codecs
 
 import numpy as np
 
-from data.sample import Sample
+from sample_sqt import SQTSample
+from sample_dep import DEPSample
 
 
 class Dataset():
 
-    def __init__(self, task, lang, role, filename=None, samples=None):
+    def __init__(self, task, lang, role, filename=None, samples=None, config=None):
         self.lang = lang
         self.task = task
+        self.sample_class = {
+            'ner': SQTSample,
+            'pos': SQTSample,
+            'dep': DEPSample
+        }[self.task]
         self.role = role
+        self.config = config
         if filename is not None:
             self.samples = self.load_file(filename)
         else:
@@ -21,19 +28,18 @@ class Dataset():
         return len(self.samples)
 
     def load_file(self, filename):
+        bf = []
         samples = []
+
         with codecs.open(filename, encoding='utf-8') as f:
-            word_buffer = []
-            label_buffer = []
             for line in f:
                 if line.strip():
-                    word, tag = line.split('\t')
-                    word_buffer.append(word.strip())
-                    label_buffer.append(tag.strip())
+                    bf.append(line)
                 else:
-                    samples.append(Sample(word_buffer, label_buffer, self))
-                    word_buffer = []
-                    label_buffer = []
+                    if len(bf) <= self.config.max_sentence_length:
+                        samples.append(self.sample_class(bf, self))
+                    bf = []
+
         return samples
 
     def lang_vocab(self, embedding_vocab=set()):
@@ -91,3 +97,5 @@ class Dataset():
         ])
 
         return tuple([np.stack(data[:, i]) for i in xrange(data.shape[1])])
+
+

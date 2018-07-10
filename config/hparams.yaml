@@ -7,7 +7,7 @@ default: &default
   char_level: true
 
   crf_sharing: false
-  word_lstm_size: 300
+  word_lstm_size: 100
   char_lstm_size: 100
 
   learning_rate: 0.01
@@ -20,6 +20,8 @@ default: &default
 
   setup: default
   tasks: null
+
+  max_sentence_length: 70
 
   # settings
   use_gpu: true

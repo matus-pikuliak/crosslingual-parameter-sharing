@@ -59,7 +59,55 @@ class Model:
             grads, _ = tf.clip_by_global_norm(grads, self.config.clip)
         self.train_op[task_code] = self.optimizer.apply_gradients(zip(grads, vs))
 
+    def add_dep(self, task, task_code):
+        with tf.variable_scope(task_code):
+            root = tf.get_variable("root_vector", dtype=tf.float32, shape=[2*self.config.word_lstm_size])  # dim
+            root = tf.expand_dims(root, 0)
+            root = tf.expand_dims(root, 0)
+            root = tf.tile(
+                root,
+                [tf.shape(self.word_lstm_output)[0], 1, 1]
+            )
+            a_root = tf.concat([root, self.word_lstm_output], 1)
+
+            tile_a = tf.tile(
+                tf.expand_dims(self.word_lstm_output, 2),
+                [1, 1, tf.shape(a_root)[1], 1]
+            )
+            tile_b = tf.tile(
+                tf.expand_dims(a_root, 1),
+                [1, tf.shape(self.word_lstm_output)[1], 1, 1]
+            )
+            c = tf.concat([tile_a,
+                           tile_b], axis=3)
+
+            W = tf.get_variable("w", dtype=tf.float32, shape=[4*self.config.word_lstm_size, 50])
+            W2 = tf.get_variable("w2", dtype=tf.float32, shape=[50, 1])
+
+            c = tf.reshape(c, [-1, 4*self.config.word_lstm_size])  # 4 = dim * 2
+            d = tf.matmul(c, W)
+            d = tf.nn.relu(d)
+            d = tf.matmul(d, W2)
+            d = tf.reshape(d, [-1, tf.shape(a_root)[1]])  # length+1 (root), toto nie je taka ista 4 ako +3 riadky hore
+
+            self.tags_ph = tf.placeholder(tf.int64, shape=[None, None])  # batch size x length
+            tags_oh = tf.one_hot(self.tags_ph, tf.shape(a_root)[1])  # length+1
+
+            pred_diff = tf.count_nonzero(tf.argmax(d, axis=1) - tf.reshape(self.tags_ph, shape=[-1]))
+            self.uad = 1 - tf.cast(pred_diff, tf.float32) / tf.cast(tf.reduce_sum(self.sequence_lengths), tf.float32)
+
+            self.dep_loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(
+                labels=tags_oh,
+                logits=d,
+                dim=-1,
+            ))
+
+            optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.01)
+            self.dep_train_op = optimizer.minimize(loss=self.dep_loss)
+
+
     def build_graph(self):
+
 
         #
         # hyperparameters
@@ -156,7 +204,10 @@ class Model:
         for (task, lang) in self.dm.tls:
             task_code = self.task_code(task, lang)
             if task_code not in used_task_codes:
-                self.add_crf(task, task_code)
+                if task in ('ner', 'pos'):
+                    self.add_crf(task, task_code)
+                if task in ('dep'):
+                    self.add_dep(task, task_code)
                 used_task_codes.append(task_code)
 
         if self.config.use_gpu:
@@ -200,23 +251,42 @@ class Model:
             for st in train_sets:
                 task_code = self.task_code(st.task, st.lang)
 
-                minibatch = st.next_batch(self.config.batch_size)
-                word_ids, char_ids, label_ids, sentence_lengths, word_lengths = minibatch
+                if st.task in ('ner', 'pos'):
 
-                fd = {
-                    self.word_ids: word_ids,
-                    self.true_labels[task_code]: label_ids,
-                    self.sequence_lengths: sentence_lengths,
-                    self.learning_rate: self.config.learning_rate,
-                    self.dropout: self.config.dropout,
-                    self.word_lengths: word_lengths,
-                    self.char_ids: char_ids
-                }
+                    minibatch = st.next_batch(self.config.batch_size)
+                    word_ids, char_ids, label_ids, sentence_lengths, word_lengths = minibatch
 
-                _, train_loss, gradient_norm = self.sess.run(
-                    [self.train_op[task_code], self.loss[task_code], self.gradient_norm[task_code]]
-                    , feed_dict=fd
-                )
+                    fd = {
+                        self.word_ids: word_ids,
+                        self.true_labels[task_code]: label_ids,
+                        self.sequence_lengths: sentence_lengths,
+                        self.learning_rate: self.config.learning_rate,
+                        self.dropout: self.config.dropout,
+                        self.word_lengths: word_lengths,
+                        self.char_ids: char_ids
+                    }
+
+                    _, train_loss, gradient_norm = self.sess.run(
+                        [self.train_op[task_code], self.loss[task_code], self.gradient_norm[task_code]]
+                        , feed_dict=fd
+                    )
+
+                if st.task in ('dep'):
+                    minibatch = st.next_batch(self.config.batch_size)
+                    word_ids, char_ids, label_ids, sentence_lengths, word_lengths, arcs = minibatch
+
+                    fd = {
+                        self.word_ids: word_ids,
+                        #self.true_labels[task_code]: label_ids,
+                        self.sequence_lengths: sentence_lengths,
+                        self.learning_rate: self.config.learning_rate,
+                        self.dropout: self.config.dropout,
+                        self.word_lengths: word_lengths,
+                        self.char_ids: char_ids,
+                        self.tags_ph: arcs
+                    }
+
+                    self.sess.run([self.dep_train_op], feed_dict=fd)
 
         self.logger.log_message("End of epoch " + str(epoch_id+1))
 
@@ -232,48 +302,77 @@ class Model:
             self.logger.log_result(metrics)
 
     def run_evaluate(self, dev_set):
-        accs = []
-        losses = []
-        expected_ner = 0
-        predicted_ner = 0
-        precision = 0
-        recall = 0
         task_code = self.task_code(dev_set.task, dev_set.lang)
 
-        for i, minibatch in enumerate(dev_set.dev_batches(32)):
-            _, _, label_ids, sentence_lengths, _ = minibatch
+        if dev_set.task in ('ner', 'pos'):
 
-            labels_ids_predictions, loss = self.predict_batch(minibatch, task_code)
-            losses.append(loss)
+            accs = []
+            losses = []
+            expected_ner = 0
+            predicted_ner = 0
+            precision = 0
+            recall = 0
 
-            for lab, lab_pred, length in zip(label_ids, labels_ids_predictions, sentence_lengths):
-                lab = lab[:length]
-                lab_pred = lab_pred[:length]
-                for (true_t, pred_t) in zip(lab, lab_pred):
-                    accs.append(true_t == pred_t)
-                    if dev_set.task == 'ner':
-                        O_token = self.dm.task_vocabs['ner'].token_to_id['O']
-                        if true_t != O_token:
-                            expected_ner += 1
-                        if pred_t != O_token:
-                            predicted_ner += 1
-                        if true_t != O_token and true_t == pred_t:
-                            precision += 1
-                        if pred_t != O_token and true_t == pred_t:
-                            recall += 1
+            for i, minibatch in enumerate(dev_set.dev_batches(32)):
+                _, _, label_ids, sentence_lengths, _ = minibatch
 
-        output = {'acc': 100 * np.mean(accs), 'loss': np.mean(losses)}
-        if dev_set.task == 'ner':
-            precision = float(precision+1) / (predicted_ner+1)
-            recall = (float(recall) / expected_ner)
-            f1 = 2*precision*recall/(precision+recall)
-            output.update({
-                'expected_ner_count': expected_ner,
-                'predicted_ner_count': predicted_ner,
-                'precision': precision,
-                'recall': recall,
-                'f1': f1
-            })
+                labels_ids_predictions, loss = self.predict_batch(minibatch, task_code)
+                losses.append(loss)
+
+                for lab, lab_pred, length in zip(label_ids, labels_ids_predictions, sentence_lengths):
+                    lab = lab[:length]
+                    lab_pred = lab_pred[:length]
+                    for (true_t, pred_t) in zip(lab, lab_pred):
+                        accs.append(true_t == pred_t)
+                        if dev_set.task == 'ner':
+                            O_token = self.dm.task_vocabs['ner'].token_to_id['O']
+                            if true_t != O_token:
+                                expected_ner += 1
+                            if pred_t != O_token:
+                                predicted_ner += 1
+                            if true_t != O_token and true_t == pred_t:
+                                precision += 1
+                            if pred_t != O_token and true_t == pred_t:
+                                recall += 1
+
+            output = {'acc': 100 * np.mean(accs), 'loss': np.mean(losses)}
+            if dev_set.task == 'ner':
+                precision = float(precision+1) / (predicted_ner+1)
+                recall = (float(recall) / expected_ner)
+                f1 = 2*precision*recall/(precision+recall)
+                output.update({
+                    'expected_ner_count': expected_ner,
+                    'predicted_ner_count': predicted_ner,
+                    'precision': precision,
+                    'recall': recall,
+                    'f1': f1
+                })
+
+        if dev_set.task in ('dep'):
+
+            uads = []
+            losses = []
+
+            for i, minibatch in enumerate(dev_set.dev_batches(32)):
+
+                word_ids, char_ids, label_ids, sentence_lengths, word_lengths, arcs = minibatch
+
+                fd = {
+                    self.word_ids: word_ids,
+                    # self.true_labels[task_code]: label_ids,
+                    self.sequence_lengths: sentence_lengths,
+                    self.dropout: 1,
+                    self.word_lengths: word_lengths,
+                    self.char_ids: char_ids,
+                    self.tags_ph: arcs
+                }
+
+                uad, loss = self.sess.run([self.uad, self.dep_loss], feed_dict=fd)
+                uads.append(uad)
+                losses.append(loss)
+
+            output = {'uad': np.mean(uads), 'loss': np.mean(losses)}
+
         return output
 
     def predict_batch(self, minibatch, task_code):
