@@ -51,13 +51,13 @@ class Model:
             self.trans_params[task_code] = trans_params  # need to evaluate it for decoding
             self.loss[task_code] = tf.reduce_mean(-log_likelihood)
 
-        # training
-        # Rremoving this part from task scope lets the graph reuse optimizer parameters
-        grads, vs = zip(*self.optimizer.compute_gradients(self.loss[task_code]))
-        self.gradient_norm[task_code] = tf.global_norm(grads)
-        if self.config.clip > 0:
-            grads, _ = tf.clip_by_global_norm(grads, self.config.clip)
-        self.train_op[task_code] = self.optimizer.apply_gradients(zip(grads, vs))
+            # training
+            # Rremoving this part from task scope lets the graph reuse optimizer parameters
+            grads, vs = zip(*self.optimizer.compute_gradients(self.loss[task_code]))
+            self.gradient_norm[task_code] = tf.global_norm(grads)
+            if self.config.clip > 0:
+                grads, _ = tf.clip_by_global_norm(grads, self.config.clip)
+            self.train_op[task_code] = self.optimizer.apply_gradients(zip(grads, vs))
 
     def add_dep(self, task, task_code):
         with tf.variable_scope(task_code):

@@ -1,4 +1,4 @@
-import private
+import ast
 
 class Run:
 
@@ -81,25 +81,22 @@ def is_str(str):
     return not (is_float(str) or is_int(str))
 
 import glob
-files = glob.glob(private.paths['log_path'] + '/grid_search/new/*')
+files = glob.glob('/media/piko/Data/fiit/data/cll-para-sharing/logs/june/*')
 records = []
 for file in files:
     with open(file, 'r') as f:
         for line in f:
             line = line.strip()
             if not line.startswith('#'):
-                dct = dict([i.split(': ') for i in line.split(', ')])
-                for key in dct:
-                    if is_int(dct[key]): dct[key] = int(dct[key])
-                    if is_float(dct[key]): dct[key] = float(dct[key])
+                dct = ast.literal_eval(line)
                 dct['file'] = f.name.split('/')[-1]
                 Run.process_epoch(dct)
 
 import matplotlib.pyplot as plt
 
-en_pos = Run.get_runs(role='dev')
+en_pos = Run.get_runs(role='dev', task='ner', lang='en')
 for run in en_pos:
-    print run.max_metric('acc'), run.file
-    plt.plot(run.read_metric('acc'), label=run.file)
+    print run.max_metric('f1'), run.file
+    plt.plot(run.read_metric('f1'), label='%s %s'%(run.task, run.lang))
 plt.legend()
 plt.show()

@@ -64,10 +64,10 @@ d = [
     ]
 
 if config.tasks is None:
-    # train_sets = a+b+c+d
-    # tls = [(task, lang) for task in ['ner', 'pos'] for lang in ['en', 'es', 'de', 'cs']]
-    train_sets = [[('pos','en'), ('pos','es'), ('ner','en'), ('ner', 'es')]]
-    tls = [(task, lang) for task in ['ner', 'pos'] for lang in ['en', 'es']]
+    train_sets = d
+    tls = [(task, lang) for task in ['ner', 'pos'] for lang in ['en', 'es', 'de', 'cs']]
+    # train_sets = [[('pos','en'), ('pos','es'), ('ner','en'), ('ner', 'es')]]
+    # tls = [(task, lang) for task in ['ner', 'pos'] for lang in ['en', 'es']]
 else:
     train_sets = [[t] for t in config.tasks]
     tls = config.tasks
