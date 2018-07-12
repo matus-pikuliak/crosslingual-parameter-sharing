@@ -1,6 +1,7 @@
 import os
 import codecs
 import numpy as np
+import sys
 
 
 class EmbeddingManager:
@@ -21,7 +22,8 @@ class EmbeddingManager:
                         word, vector = line.split(' ', 1)
                         self.embeddings[lang][word] = np.array([float(val) for val in vector.split(' ')])
                     except:
-                        print("Warning: there is a ill formatted line for language %s: '%s'" % (lang, line))
+                        print(("Warning: there is a ill formatted line for language %s: '%s'" % (lang, line)).
+                              encode(sys.stdout.encoding ,'ignore'))
 
     def vocab(self, lang):
         return set(self.embeddings[lang].keys())
