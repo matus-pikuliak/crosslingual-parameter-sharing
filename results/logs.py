@@ -1,5 +1,6 @@
 import ast
 
+
 class Run:
 
     runs = []
@@ -94,9 +95,9 @@ for file in files:
 
 import matplotlib.pyplot as plt
 
-en_pos = Run.get_runs(role='dev', task='ner', lang='en')
+en_pos = Run.get_runs(role='dev', task='pos', lang='en')
 for run in en_pos:
-    print run.max_metric('f1'), run.file
-    plt.plot(run.read_metric('f1'), label='%s %s'%(run.task, run.lang))
+    print run.max_metric('acc'), run.file
+    plt.plot(run.read_metric('acc'), label='%s'%(run.lang))
 plt.legend()
 plt.show()

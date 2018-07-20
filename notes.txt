@@ -1,7 +1,7 @@
 # Preprocessing
 
 Slova pri spracovani na urovni znakov berieme do maximalnej dlzky 30.
-Dlzka vety je maximalne 70.
+Dlzka vety je maximalne 70, minimalne 2.
 
 ## POS
 - vsetko z UD datasetu

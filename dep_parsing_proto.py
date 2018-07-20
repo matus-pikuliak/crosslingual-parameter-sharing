@@ -1,66 +1,92 @@
 import tensorflow as tf
 
+lstm_size = 1
+tf_input = tf.placeholder(dtype=tf.float32, shape=[None, None, None]) # batch_size x length x dim
+sequence_lengths = tf.placeholder(dtype=tf.float32, shape=[None]) # batch_size x length x dim
 
-a = tf.placeholder(tf.float32, shape=[None, None, None]) # batch size x lenght x dim
 
-root = tf.get_variable("root_vector", dtype=tf.float32, shape=[2]) # dim
+root = tf.get_variable("root_vector", dtype=tf.float32, shape=[2 * lstm_size])  # dim
 root = tf.expand_dims(root, 0)
 root = tf.expand_dims(root, 0)
 root = tf.tile(
     root,
-    [tf.shape(a)[0], 1, 1]
+    [tf.shape(tf_input)[0], 1, 1]
 )
-a_root = tf.concat([root, a], 1)
+a_root = tf.concat([root, tf_input], 1)
 
 tile_a = tf.tile(
-    tf.expand_dims(a, 2),
+    tf.expand_dims(tf_input, 2),
     [1, 1, tf.shape(a_root)[1], 1]
 )
 tile_b = tf.tile(
     tf.expand_dims(a_root, 1),
-    [1, tf.shape(a)[1], 1, 1]
+    [1, tf.shape(tf_input)[1], 1, 1]
 )
-c = tf.concat([tile_a, tile_b], axis=3)
 
-W = tf.get_variable("w", dtype=tf.float32, shape=[4, 20])
-W2 = tf.get_variable("w2", dtype=tf.float32, shape=[20, 1])
+c = tf.concat([tile_a,
+               tile_b], axis=3)
 
-c = tf.reshape(c, [-1, 4]) # 4 = dim * 2
-d = tf.matmul(c, W)
+W = tf.get_variable("w", dtype=tf.float32, shape=[4 * lstm_size, 200])
+b = tf.get_variable("b", dtype=tf.float32, shape=[200])
+W2 = tf.get_variable("w2", dtype=tf.float32, shape=[200, 1])
+
+c = tf.reshape(c, [-1, 4 * lstm_size])
+d = tf.matmul(c, W) + b
 d = tf.nn.relu(d)
 d = tf.matmul(d, W2)
-d = tf.reshape(d, [-1, 4]) # length+1 (root), toto nie je taka ista 4 ako +3 riadky hore
-e = tf.nn.softmax(d)
+d = tf.reshape(d, [-1, tf.shape(a_root)[1]])  # length+1 (root)
 
-tags_ph = tf.placeholder(tf.int32, shape=[2, 3]) # batch size x length
-tags_oh = tf.one_hot(tags_ph, 4) # length+1
+seq_mask = tf.reshape(tf.sequence_mask(sequence_lengths), shape=[-1])
 
-loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(
+e = tf.boolean_mask(d, seq_mask)
+#
+tags_ph = tf.placeholder(tf.int64, shape=[None, None])  # batch size x length
+tags_oh = tf.one_hot(tags_ph, tf.shape(a_root)[1])  # length+1
+
+d2 = tf.argmax(d, axis=1)
+d3 = tf.reshape(tags_ph, shape=[-1])
+pred_diff = tf.count_nonzero(d2 - d3)
+uad = 1 - tf.cast(pred_diff, tf.float32) / tf.cast(tf.reduce_sum(sequence_lengths), tf.float32)
+
+oink = tf.nn.softmax_cross_entropy_with_logits(
     labels=tags_oh,
     logits=d,
     dim=-1,
-))
+)
+
+seq_mask = tf.reshape(tf.sequence_mask(sequence_lengths), shape=[-1])
+
+oinker = tf.boolean_mask(oink, seq_mask)
+
+dep_loss = tf.reduce_mean(oinker)
 
 optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.01)
-train_op = optimizer.minimize(loss=loss)
+dep_train_op = optimizer.minimize(loss=dep_loss)
 
 data = [
     [[1, 2],   [3,  4],  [4, 6]],
-    [[11, 12], [13, 14], [3, 5]]
+    [[11, 12], [13, 14], [0, 0]]
 ]
 
 tags = [
     [2, 1, 0],
-    [2, 3, 0]
+    [1, 0, 0]
+]
+
+lens = [
+    2, 3
 ]
 
 sess = tf.Session()
 
 sess.run(tf.global_variables_initializer())
 
+print sess.run([d, e], feed_dict={tf_input: data, tags_ph: tags, sequence_lengths: lens})
+exit()
+
 for _ in xrange(100000):
-    _loss, _train_op = sess.run([loss, train_op], feed_dict={a: data, tags_ph: tags})
-    print _loss
+    _, ed, eo = sess.run([dep_train_op, oink, oinker], feed_dict={tf_input: data, tags_ph: tags, sequence_lengths: lens})
+    print ed, eo
 
 # print
 # print res[1]

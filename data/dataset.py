@@ -36,7 +36,7 @@ class Dataset():
                 if line.strip():
                     bf.append(line)
                 else:
-                    if len(bf) <= self.config.max_sentence_length:
+                    if len(bf) <= self.config.max_sentence_length and len(bf) >= self.config.min_sentence_length:
                         samples.append(self.sample_class(bf, self))
                     bf = []
 

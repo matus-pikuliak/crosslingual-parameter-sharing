@@ -23,7 +23,7 @@ class EmbeddingManager:
                         self.embeddings[lang][word] = np.array([float(val) for val in vector.split(' ')])
                     except:
                         print(("Warning: there is a ill formatted line for language %s: '%s'" % (lang, line)).
-                              encode(sys.stdout.encoding ,'ignore'))
+                              encode(sys.stdout.encoding, 'ignore'))
 
     def vocab(self, lang):
         return set(self.embeddings[lang].keys())

@@ -22,6 +22,7 @@ default: &default
   tasks: null
 
   max_sentence_length: 70
+  min_sentence_length: 2
 
   # settings
   use_gpu: true

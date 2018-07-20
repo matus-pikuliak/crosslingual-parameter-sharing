@@ -23,6 +23,13 @@ class Model:
         else:
             return task+lang
 
+    def add_train_op(self, loss, task_code):
+        grads, vs = zip(*self.optimizer.compute_gradients(loss))
+        self.gradient_norm[task_code] = tf.global_norm(grads)
+        if self.config.clip > 0:
+            grads, _ = tf.clip_by_global_norm(grads, self.config.clip)
+        return self.optimizer.apply_gradients(zip(grads, vs))
+
     def add_crf(self, task, task_code):
         with tf.variable_scope(task_code):
             tag_count = len(self.dm.task_vocabs[task])
@@ -53,14 +60,12 @@ class Model:
 
             # training
             # Rremoving this part from task scope lets the graph reuse optimizer parameters
-            grads, vs = zip(*self.optimizer.compute_gradients(self.loss[task_code]))
-            self.gradient_norm[task_code] = tf.global_norm(grads)
-            if self.config.clip > 0:
-                grads, _ = tf.clip_by_global_norm(grads, self.config.clip)
-            self.train_op[task_code] = self.optimizer.apply_gradients(zip(grads, vs))
+            self.train_op[task_code] = self.add_train_op(self.loss[task_code], task_code)
 
     def add_dep(self, task, task_code):
         with tf.variable_scope(task_code):
+            seq_mask = tf.reshape(tf.sequence_mask(self.sequence_lengths), shape=[-1])
+
             root = tf.get_variable("root_vector", dtype=tf.float32, shape=[2*self.config.word_lstm_size])  # dim
             root = tf.expand_dims(root, 0)
             root = tf.expand_dims(root, 0)
@@ -68,42 +73,46 @@ class Model:
                 root,
                 [tf.shape(self.word_lstm_output)[0], 1, 1]
             )
-            a_root = tf.concat([root, self.word_lstm_output], 1)
+
+            words = self.word_lstm_output
+            words_root = tf.concat([root, words], 1)
 
             tile_a = tf.tile(
-                tf.expand_dims(self.word_lstm_output, 2),
-                [1, 1, tf.shape(a_root)[1], 1]
+                tf.expand_dims(words, 2),
+                [1, 1, tf.shape(words_root)[1], 1]
             )
             tile_b = tf.tile(
-                tf.expand_dims(a_root, 1),
-                [1, tf.shape(self.word_lstm_output)[1], 1, 1]
+                tf.expand_dims(words_root, 1),
+                [1, tf.shape(words)[1], 1, 1]
             )
-            c = tf.concat([tile_a,
-                           tile_b], axis=3)
 
-            W = tf.get_variable("w", dtype=tf.float32, shape=[4*self.config.word_lstm_size, 50])
-            W2 = tf.get_variable("w2", dtype=tf.float32, shape=[50, 1])
+            combinations = tf.concat([tile_a, tile_b], axis=3)
+            combinations = tf.reshape(combinations, [-1, 4*self.config.word_lstm_size])
 
-            c = tf.reshape(c, [-1, 4*self.config.word_lstm_size])  # 4 = dim * 2
-            d = tf.matmul(c, W)
-            d = tf.nn.relu(d)
-            d = tf.matmul(d, W2)
-            d = tf.reshape(d, [-1, tf.shape(a_root)[1]])  # length+1 (root), toto nie je taka ista 4 ako +3 riadky hore
+            W = tf.get_variable("W", dtype=tf.float32, shape=[4*self.config.word_lstm_size, 500])
+            b = tf.get_variable("b", dtype=tf.float32, shape=[500])
+            W2 = tf.get_variable("W2", dtype=tf.float32, shape=[500, 1])
 
-            self.tags_ph = tf.placeholder(tf.int64, shape=[None, None])  # batch size x length
-            tags_oh = tf.one_hot(self.tags_ph, tf.shape(a_root)[1])  # length+1
+            combinations = tf.nn.tanh(tf.matmul(combinations, W) + b)
+            combinations = tf.matmul(combinations, W2)
+            combinations = tf.reshape(combinations, [-1, tf.shape(words_root)[1]])  # length+1 (root)
+            combinations = tf.boolean_mask(combinations, seq_mask)
 
-            pred_diff = tf.count_nonzero(tf.argmax(d, axis=1) - tf.reshape(self.tags_ph, shape=[-1]))
-            self.uad = 1 - tf.cast(pred_diff, tf.float32) / tf.cast(tf.reduce_sum(self.sequence_lengths), tf.float32)
+            self.arc_ids = tf.placeholder(tf.int64, shape=[None, None])  # batch size x length
+            _arc_ids = tf.reshape(self.arc_ids, [-1])
+            _arc_ids = tf.boolean_mask(_arc_ids, seq_mask)
+            arc_one_hots = tf.one_hot(_arc_ids, tf.shape(words_root)[1])  # length+1
 
             self.dep_loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(
-                labels=tags_oh,
-                logits=d,
+                labels=arc_one_hots,
+                logits=combinations,
                 dim=-1,
             ))
 
-            optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.01)
-            self.dep_train_op = optimizer.minimize(loss=self.dep_loss)
+            self.dep_train_op = self.add_train_op(self.dep_loss, task_code)
+
+            predicted_arc_ids = tf.argmax(combinations, axis=1)
+            self.uas = 1 - tf.cast(tf.count_nonzero(predicted_arc_ids - _arc_ids), tf.float32) / tf.cast(tf.reduce_sum(self.sequence_lengths), tf.float32)
 
 
     def build_graph(self):
@@ -271,19 +280,19 @@ class Model:
                         , feed_dict=fd
                     )
 
+
                 if st.task in ('dep'):
                     minibatch = st.next_batch(self.config.batch_size)
                     word_ids, char_ids, label_ids, sentence_lengths, word_lengths, arcs = minibatch
 
                     fd = {
                         self.word_ids: word_ids,
-                        #self.true_labels[task_code]: label_ids,
                         self.sequence_lengths: sentence_lengths,
                         self.learning_rate: self.config.learning_rate,
                         self.dropout: self.config.dropout,
                         self.word_lengths: word_lengths,
                         self.char_ids: char_ids,
-                        self.tags_ph: arcs
+                        self.arc_ids: arcs
                     }
 
                     self.sess.run([self.dep_train_op], feed_dict=fd)
@@ -353,7 +362,7 @@ class Model:
             uads = []
             losses = []
 
-            for i, minibatch in enumerate(dev_set.dev_batches(32)):
+            for i, minibatch in enumerate(dev_set.dev_batches(5)):
 
                 word_ids, char_ids, label_ids, sentence_lengths, word_lengths, arcs = minibatch
 
@@ -364,10 +373,10 @@ class Model:
                     self.dropout: 1,
                     self.word_lengths: word_lengths,
                     self.char_ids: char_ids,
-                    self.tags_ph: arcs
+                    self.arc_ids: arcs
                 }
 
-                uad, loss = self.sess.run([self.uad, self.dep_loss], feed_dict=fd)
+                uad, loss = self.sess.run([self.uas, self.dep_loss], feed_dict=fd)
                 uads.append(uad)
                 losses.append(loss)
 
@@ -376,6 +385,7 @@ class Model:
         return output
 
     def predict_batch(self, minibatch, task_code):
+
         word_ids, char_ids, label_ids, sentence_lengths, word_lengths = minibatch
         fd = {
             self.word_ids: word_ids,
