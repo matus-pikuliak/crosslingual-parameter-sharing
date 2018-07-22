@@ -34,7 +34,7 @@ debug:
   char_lstm_size: 10
   batch_size: 8
   epoch_steps: 10
-  epochs: 1
+  epochs: 5
 
 production:
   <<: *default

@@ -64,8 +64,6 @@ class Model:
 
     def add_dep(self, task, task_code):
         with tf.variable_scope(task_code):
-            seq_mask = tf.reshape(tf.sequence_mask(self.sequence_lengths), shape=[-1])
-
             root = tf.get_variable("root_vector", dtype=tf.float32, shape=[2*self.config.word_lstm_size])  # dim
             root = tf.expand_dims(root, 0)
             root = tf.expand_dims(root, 0)
@@ -93,27 +91,66 @@ class Model:
             b = tf.get_variable("b", dtype=tf.float32, shape=[500])
             W2 = tf.get_variable("W2", dtype=tf.float32, shape=[500, 1])
 
+            seq_mask = tf.reshape(tf.sequence_mask(self.sequence_lengths), shape=[-1])
+
             combinations = tf.nn.tanh(tf.matmul(combinations, W) + b)
+            all_combinations = combinations
             combinations = tf.matmul(combinations, W2)
-            combinations = tf.reshape(combinations, [-1, tf.shape(words_root)[1]])  # length+1 (root)
-            combinations = tf.boolean_mask(combinations, seq_mask)
+            combinations = tf.reshape(combinations, [-1, tf.shape(words_root)[1]])  # (batch_size x length) x length+1 (root)
 
             self.arc_ids = tf.placeholder(tf.int64, shape=[None, None])  # batch size x length
             _arc_ids = tf.reshape(self.arc_ids, [-1])
             _arc_ids = tf.boolean_mask(_arc_ids, seq_mask)
-            arc_one_hots = tf.one_hot(_arc_ids, tf.shape(words_root)[1])  # length+1
 
-            self.dep_loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(
+            predicted_arc_ids = tf.argmax(combinations, axis=1)
+
+            self.golden_arc_ids = tf.placeholder(tf.bool, shape=[])
+            _predicted_arc_ids = tf.reshape(predicted_arc_ids, tf.shape(self.arc_ids))
+            relevant_arc_ids = tf.cond(self.golden_arc_ids, lambda: self.arc_ids, lambda: _predicted_arc_ids)
+            relevant_arc_ids = tf.one_hot(relevant_arc_ids, tf.shape(words_root)[1], on_value=True, off_value=False, dtype=tf.bool)
+            relevant_arc_ids = tf.reshape(relevant_arc_ids, [-1])
+            relevant_arcs = tf.boolean_mask(all_combinations, relevant_arc_ids)
+            relevant_arcs = tf.boolean_mask(relevant_arcs, seq_mask)
+
+            self.true_labels[task_code] = tf.placeholder(tf.int64, shape=[None, None],
+                                                  name="labels")
+            labels = tf.reshape(self.true_labels[task_code], [-1])
+            labels = tf.boolean_mask(labels, seq_mask)
+            self.oinker = labels
+            one_hot_labels = tf.one_hot(labels, len(self.dm.task_vocabs['dep']))
+
+            W3 = tf.get_variable("W3", dtype=tf.float32, shape=[500, len(self.dm.task_vocabs['dep'])])
+            b3 = tf.get_variable("b3", dtype=tf.float32, shape=[len(self.dm.task_vocabs['dep'])])
+            predicted_arc_labels = tf.matmul(relevant_arcs, W3) + b3
+            predicted_arc_labels_ids = tf.argmax(predicted_arc_labels, axis=1)
+            self.oinker2 = predicted_arc_labels_ids
+            self.dep_loss_las = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(
+                labels=one_hot_labels,
+                logits=predicted_arc_labels,
+                dim=-1,
+            ))
+
+
+            predicted_arc_ids = tf.boolean_mask(predicted_arc_ids, seq_mask)
+            uas = tf.equal(predicted_arc_ids, _arc_ids)
+            las = tf.logical_and(tf.equal(predicted_arc_labels_ids, labels), uas)
+            uas = tf.reduce_sum(tf.count_nonzero(uas))
+            las = tf.reduce_sum(tf.count_nonzero(las))
+
+            size = tf.cast(tf.size(labels), tf.float32)
+
+            self.uas = tf.cast(uas, tf.float32) / size
+            self.las = tf.cast(las, tf.float32) / size
+
+            combinations = tf.boolean_mask(combinations, seq_mask)
+            arc_one_hots = tf.one_hot(_arc_ids, tf.shape(words_root)[1])  # length+1
+            self.dep_loss_uas = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(
                 labels=arc_one_hots,
                 logits=combinations,
                 dim=-1,
             ))
-
+            self.dep_loss = self.dep_loss_las + self.dep_loss_uas
             self.dep_train_op = self.add_train_op(self.dep_loss, task_code)
-
-            predicted_arc_ids = tf.argmax(combinations, axis=1)
-            self.uas = 1 - tf.cast(tf.count_nonzero(predicted_arc_ids - _arc_ids), tf.float32) / tf.cast(tf.reduce_sum(self.sequence_lengths), tf.float32)
-
 
     def build_graph(self):
 
@@ -292,7 +329,9 @@ class Model:
                         self.dropout: self.config.dropout,
                         self.word_lengths: word_lengths,
                         self.char_ids: char_ids,
-                        self.arc_ids: arcs
+                        self.arc_ids: arcs,
+                        self.true_labels[task_code]: label_ids,
+                        self.golden_arc_ids: True
                     }
 
                     self.sess.run([self.dep_train_op], feed_dict=fd)
@@ -359,28 +398,31 @@ class Model:
 
         if dev_set.task in ('dep'):
 
-            uads = []
+            uases = []
+            lases = []
             losses = []
 
-            for i, minibatch in enumerate(dev_set.dev_batches(5)):
+            for i, minibatch in enumerate(dev_set.dev_batches(16)):
 
                 word_ids, char_ids, label_ids, sentence_lengths, word_lengths, arcs = minibatch
 
                 fd = {
                     self.word_ids: word_ids,
-                    # self.true_labels[task_code]: label_ids,
+                    self.true_labels[task_code]: label_ids,
                     self.sequence_lengths: sentence_lengths,
                     self.dropout: 1,
                     self.word_lengths: word_lengths,
                     self.char_ids: char_ids,
-                    self.arc_ids: arcs
+                    self.arc_ids: arcs,
+                    self.golden_arc_ids: False
                 }
 
-                uad, loss = self.sess.run([self.uas, self.dep_loss], feed_dict=fd)
-                uads.append(uad)
+                uas, las, loss = self.sess.run([self.uas, self.las, self.dep_loss], feed_dict=fd)
+                uases.append(uas)
+                lases.append(las)
                 losses.append(loss)
 
-            output = {'uad': np.mean(uads), 'loss': np.mean(losses)}
+            output = {'uas': np.mean(uases), 'loss': np.mean(losses), 'las': np.mean(lases)}
 
         return output
 
