@@ -2,7 +2,7 @@ import numpy as np
 import constants
 
 
-class Sample:
+class Sample(object):
 
     def __init__(self):
         pass
@@ -19,18 +19,22 @@ class Sample:
         m = np.append(m, np.zeros((height - current_height, width)), axis=0)
         return m
 
-    def prepare_word_ids(self, lang_vocab, task_vocab, char_vocab):
+    def prepare_word_ids(self, lang_vocab, task_vocab, char_vocab, words=None):
         word_ids = []
-        for word in self.words:
+        if words is None:
+            words = self.words
+        for word in words:
             word = word.lower()  # TODO: Opat kvoli embeddingom
             if word not in lang_vocab.token_to_id:
                 word = constants.UNK_WORD
             word_ids.append(lang_vocab.token_to_id[word])
         return np.array(word_ids)
 
-    def prepare_char_ids(self, lang_vocab, task_vocab, char_vocab):
+    def prepare_char_ids(self, lang_vocab, task_vocab, char_vocab, words=None):
         char_ids = []
-        for word in self.words:
+        if words is None:
+            words = self.words
+        for word in words:
             _char_ids = []
             for char in word:
                 if char not in char_vocab.token_to_id:

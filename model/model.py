@@ -3,6 +3,7 @@ import numpy as np
 import datetime
 import os
 from logs.logger_init import LoggerInit
+import utils.general_utils as utils
 
 
 class Model:
@@ -62,7 +63,7 @@ class Model:
             # Rremoving this part from task scope lets the graph reuse optimizer parameters
             self.train_op[task_code] = self.add_train_op(self.loss[task_code], task_code)
 
-    def add_dep(self, task, task_code):
+    def add_dep(self, task_code):
         with tf.variable_scope(task_code):
             root = tf.get_variable("root_vector", dtype=tf.float32, shape=[2*self.config.word_lstm_size])  # dim
             root = tf.expand_dims(root, 0)
@@ -116,14 +117,12 @@ class Model:
                                                   name="labels")
             labels = tf.reshape(self.true_labels[task_code], [-1])
             labels = tf.boolean_mask(labels, seq_mask)
-            self.oinker = labels
             one_hot_labels = tf.one_hot(labels, len(self.dm.task_vocabs['dep']))
 
             W3 = tf.get_variable("W3", dtype=tf.float32, shape=[500, len(self.dm.task_vocabs['dep'])])
             b3 = tf.get_variable("b3", dtype=tf.float32, shape=[len(self.dm.task_vocabs['dep'])])
             predicted_arc_labels = tf.matmul(relevant_arcs, W3) + b3
             predicted_arc_labels_ids = tf.argmax(predicted_arc_labels, axis=1)
-            self.oinker2 = predicted_arc_labels_ids
             self.dep_loss_las = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(
                 labels=one_hot_labels,
                 logits=predicted_arc_labels,
@@ -151,6 +150,44 @@ class Model:
             ))
             self.dep_loss = self.dep_loss_las + self.dep_loss_uas
             self.dep_train_op = self.add_train_op(self.dep_loss, task_code)
+
+    def add_nli(self, task_code):
+        with tf.variable_scope(task_code):
+            words = self.word_lstm_output
+            reduction = tf.concat([
+                tf.reduce_max(words, axis=1),
+                tf.reduce_mean(words, axis=1)
+            ], axis=1)
+            reduction = tf.reshape(reduction, [-1, 8 * self.config.word_lstm_size])
+            premise, hypothesis = tf.split(reduction, [4 * self.config.word_lstm_size, 4 * self.config.word_lstm_size], axis=1)
+            representation = tf.concat([
+                tf.multiply(premise, hypothesis),
+                premise - hypothesis
+            ], axis=1)
+            W = tf.get_variable("W", dtype=tf.float32, shape=[8 * self.config.word_lstm_size, 500])
+            b = tf.get_variable("b", dtype=tf.float32, shape=[500])
+            W2 = tf.get_variable("W2", dtype=tf.float32, shape=[500, len(self.dm.task_vocabs['nli'])])
+
+            representation = tf.matmul(representation, W) + b
+            representation = tf.matmul(tf.nn.tanh(representation), W2)
+
+            self.true_labels[task_code] = tf.placeholder(tf.int64, shape=[None],
+                                                  name="labels")
+            true_labels_one_hot = tf.one_hot(self.true_labels[task_code], depth=len(self.dm.task_vocabs['nli']))
+            self.loss[task_code] = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(
+                labels=true_labels_one_hot,
+                logits=representation,
+                dim=-1,
+            ))
+
+            self.train_op[task_code] = self.add_train_op(self.loss[task_code], task_code)
+
+
+            predicted_labels = tf.argmax(representation, axis=1)
+            correct_labels = tf.equal(predicted_labels, self.true_labels[task_code])
+            self.correct_labels_count = tf.reduce_sum(tf.cast(correct_labels, dtype=tf.int32))
+
+
 
     def build_graph(self):
 
@@ -253,7 +290,9 @@ class Model:
                 if task in ('ner', 'pos'):
                     self.add_crf(task, task_code)
                 if task in ('dep'):
-                    self.add_dep(task, task_code)
+                    self.add_dep(task_code)
+                if task in ('nli'):
+                    self.add_nli(task_code)
                 used_task_codes.append(task_code)
 
         if self.config.use_gpu:
@@ -335,6 +374,30 @@ class Model:
                     }
 
                     self.sess.run([self.dep_train_op], feed_dict=fd)
+
+                if st.task in ('nli'):
+                    minibatch = st.next_batch(self.config.batch_size)
+                    prm_word_ids, hyp_word_ids, prm_char_ids, hyp_char_ids,\
+                    prm_len, hyp_len, prm_word_lengths, hyp_word_lengths, label_ids = minibatch
+                    word_ids = utils.interweave(prm_word_ids, hyp_word_ids)
+                    char_ids = utils.interweave(prm_char_ids, hyp_char_ids)
+                    sentence_lengths = utils.interweave(prm_len, hyp_len)
+                    word_lengths = utils.interweave(prm_word_lengths, hyp_word_lengths)
+
+                    fd = {
+                        self.word_ids: word_ids,
+                        self.sequence_lengths: sentence_lengths,
+                        self.learning_rate: self.config.learning_rate,
+                        self.dropout: self.config.dropout,
+                        self.word_lengths: word_lengths,
+                        self.char_ids: char_ids,
+                        self.true_labels[task_code]: label_ids,
+                    }
+
+                    self.sess.run([self.train_op[task_code]], feed_dict=fd)
+
+
+
 
         self.logger.log_message("End of epoch " + str(epoch_id+1))
 
@@ -423,6 +486,36 @@ class Model:
                 losses.append(loss)
 
             output = {'uas': np.mean(uases), 'loss': np.mean(losses), 'las': np.mean(lases)}
+
+        if dev_set.task in ('nli'):
+
+            counts = []
+            losses = []
+            sum = 0
+
+            for i, minibatch in enumerate(dev_set.dev_batches(16)):
+                prm_word_ids, hyp_word_ids, prm_char_ids, hyp_char_ids, \
+                prm_len, hyp_len, prm_word_lengths, hyp_word_lengths, label_ids = minibatch
+                word_ids = utils.interweave(prm_word_ids, hyp_word_ids)
+                char_ids = utils.interweave(prm_char_ids, hyp_char_ids)
+                sentence_lengths = utils.interweave(prm_len, hyp_len)
+                word_lengths = utils.interweave(prm_word_lengths, hyp_word_lengths)
+
+                fd = {
+                    self.word_ids: word_ids,
+                    self.true_labels[task_code]: label_ids,
+                    self.sequence_lengths: sentence_lengths,
+                    self.dropout: 1,
+                    self.word_lengths: word_lengths,
+                    self.char_ids: char_ids,
+                }
+
+                count, loss = self.sess.run([self.correct_labels_count, self.loss[task_code]], feed_dict=fd)
+                counts.append(count)
+                losses.append(loss)
+                sum += len(label_ids)
+
+            output = {'c': float(np.sum(counts)) / sum, 'loss': np.mean(losses)}
 
         return output
 

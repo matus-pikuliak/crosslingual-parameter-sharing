@@ -4,6 +4,7 @@ import numpy as np
 
 from sample_sqt import SQTSample
 from sample_dep import DEPSample
+from sample_nli import NLISample
 
 
 class Dataset():
@@ -14,7 +15,8 @@ class Dataset():
         self.sample_class = {
             'ner': SQTSample,
             'pos': SQTSample,
-            'dep': DEPSample
+            'dep': DEPSample,
+            'nli': NLISample
         }[self.task]
         self.role = role
         self.config = config

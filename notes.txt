@@ -24,3 +24,6 @@ Dlzka vety je maximalne 70, minimalne 2.
 ## DEP
 - podobne ako pri POS beriem do uvahy tie slova z UD, ktore maju svoje id. Rozlicne zhluky neberieme do uvahy
 - z labelov vztahov berieme len prvu cast, druhu language-specific ignorujeme
+
+# NLI
+- odstranili sme vsetky dvojice bez golden tagu
