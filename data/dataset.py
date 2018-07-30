@@ -5,6 +5,7 @@ import numpy as np
 from sample_sqt import SQTSample
 from sample_dep import DEPSample
 from sample_nli import NLISample
+from sample_lmo import LMOSample
 
 
 class Dataset():
@@ -16,7 +17,8 @@ class Dataset():
             'ner': SQTSample,
             'pos': SQTSample,
             'dep': DEPSample,
-            'nli': NLISample
+            'nli': NLISample,
+            'lmo': LMOSample
         }[self.task]
         self.role = role
         self.config = config
@@ -38,7 +40,7 @@ class Dataset():
                 if line.strip():
                     bf.append(line)
                 else:
-                    if len(bf) <= self.config.max_sentence_length and len(bf) >= self.config.min_sentence_length:
+                    if self.config.min_sentence_length <= len(bf) <= self.config.max_sentence_length:
                         samples.append(self.sample_class(bf, self))
                     bf = []
 

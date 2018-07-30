@@ -36,28 +36,17 @@ class DataManager:
 
         # generate vocabularies for languages
         self.lang_vocabs = dict()
+        self.embeddings = dict()
         for lang in self.languages():
             vocab = set()
             for dt in self.filter_datasets(lang=lang):
                 vocab |= dt.lang_vocab(embedding_vocab=em.vocab(lang))
             vocab.add(constants.UNK_WORD)
-            self.lang_vocabs[lang] = vocab
-
-        # initiate embedding matrix
-        vocab_sizes = [len(self.lang_vocabs[lang]) for lang in self.languages()]
-        self.embeddings = np.zeros((sum(vocab_sizes), self.config.word_emb_size))
-
-        # create final vocabularies
-        counter = 0
-        for lang in self.languages():
-            size = len(self.lang_vocabs[lang])
-            self.lang_vocabs[lang] = Bidir(self.lang_vocabs[lang], start=counter)
-            counter += size
-
-            # fill embedding matrix
+            self.embeddings[lang] = np.zeros((len(vocab), self.config.word_emb_size))
+            self.lang_vocabs[lang] = Bidir(vocab)
             for id, word in self.lang_vocabs[lang].id_to_token.iteritems():
                 if word is not constants.UNK_WORD:
-                    self.embeddings[id] = em.embedding(lang, word)
+                    self.embeddings[lang][id] = em.embedding(lang, word)
 
         # create vocabularies for task labels
         self.task_vocabs = dict()

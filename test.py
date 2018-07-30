@@ -69,7 +69,7 @@ if config.tasks is None:
     # train_sets = [[('pos','en'), ('pos','es'), ('ner','en'), ('ner', 'es')]]
     # tls = [(task, lang) for task in ['ner', 'pos'] for lang in ['en', 'es']]
 else:
-    train_sets = [[t] for t in config.tasks]
+    train_sets = [config.tasks] # [[t] for t in config.tasks]
     tls = config.tasks
 
 dm = DataManager(tls=tls, config=config)

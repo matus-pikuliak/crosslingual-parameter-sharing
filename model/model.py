@@ -187,6 +187,60 @@ class Model:
             correct_labels = tf.equal(predicted_labels, self.true_labels[task_code])
             self.correct_labels_count = tf.reduce_sum(tf.cast(correct_labels, dtype=tf.int32))
 
+    def add_lmo(self, task_code):
+        pass
+        # max_len = tf.reduce_max(self.sequence_lengths)
+        # batch_size = tf.size(self.sequence_lengths)
+        #
+        # start_vec = tf.get_variable('start_vec', shape=[self.config.word_lstm_size], dtype=tf.float32)
+        # start_vec = tf.expand_dims(start_vec, 0)
+        # start_vec = tf.tile(start_vec, [batch_size, 1])
+        # start_vec = tf.expand_dims(start_vec, 1)
+        # _fd, _ = tf.split(self.lstm_fw, [max_len - 1, 1], axis=1)
+        # _fd = tf.concat([start_vec, _fd], 1)
+        #
+        # end_vec = tf.get_variable('end_vec', shape=[self.config.word_lstm_size], dtype=tf.float32)
+        # end_vec = tf.expand_dims(end_vec, 0)
+        # end_vec = tf.tile(end_vec, [batch_size, 1])
+        # end_vec = tf.expand_dims(end_vec, 1)
+        # one_hot = tf.one_hot(self.sequence_lengths - 1, 5)
+        # one_hot = tf.expand_dims(one_hot, 2)
+        # end_vec = tf.matmul(one_hot, end_vec)
+        #
+        # _, _bd = tf.split(self.lstm_fw, [1, max_len - 1], axis=1)
+        # zeros = tf.zeros([batch_size, 1, self.config.word_lstm_size], dtype=tf.float32)
+        # _bd = tf.concat([_bd, zeros], 1)
+        # _bd = _bd + end_vec
+        #
+        # rp = tf.concat([_fd, _bd], axis=2)
+        # rp = tf.reshape(rp, [-1, 2 * self.config.word_lstm_size])
+        # seq_mask = tf.reshape(tf.sequence_mask(self.sequence_lengths, max_len), [-1])
+        # rp = tf.boolean_mask(rp, seq_mask)
+        # _ids = tf.boolean_mask(tf.reshape(self.word_ids, [-1]), seq_mask)
+        #
+        # W = tf.get_variable("W", dtype=tf.float32, shape=[2 * self.config.word_lstm_size, 500])
+        # b = tf.get_variable("b", dtype=tf.float32, shape=[500])
+        # W2 = tf.get_variable("W2", dtype=tf.float32, shape=[500, vocab_size])
+        #
+        # rp = tf.matmul(rp, W) + b
+        # rp = tf.matmul(tf.nn.tanh(rp), W2)
+        #
+        # ids_one_hot = tf.one_hot(_ids, depth=vocab_size)
+        # loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(
+        #     labels=ids_one_hot,
+        #     logits=rp,
+        #     dim=-1,
+        # ))
+        #
+        # optimizer = tf.train.AdamOptimizer(0.001)
+        # grads, vs = zip(*optimizer.compute_gradients(loss))
+        # grads, _ = tf.clip_by_global_norm(grads, 1)
+        # training_op = optimizer.apply_gradients(zip(grads, vs))
+        #
+        # predicted_labels = tf.argmax(rp, axis=1)
+        # correct_labels = tf.equal(predicted_labels, _ids)
+        # correct_labels_count = tf.reduce_sum(tf.cast(correct_labels, dtype=tf.int32))
+
 
 
     def build_graph(self):
@@ -225,14 +279,24 @@ class Model:
         selected_optimizer = available_optimizers[self.config.optimizer]
         self.optimizer = selected_optimizer(self.learning_rate)
 
+        # language flags
+        self.language_flags = dict()
+        for lang in self.dm.languages():
+            self.language_flags[lang] = tf.placeholder_with_default(input=False, shape=[], name="language_flag_%s" % lang)
+
         #
         # word embeddings
-        _word_embeddings = tf.get_variable(
-            dtype=tf.float32,
-            # shape=[None, self.config.word_emb_size],
-            initializer=tf.cast(self.dm.embeddings, tf.float32),
-            trainable=self.config.train_emb,
-            name="word_embeddings")
+        _word_embeddings = dict()
+        for lang in self.dm.languages():
+            _word_embeddings[lang] = tf.get_variable(
+                dtype=tf.float32,
+                # shape=[None, self.config.word_emb_size],
+                initializer=tf.cast(self.dm.embeddings[lang], tf.float32),
+                trainable=self.config.train_emb,
+                name="word_embeddings_%s" % lang)
+
+        cases = dict([(self.language_flags[lang], lambda: _word_embeddings[lang]) for lang in self.dm.languages()])
+        _word_embeddings = tf.case(cases) # TODO: aj ked je vsetko False uchyli sa to ku defaultu, toto spravanie sa mi nepaci
         self.word_embeddings = tf.nn.embedding_lookup(_word_embeddings, self.word_ids,
         name="word_embeddings_lookup")
 
@@ -268,11 +332,11 @@ class Model:
         with tf.variable_scope("word_bi-lstm"):
             cell_fw = tf.contrib.cudnn_rnn.CudnnCompatibleLSTMCell(self.config.word_lstm_size)
             cell_bw = tf.contrib.cudnn_rnn.CudnnCompatibleLSTMCell(self.config.word_lstm_size)
-            (output_fw, output_bw), _ = tf.nn.bidirectional_dynamic_rnn(
+            (self.lstm_fw, self.lstm_bw), _ = tf.nn.bidirectional_dynamic_rnn(
                 cell_fw, cell_bw, self.word_embeddings,
                 sequence_length=self.sequence_lengths, dtype=tf.float32)
             # shape(batch_size, max_length, 2 x word_lstm_size)
-            self.word_lstm_output = tf.concat([output_fw, output_bw], axis=-1)
+            self.word_lstm_output = tf.concat([self.lstm_fw, self.lstm_bw], axis=-1)
 
         self.word_lstm_output = tf.nn.dropout(self.word_lstm_output, self.dropout)
 
@@ -348,7 +412,8 @@ class Model:
                         self.learning_rate: self.config.learning_rate,
                         self.dropout: self.config.dropout,
                         self.word_lengths: word_lengths,
-                        self.char_ids: char_ids
+                        self.char_ids: char_ids,
+                        self.language_flags[st.lang]: True
                     }
 
                     _, train_loss, gradient_norm = self.sess.run(
@@ -370,7 +435,8 @@ class Model:
                         self.char_ids: char_ids,
                         self.arc_ids: arcs,
                         self.true_labels[task_code]: label_ids,
-                        self.golden_arc_ids: True
+                        self.golden_arc_ids: True,
+                        self.language_flags[st.lang]: True
                     }
 
                     self.sess.run([self.dep_train_op], feed_dict=fd)
@@ -392,9 +458,14 @@ class Model:
                         self.word_lengths: word_lengths,
                         self.char_ids: char_ids,
                         self.true_labels[task_code]: label_ids,
+                        self.language_flags[st.lang]: True
                     }
 
                     self.sess.run([self.train_op[task_code]], feed_dict=fd)
+
+                if st.task in ('lmo'):
+                    print st.next_batch(self.config.batch_size)
+                    exit()
 
 
 
@@ -427,7 +498,7 @@ class Model:
             for i, minibatch in enumerate(dev_set.dev_batches(32)):
                 _, _, label_ids, sentence_lengths, _ = minibatch
 
-                labels_ids_predictions, loss = self.predict_batch(minibatch, task_code)
+                labels_ids_predictions, loss = self.predict_batch(minibatch, task_code, dev_set.lang)
                 losses.append(loss)
 
                 for lab, lab_pred, length in zip(label_ids, labels_ids_predictions, sentence_lengths):
@@ -477,7 +548,8 @@ class Model:
                     self.word_lengths: word_lengths,
                     self.char_ids: char_ids,
                     self.arc_ids: arcs,
-                    self.golden_arc_ids: False
+                    self.golden_arc_ids: False,
+                    self.language_flags[dev_set.lang]: True
                 }
 
                 uas, las, loss = self.sess.run([self.uas, self.las, self.dep_loss], feed_dict=fd)
@@ -508,6 +580,7 @@ class Model:
                     self.dropout: 1,
                     self.word_lengths: word_lengths,
                     self.char_ids: char_ids,
+                    self.language_flags[dev_set.lang]: True
                 }
 
                 count, loss = self.sess.run([self.correct_labels_count, self.loss[task_code]], feed_dict=fd)
@@ -519,7 +592,7 @@ class Model:
 
         return output
 
-    def predict_batch(self, minibatch, task_code):
+    def predict_batch(self, minibatch, task_code, lang):
 
         word_ids, char_ids, label_ids, sentence_lengths, word_lengths = minibatch
         fd = {
@@ -528,7 +601,8 @@ class Model:
             self.sequence_lengths: sentence_lengths,
             self.dropout: 1,
             self.word_lengths: word_lengths,
-            self.char_ids: char_ids
+            self.char_ids: char_ids,
+            self.language_flags[lang]: True
         }
 
         # get tag scores and transition params of CRF
