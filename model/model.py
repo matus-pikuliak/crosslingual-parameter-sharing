@@ -295,9 +295,11 @@ class Model:
                 trainable=self.config.train_emb,
                 name="word_embeddings_%s" % lang)
 
-        cases = dict([(self.language_flags[lang], lambda: _word_embeddings[lang]) for lang in self.dm.languages()])
-        _word_embeddings = tf.case(cases) # TODO: aj ked je vsetko False uchyli sa to ku defaultu, toto spravanie sa mi nepaci
-        self.word_embeddings = tf.nn.embedding_lookup(_word_embeddings, self.word_ids,
+
+        lambdas = lambda lang: lambda: _word_embeddings[lang]
+        cases = dict([(self.language_flags[lang], lambdas(lang)) for lang in self.dm.languages()])
+        cased_word_embeddings = tf.case(cases) # TODO: aj ked je vsetko False uchyli sa to ku defaultu, toto spravanie sa mi nepaciK
+        self.word_embeddings = tf.nn.embedding_lookup(cased_word_embeddings, self.word_ids,
         name="word_embeddings_lookup")
 
         if self.config.char_level:
@@ -466,8 +468,6 @@ class Model:
                 if st.task in ('lmo'):
                     print st.next_batch(self.config.batch_size)
                     exit()
-
-
 
 
         self.logger.log_message("End of epoch " + str(epoch_id+1))
