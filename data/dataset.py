@@ -7,10 +7,12 @@ from sample_dep import DEPSample
 from sample_nli import NLISample
 from sample_lmo import LMOSample
 
+import utils.general_utils as utils
+
 
 class Dataset():
 
-    def __init__(self, task, lang, role, filename=None, samples=None, config=None):
+    def __init__(self, task, lang, role, filename=None, samples=None, config=None, max_size=None):
         self.lang = lang
         self.task = task
         self.sample_class = {
@@ -23,7 +25,7 @@ class Dataset():
         self.role = role
         self.config = config
         if filename is not None:
-            self.samples = self.load_file(filename)
+            self.samples = self.load_file(filename, max_size)
         else:
             self.samples = samples
         self.reader = 0
@@ -31,7 +33,7 @@ class Dataset():
     def __len__(self):
         return len(self.samples)
 
-    def load_file(self, filename):
+    def load_file(self, filename, max_size=None):
         bf = []
         samples = []
 
@@ -42,16 +44,21 @@ class Dataset():
                 else:
                     if self.config.min_sentence_length <= len(bf) <= self.config.max_sentence_length:
                         samples.append(self.sample_class(bf, self))
+                        if len(samples) == max_size:
+                            break
                     bf = []
-
+        if len(bf) > 0:
+            print "Warning: There are still words in buffer. Append newline at the end of file."
         return samples
 
     def lang_vocab(self, embedding_vocab=set()):
-        vocab = set()
+        vocab = dict()
         for sample in self.samples:
             for word in sample.words:
-                if word.lower() in embedding_vocab: # TODO: lower() bcs of MUSE embeddings
-                    vocab.add(word.lower())
+                word = word.lower()
+                if word in embedding_vocab: # TODO: lower() bcs of MUSE embeddings
+                    vocab.setdefault(word, 0)
+                    vocab[word] += 1
         return vocab
 
     def task_vocab(self):

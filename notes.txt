@@ -27,3 +27,7 @@ Dlzka vety je maximalne 70, minimalne 2.
 
 # NLI
 - odstranili sme vsetky dvojice bez golden tagu
+
+# LMO
+- europarl, english zo spanielskej verzie
+- train/dev/test 95 - 2.5 - 2.5

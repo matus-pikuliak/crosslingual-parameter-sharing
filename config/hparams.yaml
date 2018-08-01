@@ -24,6 +24,9 @@ default: &default
   max_sentence_length: 70
   min_sentence_length: 2
 
+  lmo_vocab_size: 10000 # how many words are output vocabulary for language modeling
+  max_dt_size: 0 # max number of samples read from a file (0 is unlimited)
+
   # settings
   use_gpu: true
   show_graph: false

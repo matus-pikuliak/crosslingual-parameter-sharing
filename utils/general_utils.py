@@ -10,3 +10,11 @@ def interweave(a, b):
         c.append(a[i])
         c.append(b[i])
     return np.array(c)
+
+def mem_usage(msg=None):
+    import os
+    import psutil
+    process = psutil.Process(os.getpid())
+    if msg:
+        print msg
+    return process.memory_info().rss

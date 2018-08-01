@@ -4,6 +4,7 @@ import numpy as np
 from dataset import Dataset
 from bidir import Bidir
 from embedding_manager import EmbeddingManager
+import utils.general_utils as utils
 import constants
 
 
@@ -26,27 +27,41 @@ class DataManager:
                 if not os.path.isfile(filename):
                     raise ValueError('File %s does not exist.' % filename)
 
-                dt = Dataset(task, lang, role, filename=filename, config=self.config)
+                max_size = self.config.max_dt_size
+                max_size = max_size if max_size > 0 else None
+                dt = Dataset(task, lang, role, filename=filename, config=self.config, max_size=max_size)
                 self.datasets.append(dt)
 
     def prepare(self):
+
+        print utils.mem_usage()
+
         # load embedding files
         em = EmbeddingManager(self.languages(), self.config)
         em.load_files()
+
+        print utils.mem_usage()
 
         # generate vocabularies for languages
         self.lang_vocabs = dict()
         self.embeddings = dict()
         for lang in self.languages():
-            vocab = set()
+            vocab = dict()
             for dt in self.filter_datasets(lang=lang):
-                vocab |= dt.lang_vocab(embedding_vocab=em.vocab(lang))
-            vocab.add(constants.UNK_WORD)
+                dt_vocab = dt.lang_vocab(embedding_vocab=em.vocab(lang))
+                for word in dt_vocab:
+                    vocab.setdefault(word, 0)
+                    vocab[word] += dt_vocab[word]
+            vocab = sorted(vocab.items(), key=lambda item: -item[1])
+            vocab = [word for (word, _) in vocab]
+            vocab.insert(0, constants.UNK_WORD)
             self.embeddings[lang] = np.zeros((len(vocab), self.config.word_emb_size))
             self.lang_vocabs[lang] = Bidir(vocab)
             for id, word in self.lang_vocabs[lang].id_to_token.iteritems():
                 if word is not constants.UNK_WORD:
                     self.embeddings[lang][id] = em.embedding(lang, word)
+
+        print utils.mem_usage()
 
         # create vocabularies for task labels
         self.task_vocabs = dict()
@@ -68,6 +83,8 @@ class DataManager:
         self.char_vocab.add(constants.EMPTY_CHAR)
         self.char_vocab = Bidir(self.char_vocab)
 
+        print utils.mem_usage()
+
         # create test-dev datasets?
         for dt in self.filter_datasets(role="train"):
             self.datasets.append(Dataset(dt.task, dt.lang, 'train-dev', samples=dt.get_samples(1024)))
@@ -75,6 +92,8 @@ class DataManager:
         # create final datasets and remove fulltext information
         for dt in self.datasets:
             dt.prepare(self.lang_vocabs[dt.lang], self.task_vocabs[dt.task], self.char_vocab)
+
+        print utils.mem_usage()
 
     def tasks(self):
         return set([tl[0] for tl in self.tls])
