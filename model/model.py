@@ -333,9 +333,9 @@ class Model:
                 cell_fw, cell_bw, self.word_embeddings,
                 sequence_length=self.sequence_lengths, dtype=tf.float32)
             # shape(batch_size, max_length, 2 x word_lstm_size)
+            self.lstm_fw = tf.nn.dropout(self.lstm_fw, self.dropout)
+            self.lstm_bw = tf.nn.dropout(self.lstm_bw, self.dropout)
             self.word_lstm_output = tf.concat([self.lstm_fw, self.lstm_bw], axis=-1)
-
-        self.word_lstm_output = tf.nn.dropout(self.word_lstm_output, self.dropout)
 
         self.true_labels = dict()
         self.predicted_labels = dict()
