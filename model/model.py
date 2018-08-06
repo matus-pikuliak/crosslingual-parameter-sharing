@@ -31,7 +31,7 @@ class Model:
             grads, _ = tf.clip_by_global_norm(grads, self.config.clip)
         return self.optimizer.apply_gradients(zip(grads, vs))
 
-    def learning_rate(self):
+    def current_current_learning_rate(self):
 
         if self.config.learning_rate_schedule == 'static':
             return self.config.learning_rate
@@ -412,7 +412,7 @@ class Model:
                         self.word_ids: word_ids,
                         self.true_labels[task_code]: label_ids,
                         self.sequence_lengths: sentence_lengths,
-                        self.learning_rate: self.learning_rate(),
+                        self.learning_rate: self.current_learning_rate(),
                         self.dropout: self.config.dropout,
                         self.word_lengths: word_lengths,
                         self.char_ids: char_ids,
@@ -432,7 +432,7 @@ class Model:
                     fd = {
                         self.word_ids: word_ids,
                         self.sequence_lengths: sentence_lengths,
-                        self.learning_rate: self.learning_rate(),
+                        self.learning_rate: self.current_learning_rate(),
                         self.dropout: self.config.dropout,
                         self.word_lengths: word_lengths,
                         self.char_ids: char_ids,
@@ -456,7 +456,7 @@ class Model:
                     fd = {
                         self.word_ids: word_ids,
                         self.sequence_lengths: sentence_lengths,
-                        self.learning_rate: self.learning_rate(),
+                        self.learning_rate: self.current_learning_rate(),
                         self.dropout: self.config.dropout,
                         self.word_lengths: word_lengths,
                         self.char_ids: char_ids,
@@ -472,7 +472,7 @@ class Model:
                     fd = {
                         self.word_ids: word_ids,
                         self.sequence_lengths: sentence_lengths,
-                        self.learning_rate: self.learning_rate(),
+                        self.learning_rate: self.current_learning_rate(),
                         self.dropout: self.config.dropout,
                         self.word_lengths: word_lengths,
                         self.char_ids: char_ids,
