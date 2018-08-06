@@ -34,13 +34,9 @@ class DataManager:
 
     def prepare(self):
 
-        print utils.mem_usage()
-
         # load embedding files
         em = EmbeddingManager(self.languages(), self.config)
         em.load_files()
-
-        print utils.mem_usage()
 
         # generate vocabularies for languages
         self.lang_vocabs = dict()
@@ -60,8 +56,6 @@ class DataManager:
             for id, word in self.lang_vocabs[lang].id_to_token.iteritems():
                 if word is not constants.UNK_WORD:
                     self.embeddings[lang][id] = em.embedding(lang, word)
-
-        print utils.mem_usage()
 
         # create vocabularies for task labels
         self.task_vocabs = dict()
@@ -83,8 +77,6 @@ class DataManager:
         self.char_vocab.add(constants.EMPTY_CHAR)
         self.char_vocab = Bidir(self.char_vocab)
 
-        print utils.mem_usage()
-
         # create test-dev datasets?
         for dt in self.filter_datasets(role="train"):
             self.datasets.append(Dataset(dt.task, dt.lang, 'train-dev', samples=dt.get_samples(1024)))
@@ -92,8 +84,6 @@ class DataManager:
         # create final datasets and remove fulltext information
         for dt in self.datasets:
             dt.prepare(self.lang_vocabs[dt.lang], self.task_vocabs[dt.task], self.char_vocab)
-
-        print utils.mem_usage()
 
     def tasks(self):
         return set([tl[0] for tl in self.tls])

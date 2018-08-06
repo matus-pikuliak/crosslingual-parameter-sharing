@@ -31,25 +31,32 @@ class Model:
             grads, _ = tf.clip_by_global_norm(grads, self.config.clip)
         return self.optimizer.apply_gradients(zip(grads, vs))
 
+    def learning_rate(self):
+
+        if self.config.learning_rate_schedule == 'static':
+            return self.config.learning_rate
+        elif self.config.learning_rate_schedule == 'decay':
+            return self.config.learning_rate * pow(self.config.learning_rate_decay, self.epoch)
+        else:
+            raise AttributeError('lr_schedule must be set to static or decay')
+
     def add_crf(self, task, task_code):
         with tf.variable_scope(task_code):
             tag_count = len(self.dm.task_vocabs[task])
+            max_length = tf.shape(self.word_ids)[1]
+
+            output = tf.reshape(self.word_lstm_output, [-1, 2 * self.config.word_lstm_size])
+            W = tf.get_variable(dtype=tf.float32, shape=[2 * self.config.word_lstm_size, tag_count],
+                                name="weights")
+            b = tf.get_variable(dtype=tf.float32, shape=[tag_count], initializer=tf.zeros_initializer(),
+                                name="biases")
+            output = tf.matmul(output, W) + b
+            self.predicted_labels[task_code] = tf.reshape(output, [-1, max_length, tag_count])
 
             # expected output
-            # shape = (batch%size, max_length)
+            # shape = (batch_size, max_length)
             self.true_labels[task_code] = tf.placeholder(tf.int32, shape=[None, None],
                                                   name="labels")
-            # projection
-            W = tf.get_variable(dtype=tf.float32, shape=[2 * self.config.word_lstm_size, tag_count],
-                                name="proj_weights")
-            b = tf.get_variable(dtype=tf.float32, shape=[tag_count], initializer=tf.zeros_initializer(),
-                                name="proj_biases")
-
-            max_length = tf.shape(self.word_lstm_output)[1]  # TODO: toto moze byt vstupom z vonku?
-            reshaped_output = tf.reshape(self.word_lstm_output, [-1,
-                                                                 2 * self.config.word_lstm_size])  # We can apply the weight on all outputs of LSTM now
-            proj = tf.matmul(reshaped_output, W) + b
-            self.predicted_labels[task_code] = tf.reshape(proj, [-1, max_length, tag_count])
 
             # loss
             log_likelihood, trans_params = tf.contrib.crf.crf_log_likelihood(
@@ -113,8 +120,7 @@ class Model:
             relevant_arcs = tf.boolean_mask(all_combinations, relevant_arc_ids)
             relevant_arcs = tf.boolean_mask(relevant_arcs, seq_mask)
 
-            self.true_labels[task_code] = tf.placeholder(tf.int64, shape=[None, None],
-                                                  name="labels")
+            self.true_labels[task_code] = tf.placeholder(tf.int64, shape=[None, None], name="labels")
             labels = tf.reshape(self.true_labels[task_code], [-1])
             labels = tf.boolean_mask(labels, seq_mask)
             one_hot_labels = tf.one_hot(labels, len(self.dm.task_vocabs['dep']))
@@ -123,7 +129,7 @@ class Model:
             b3 = tf.get_variable("b3", dtype=tf.float32, shape=[len(self.dm.task_vocabs['dep'])])
             predicted_arc_labels = tf.matmul(relevant_arcs, W3) + b3
             predicted_arc_labels_ids = tf.argmax(predicted_arc_labels, axis=1)
-            self.dep_loss_las = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(
+            loss_las = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(
                 labels=one_hot_labels,
                 logits=predicted_arc_labels,
                 dim=-1,
@@ -133,23 +139,18 @@ class Model:
             predicted_arc_ids = tf.boolean_mask(predicted_arc_ids, seq_mask)
             uas = tf.equal(predicted_arc_ids, _arc_ids)
             las = tf.logical_and(tf.equal(predicted_arc_labels_ids, labels), uas)
-            uas = tf.reduce_sum(tf.count_nonzero(uas))
-            las = tf.reduce_sum(tf.count_nonzero(las))
-
-            size = tf.cast(tf.size(labels), tf.float32)
-
-            self.uas = tf.cast(uas, tf.float32) / size
-            self.las = tf.cast(las, tf.float32) / size
+            self.uas = tf.reduce_sum(tf.count_nonzero(uas))
+            self.las = tf.reduce_sum(tf.count_nonzero(las))
 
             combinations = tf.boolean_mask(combinations, seq_mask)
             arc_one_hots = tf.one_hot(_arc_ids, tf.shape(words_root)[1])  # length+1
-            self.dep_loss_uas = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(
+            loss_uas = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(
                 labels=arc_one_hots,
                 logits=combinations,
                 dim=-1,
             ))
-            self.dep_loss = self.dep_loss_las + self.dep_loss_uas
-            self.dep_train_op = self.add_train_op(self.dep_loss, task_code)
+            self.loss[task_code] = loss_las + loss_uas
+            self.train_op[task_code] = self.add_train_op(self.loss[task_code], task_code)
 
     def add_nli(self, task_code):
         with tf.variable_scope(task_code):
@@ -181,7 +182,6 @@ class Model:
             ))
 
             self.train_op[task_code] = self.add_train_op(self.loss[task_code], task_code)
-
 
             predicted_labels = tf.argmax(representation, axis=1)
             correct_labels = tf.equal(predicted_labels, self.true_labels[task_code])
@@ -293,7 +293,7 @@ class Model:
 
         lambdas = lambda lang: lambda: _word_embeddings[lang]
         cases = dict([(self.language_flags[lang], lambdas(lang)) for lang in self.dm.languages()])
-        cased_word_embeddings = tf.case(cases) # TODO: aj ked je vsetko False uchyli sa to ku defaultu, toto spravanie sa mi nepaciK
+        cased_word_embeddings = tf.case(cases) # TODO: when all are false it will pick default
         self.word_embeddings = tf.nn.embedding_lookup(cased_word_embeddings, self.word_ids,
         name="word_embeddings_lookup")
 
@@ -309,18 +309,23 @@ class Model:
             with tf.variable_scope("char_bi-lstm"):
                 max_sentence_length = tf.shape(self.char_embeddings)[1]
                 max_word_length = tf.shape(self.char_embeddings)[2]
-                self.char_embeddings = tf.reshape(self.char_embeddings, [-1, max_word_length, self.config.char_emb_size], name="abc")
-                self.word_lengths_seq = tf.reshape(self.word_lengths, [-1], name="bcd")
+                self.char_embeddings = tf.reshape(self.char_embeddings, [-1, max_word_length, self.config.char_emb_size])
                 cell_fw = tf.contrib.cudnn_rnn.CudnnCompatibleLSTMCell(self.config.char_lstm_size)
                 cell_bw = tf.contrib.cudnn_rnn.CudnnCompatibleLSTMCell(self.config.char_lstm_size)
+                word_lengths = tf.reshape(self.word_lengths, [-1])
                 (output_fw, output_bw), _ = tf.nn.bidirectional_dynamic_rnn(
                     cell_fw, cell_bw, self.char_embeddings,
-                    sequence_length=self.word_lengths_seq, dtype=tf.float32)
+                    sequence_length=word_lengths, dtype=tf.float32)
                 # shape(batch_size*max_sentence, max_word, 2 x word_lstm_size)
-                self.char_lstm_output = tf.concat([output_fw, output_bw], axis=-1)
-                self.char_lstm_output = tf.reduce_mean(self.char_lstm_output, 1)
-                self.char_lstm_output = tf.reshape(self.char_lstm_output, (-1, max_sentence_length, 2*self.config.char_lstm_size))
-                self.word_embeddings = tf.concat([self.word_embeddings, self.char_lstm_output], axis=-1)
+                char_lstm_output = tf.concat([output_fw, output_bw], axis=-1)
+                char_lstm_output = tf.reduce_sum(char_lstm_output, 1)
+                word_lengths = tf.cast(word_lengths, dtype=tf.float32)
+                word_lengths = tf.add(word_lengths, 1e-8)
+                word_lengths = tf.expand_dims(word_lengths, 1)
+                word_lengths = tf.tile(word_lengths, [1, 2 * self.config.char_lstm_size])
+                char_lstm_output = tf.divide(char_lstm_output, word_lengths)
+                char_lstm_output = tf.reshape(char_lstm_output, (-1, max_sentence_length, 2*self.config.char_lstm_size))
+                self.word_embeddings = tf.concat([self.word_embeddings, char_lstm_output], axis=-1)
 
         self.word_embeddings = tf.nn.dropout(self.word_embeddings, self.dropout)
 
@@ -354,9 +359,9 @@ class Model:
                     self.add_dep(task_code)
                 if task in ('nli'):
                     self.add_nli(task_code)
-                if task in ('lmo'):
-                    self.add_lmo(task_code, lang)
                 used_task_codes.append(task_code)
+            if task in ('lmo'):
+                self.add_lmo(task_code, lang)
 
         if self.config.use_gpu:
             self.sess = tf.Session(config=tf.ConfigProto(
@@ -379,16 +384,15 @@ class Model:
         start_time = datetime.datetime.now()
         self.logger.log_message(start_time)
         self.logger.log_message(self.config.dump())
+        self.epoch = 1
         for i in xrange(epochs):
-            self.run_epoch(i, train=train, test=test)
+            self.run_epoch(train=train, test=test)
         end_time = datetime.datetime.now()
         self.logger.log_message(end_time)
         self.logger.log_message('Training took: '+str(end_time-start_time))
         self.logger.log_critical('Run done.')
 
-    def run_epoch(self, epoch_id,
-                  train,
-                  test):
+    def run_epoch(self, train, test):
 
         train_sets = [self.dm.fetch_dataset(task, lang, 'train') for (task, lang) in train]
         dev_sets = [self.dm.fetch_dataset(task, lang, 'dev') for (task, lang) in train]
@@ -408,7 +412,7 @@ class Model:
                         self.word_ids: word_ids,
                         self.true_labels[task_code]: label_ids,
                         self.sequence_lengths: sentence_lengths,
-                        self.learning_rate: self.config.learning_rate,
+                        self.learning_rate: self.learning_rate(),
                         self.dropout: self.config.dropout,
                         self.word_lengths: word_lengths,
                         self.char_ids: char_ids,
@@ -428,7 +432,7 @@ class Model:
                     fd = {
                         self.word_ids: word_ids,
                         self.sequence_lengths: sentence_lengths,
-                        self.learning_rate: self.config.learning_rate,
+                        self.learning_rate: self.learning_rate(),
                         self.dropout: self.config.dropout,
                         self.word_lengths: word_lengths,
                         self.char_ids: char_ids,
@@ -438,7 +442,7 @@ class Model:
                         self.language_flags[st.lang]: True
                     }
 
-                    self.sess.run([self.dep_train_op], feed_dict=fd)
+                    self.sess.run([self.train_op[task_code]], feed_dict=fd)
 
                 if st.task in ('nli'):
                     minibatch = st.next_batch(self.config.batch_size)
@@ -452,7 +456,7 @@ class Model:
                     fd = {
                         self.word_ids: word_ids,
                         self.sequence_lengths: sentence_lengths,
-                        self.learning_rate: self.config.learning_rate,
+                        self.learning_rate: self.learning_rate(),
                         self.dropout: self.config.dropout,
                         self.word_lengths: word_lengths,
                         self.char_ids: char_ids,
@@ -468,7 +472,7 @@ class Model:
                     fd = {
                         self.word_ids: word_ids,
                         self.sequence_lengths: sentence_lengths,
-                        self.learning_rate: self.config.learning_rate,
+                        self.learning_rate: self.learning_rate(),
                         self.dropout: self.config.dropout,
                         self.word_lengths: word_lengths,
                         self.char_ids: char_ids,
@@ -476,18 +480,20 @@ class Model:
                     }
                     self.sess.run([self.train_op[task_code]], feed_dict=fd)
 
-        self.logger.log_message("End of epoch " + str(epoch_id+1))
+        self.logger.log_message("End of epoch " + str(self.epoch))
 
         for st in dev_sets:
             metrics = {
                 'language': st.lang,
                 'task': st.task,
                 'role': st.role,
-                'epoch': epoch_id + 1,
+                'epoch': self.epoch,
                 'run': self.name
             }
             metrics.update(self.run_evaluate(st))
             self.logger.log_result(metrics)
+
+        self.epoch += 1
 
     def run_evaluate(self, dev_set):
         task_code = self.task_code(dev_set.task, dev_set.lang)
@@ -504,7 +510,7 @@ class Model:
             for i, minibatch in enumerate(dev_set.dev_batches(32)):
                 _, _, label_ids, sentence_lengths, _ = minibatch
 
-                labels_ids_predictions, loss = self.predict_batch(minibatch, task_code, dev_set.lang)
+                labels_ids_predictions, loss = self.predict_crf_batch(minibatch, task_code, dev_set.lang)
                 losses.append(loss)
 
                 for lab, lab_pred, length in zip(label_ids, labels_ids_predictions, sentence_lengths):
@@ -525,9 +531,9 @@ class Model:
 
             output = {'acc': 100 * np.mean(accs), 'loss': np.mean(losses)}
             if dev_set.task == 'ner':
-                precision = float(precision+1) / (predicted_ner+1)
-                recall = (float(recall) / expected_ner)
-                f1 = 2*precision*recall/(precision+recall)
+                precision = float(precision) / (predicted_ner+1)
+                recall = float(recall) / (expected_ner+1)
+                f1 = 2*precision*recall / (precision+recall+1)
                 output.update({
                     'expected_ner_count': expected_ner,
                     'predicted_ner_count': predicted_ner,
@@ -538,8 +544,9 @@ class Model:
 
         if dev_set.task in ('dep'):
 
-            uases = []
-            lases = []
+            uases = 0
+            lases = 0
+            size = 0
             losses = []
 
             for i, minibatch in enumerate(dev_set.dev_batches(16)):
@@ -558,12 +565,13 @@ class Model:
                     self.language_flags[dev_set.lang]: True
                 }
 
-                uas, las, loss = self.sess.run([self.uas, self.las, self.dep_loss], feed_dict=fd)
-                uases.append(uas)
-                lases.append(las)
+                uas, las, loss = self.sess.run([self.uas, self.las, self.loss[task_code]], feed_dict=fd)
+                uases += uas
+                lases += las
+                size += sum(sentence_lengths)
                 losses.append(loss)
 
-            output = {'uas': np.mean(uases), 'loss': np.mean(losses), 'las': np.mean(lases)}
+            output = {'uas': float(uases) / size, 'loss': np.mean(losses), 'las': float(lases) / size}
 
         if dev_set.task in ('nli'):
 
@@ -594,7 +602,7 @@ class Model:
                 losses.append(loss)
                 sum += len(label_ids)
 
-            output = {'c': float(np.sum(counts)) / sum, 'loss': np.mean(losses)}
+            output = {'acc': float(np.sum(counts)) / sum, 'loss': np.mean(losses)}
 
         if dev_set.task in ('lmo'):
             losses = []
@@ -618,7 +626,7 @@ class Model:
 
         return output
 
-    def predict_batch(self, minibatch, task_code, lang):
+    def predict_crf_batch(self, minibatch, task_code, lang):
 
         word_ids, char_ids, label_ids, sentence_lengths, word_lengths = minibatch
         fd = {
