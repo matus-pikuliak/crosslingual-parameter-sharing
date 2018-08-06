@@ -31,7 +31,7 @@ class Model:
             grads, _ = tf.clip_by_global_norm(grads, self.config.clip)
         return self.optimizer.apply_gradients(zip(grads, vs))
 
-    def current_current_learning_rate(self):
+    def current_learning_rate(self):
 
         if self.config.learning_rate_schedule == 'static':
             return self.config.learning_rate
