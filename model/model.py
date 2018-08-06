@@ -568,7 +568,7 @@ class Model:
                 uas, las, loss = self.sess.run([self.uas, self.las, self.loss[task_code]], feed_dict=fd)
                 uases += uas
                 lases += las
-                size += sum(sentence_lengths)
+                size += np.sum(sentence_lengths)
                 losses.append(loss)
 
             output = {'uas': float(uases) / size, 'loss': np.mean(losses), 'las': float(lases) / size}
