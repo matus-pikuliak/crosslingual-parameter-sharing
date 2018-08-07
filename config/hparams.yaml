@@ -33,6 +33,8 @@ default: &default
   use_gpu: true
   show_graph: false
 
+  char_level_type: rnn # / cnn - po experimente vyhodit
+
 debug:
   <<: *default
   word_lstm_size: 10
