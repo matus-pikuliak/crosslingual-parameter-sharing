@@ -66,9 +66,9 @@ class Model:
             self.trans_params[task_code] = trans_params  # need to evaluate it for decoding
             self.loss[task_code] = tf.reduce_mean(-log_likelihood)
 
-            # training
-            # Rremoving this part from task scope lets the graph reuse optimizer parameters
-            self.train_op[task_code] = self.add_train_op(self.loss[task_code], task_code)
+        # training
+        # Rremoving this part from task scope lets the graph reuse optimizer parameters
+        self.train_op[task_code] = self.add_train_op(self.loss[task_code], task_code)
 
     def add_dep(self, task_code):
         with tf.variable_scope(task_code):
@@ -150,7 +150,8 @@ class Model:
                 dim=-1,
             ))
             self.loss[task_code] = loss_las + loss_uas
-            self.train_op[task_code] = self.add_train_op(self.loss[task_code], task_code)
+
+        self.train_op[task_code] = self.add_train_op(self.loss[task_code], task_code)
 
     def add_nli(self, task_code):
         with tf.variable_scope(task_code):
@@ -181,11 +182,11 @@ class Model:
                 dim=-1,
             ))
 
-            self.train_op[task_code] = self.add_train_op(self.loss[task_code], task_code)
-
             predicted_labels = tf.argmax(representation, axis=1)
             correct_labels = tf.equal(predicted_labels, self.true_labels[task_code])
             self.correct_labels_count = tf.reduce_sum(tf.cast(correct_labels, dtype=tf.int32))
+
+        self.train_op[task_code] = self.add_train_op(self.loss[task_code], task_code)
 
     def add_lmo(self, task_code, lang):
         with tf.variable_scope(task_code):
@@ -236,7 +237,8 @@ class Model:
                 labels=_ids,
                 logits=rp,
             ))
-            self.train_op[task_code] = self.add_train_op(self.loss[task_code], task_code)
+
+        self.train_op[task_code] = self.add_train_op(self.loss[task_code], task_code)
 
     def build_graph(self):
 
