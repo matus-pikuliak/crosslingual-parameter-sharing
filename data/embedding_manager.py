@@ -22,7 +22,7 @@ class EmbeddingManager:
                         word, vector = line.split(' ', 1)
                         self.embeddings[lang][word] = np.array([float(val) for val in vector.split(' ')])
                     except:
-                        if self.config.setup is not 'production':
+                        if self.config.setup != 'production':
                             print(("Warning: there is a ill formatted line for language %s: '%s'" % (lang, line)).
                                   encode(sys.stdout.encoding, 'ignore'))
 
