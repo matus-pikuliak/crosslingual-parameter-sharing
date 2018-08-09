@@ -22,7 +22,7 @@ class Model:
         if self.config.crf_sharing:
             return task
         else:
-            return task+lang
+            return task + lang
 
     def add_train_op(self, loss, task_code):
         grads, vs = zip(*self.optimizer.compute_gradients(loss))
@@ -66,9 +66,9 @@ class Model:
             self.trans_params[task_code] = trans_params  # need to evaluate it for decoding
             self.loss[task_code] = tf.reduce_mean(-log_likelihood)
 
-            # training
-            # Rremoving this part from task scope lets the graph reuse optimizer parameters
-            self.train_op[task_code] = self.add_train_op(self.loss[task_code], task_code)
+        # training
+        # Rremoving this part from task scope lets the graph reuse optimizer parameters
+        self.train_op[task_code] = self.add_train_op(self.loss[task_code], task_code)
 
     def add_dep(self, task_code):
         with tf.variable_scope(task_code):
@@ -150,7 +150,8 @@ class Model:
                 dim=-1,
             ))
             self.loss[task_code] = loss_las + loss_uas
-            self.train_op[task_code] = self.add_train_op(self.loss[task_code], task_code)
+
+        self.train_op[task_code] = self.add_train_op(self.loss[task_code], task_code)
 
     def add_nli(self, task_code):
         with tf.variable_scope(task_code):
@@ -181,11 +182,11 @@ class Model:
                 dim=-1,
             ))
 
-            self.train_op[task_code] = self.add_train_op(self.loss[task_code], task_code)
-
             predicted_labels = tf.argmax(representation, axis=1)
             correct_labels = tf.equal(predicted_labels, self.true_labels[task_code])
             self.correct_labels_count = tf.reduce_sum(tf.cast(correct_labels, dtype=tf.int32))
+
+        self.train_op[task_code] = self.add_train_op(self.loss[task_code], task_code)
 
     def add_lmo(self, task_code, lang):
         with tf.variable_scope(task_code):
@@ -236,7 +237,8 @@ class Model:
                 labels=_ids,
                 logits=rp,
             ))
-            self.train_op[task_code] = self.add_train_op(self.loss[task_code], task_code)
+
+        self.train_op[task_code] = self.add_train_op(self.loss[task_code], task_code)
 
     def build_graph(self):
 
@@ -309,59 +311,27 @@ class Model:
 
             with tf.variable_scope("char_bi-lstm"):
 
-                if self.config.char_level_type == 'rnn':
-                    max_sentence_length = tf.shape(self.char_embeddings)[1]
-                    max_word_length = tf.shape(self.char_embeddings)[2]
-                    self.char_embeddings = tf.reshape(self.char_embeddings, [-1, max_word_length, self.config.char_emb_size])
-                    cell_fw = tf.contrib.cudnn_rnn.CudnnCompatibleLSTMCell(self.config.char_lstm_size)
-                    cell_bw = tf.contrib.cudnn_rnn.CudnnCompatibleLSTMCell(self.config.char_lstm_size)
-                    word_lengths = tf.reshape(self.word_lengths, [-1])
-                    (output_fw, output_bw), _ = tf.nn.bidirectional_dynamic_rnn(
-                        cell_fw, cell_bw, self.char_embeddings,
-                        sequence_length=word_lengths, dtype=tf.float32)
-                    # shape(batch_size*max_sentence, max_word, 2 x word_lstm_size)
-                    char_lstm_output = tf.concat([output_fw, output_bw], axis=-1)
-                    char_lstm_output = tf.reduce_sum(char_lstm_output, 1)
-                    word_lengths = tf.cast(word_lengths, dtype=tf.float32)
-                    word_lengths = tf.add(word_lengths, 1e-8)
-                    word_lengths = tf.expand_dims(word_lengths, 1)
-                    word_lengths = tf.tile(word_lengths, [1, 2 * self.config.char_lstm_size])
-                    char_lstm_output = tf.divide(char_lstm_output, word_lengths)
-                    char_lstm_output = tf.reshape(char_lstm_output, (-1, max_sentence_length, 2*self.config.char_lstm_size))
-                    self.word_embeddings = tf.concat([self.word_embeddings, char_lstm_output], axis=-1)
+                max_sentence_length = tf.shape(self.char_embeddings)[1]
+                max_word_length = tf.shape(self.char_embeddings)[2]
+                self.char_embeddings = tf.reshape(self.char_embeddings, [-1, max_word_length, self.config.char_emb_size])
+                cell_fw = tf.contrib.cudnn_rnn.CudnnCompatibleLSTMCell(self.config.char_lstm_size)
+                cell_bw = tf.contrib.cudnn_rnn.CudnnCompatibleLSTMCell(self.config.char_lstm_size)
+                word_lengths = tf.reshape(self.word_lengths, [-1])
+                (output_fw, output_bw), _ = tf.nn.bidirectional_dynamic_rnn(
+                    cell_fw, cell_bw, self.char_embeddings,
+                    sequence_length=word_lengths, dtype=tf.float32)
+                # shape(batch_size*max_sentence, max_word, 2 x word_lstm_size)
+                char_lstm_output = tf.concat([output_fw, output_bw], axis=-1)
+                char_lstm_output = tf.reduce_sum(char_lstm_output, 1)
 
-                if self.config.char_level_type == 'cnn':
-                    batch_size = tf.shape(self.char_embeddings)[0]
-                    max_sentence_length = tf.shape(self.char_embeddings)[1]
-                    max_word_length = tf.shape(self.char_embeddings)[2]
-                    self.char_embeddings = tf.reshape(self.char_embeddings, [batch_size * max_sentence_length, max_word_length, -1])
-                    outputs = []
-                    filter_sizes = [1, 2, 3, 4, 5, 6]
-                    num_filters = 50
-                    for filter_size in filter_sizes:
-                        with tf.variable_scope("conv-%i" % filter_size):
-                            filter_shape = [filter_size, self.config.char_emb_size, num_filters]
-                            W = tf.get_variable('W', filter_shape, dtype=tf.float32)
-                            bias = tf.get_variable('b', [num_filters], dtype=tf.float32)
-                            conv = tf.nn.conv1d(
-                                self.char_embeddings,
-                                W,
-                                1,
-                                padding="VALID",
-                                name="conv")
-                            # Apply nonlinearity
-                            h = tf.nn.bias_add(conv, bias)
-                            h = tf.transpose(h, [0, 2, 1])
-                            h = tf.reduce_max(h, axis=2)
-                            outputs.append(h)
+                word_lengths = tf.cast(word_lengths, dtype=tf.float32)
+                word_lengths = tf.add(word_lengths, 1e-8)
+                word_lengths = tf.expand_dims(word_lengths, 1)
+                word_lengths = tf.tile(word_lengths, [1, 2 * self.config.char_lstm_size])
 
-                    rp = tf.concat(outputs, axis=1)
-                    rp = tf.nn.relu(rp)
-                    W = tf.get_variable('W', [len(filter_sizes) * num_filters, self.config.char_lstm_size], dtype=tf.float32)
-                    b = tf.get_variable('b', [self.config.char_lstm_size], dtype=tf.float32)
-                    rp = tf.nn.relu(tf.add(tf.matmul(rp, W), b))
-                    rp = tf.reshape(rp, [batch_size, max_sentence_length, self.config.char_lstm_size])
-                    self.word_embeddings = tf.concat([self.word_embeddings, rp], axis=-1)
+                char_lstm_output = tf.divide(char_lstm_output, word_lengths)
+                char_lstm_output = tf.reshape(char_lstm_output, (-1, max_sentence_length, 2*self.config.char_lstm_size))
+                self.word_embeddings = tf.concat([self.word_embeddings, char_lstm_output], axis=-1)
 
         self.word_embeddings = tf.nn.dropout(self.word_embeddings, self.dropout)
 
