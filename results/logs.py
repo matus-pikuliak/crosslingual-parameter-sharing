@@ -97,7 +97,7 @@ import matplotlib.pyplot as plt
 
 en_pos = Run.get_runs(role='dev', task='dep', lang='en')
 for run in en_pos:
-    metric = 'las'
+    metric = 'uas'
     print run.max_metric(metric), run.file
     plt.plot(run.read_metric(metric), label='%s'%(run.lang))
 plt.legend()

@@ -423,6 +423,9 @@ class Model:
         self.epoch = 1
         for i in xrange(epochs):
             self.run_epoch(train=train, test=test)
+            if i == 0:
+                epoch_time = datetime.datetime.now() - start_time
+                self.logger.log_critical('ETA: %s' % str(start_time + epoch_time * self.config.epochs))
         end_time = datetime.datetime.now()
         self.logger.log_message(end_time)
         self.logger.log_message('Training took: '+str(end_time-start_time))
@@ -433,6 +436,7 @@ class Model:
         train_sets = [self.dm.fetch_dataset(task, lang, 'train') for (task, lang) in train]
         dev_sets = [self.dm.fetch_dataset(task, lang, 'dev') for (task, lang) in train]
         dev_sets += [self.dm.fetch_dataset(task, lang, 'train-dev') for (task, lang) in train]
+        dev_sets += [self.dm.fetch_dataset(task, lang, 'test') for (task, lang) in train]
         dev_sets += [self.dm.fetch_dataset(task, lang, 'dev') for (task, lang) in test]
 
         for _ in xrange(self.config.epoch_steps):
