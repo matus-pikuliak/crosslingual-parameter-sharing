@@ -31,3 +31,52 @@ Dlzka vety je maximalne 70, minimalne 2.
 # LMO
 - europarl, english zo spanielskej verzie
 - train/dev/test 95 - 2.5 - 2.5
+
+
+# Semantic Role Labeling
+Velmi zaujimavo vyzerajuci task, ale dostupne data stoja 2000+ eur.
+
+
+# Klasifikacia dokumentov
+Tento task predbezne zavrhujem. Vidim tam len maly suvis s inymi ulohami. Empiricky sa navyse ukazuje,
+ze bag of words pristupy su tu stale top, co nenaznacuje ze by LSTM model mohol byt aj s inymi datami
+velmi uspesny.
+Mozny zdroj dat: A Corpus for Multilingual Document Classification in Eight Languages
+
+
+# NLI anglicke vysledky
+Pre anglictinu davam 82%, co je na urovni jednoducheho porovnatelneho baseline (stranka SNLI)
+
+
+# Learning rate scheduling
+Experimentoval som s exponential decay:
+0.95 exp decay mal horsie vysledky
+0.99 a static mali prakticky rovnake
+
+
+# Konvolucna siet na znakoch
+Nedokazal som prekonat vysledky LSTM, pricom som zaznamenal len male zrychlenie (cca 2%).
+Je tazke ale vystopovat, ake su best practices pri takomto modeli.
+
+
+# Vysledky z grid search
+
+Adam vs. RMSProp - Pri dependency parsingu bol jednoznacne lepsi Adam.
+Pri POS bol lepsi vo vacsine pripadov, aj ked vysledky sa lisili len malo.
+Pri NER vysledky skakali hore dole a tazko rozhodnut, co bolo lepsie.
+Zaver: ADAM
+
+Batch size 8 16 32
+Pri DEP jednoznacne dominuje 32, prave tu si ale vacsi nemozno dovolit
+Pri POS to sa to dost myli, ale zda sa ze vacsi batch_size dominuje pri mensom learning_rate
+Pri NER podobne ako POS, aj ked dominancia pri mensom learning_rate je este viac viditelna
+Dominancia POS a NER mozu byt sposobena mensim poctom epoch. Viac dat sa tak pri malom learning_rate moze dost osvedcit.
+Zaver: 32, skusime experimentovat s vacsim poctom navzdory DEP
+
+Learning rate 0.003, 0.001, 0.0003
+0.0003 sa ukazalo ako jednoznacne maly learning rate.
+0.003 sa zda byt najlepsi, ALE treba skusit mono este vacsi.
+A zaroven, vo viacerych pripadoch nebol model dotrenovany.
+Zaver: Treba dalsie experimenty, predbezne nastavujem learning_rate na 0.003
+
+Batch size aj learning rate sa ukazali ako pomerne citlive parametre. Na toto si treba dat pozor.

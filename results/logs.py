@@ -1,104 +1,76 @@
 import ast
+import glob
+import re
+import matplotlib.pyplot as plt
+
+
+class Experiment:
+
+    def __init__(self, path):
+        files = glob.glob('%s*' % path)
+        self.runs = [Run(file) for file in files]
+
+    def results(self, filters, result_filters, metric):
+        relevant_runs = [run for run in self.runs if run.is_relevant(filters)]
+        return [run.results(metric, result_filters) for run in relevant_runs]
+
+    def graph_results(self, *args):
+
+        results = self.results(*args)
+        for rec in results:
+            print max(rec)
+            plt.plot(rec)#, label='%s' % (run.lang))
+        plt.legend()
+        plt.show()
 
 
 class Run:
 
-    runs = []
+    def __init__(self, path):
+        self.records = []
+        with open(path, 'r') as f:
+            for line in f:
+                line = line.strip()
+                if line.startswith('#'):
+                    hps = line[3:-1]
+                    if re.search('optimizer: (.*?),', hps):
+                        self.hyperparameters = hps
+                else:
+                    dct = ast.literal_eval(line)
+                    dct['file'] = f.name.split('/')[-1]
+                    self.records.append(dct)
 
-    @classmethod
-    def get_runs(cls, lang=None, task=None, role=None, run=None, file=None):
-        relevant_runs = []
-        for r in cls.runs:
-            if (
-                (r.lang == lang or lang is None) and
-                (r.task == task or task is None) and
-                (r.role == role or role is None) and
-                (r.run == run or run is None) and
-                (r.file == file or file is None)
-            ):
-                relevant_runs.append(r)
-        return relevant_runs
+    def is_relevant(self, filters):
+        return self.is_rec_relevant(filters, self.records[0])
 
-    @classmethod
-    def process_epoch(cls, epoch):
-        run = cls.get_runs(epoch['language'], epoch['task'], epoch['role'], epoch['run'], epoch['file'])
-        if not run:
-            run = [Run(epoch)]
-        run[0].add_epoch(epoch)
+    def is_rec_relevant(self, filters, rec):
+        for f in filters:
+            if f not in rec:
+                rec[f] = re.search('%s: (.*?),' % f, self.hyperparameters).group(1)
+        return sum([rec[key] != filters[key] for key in filters]) == 0
 
-    def __init__(self, epoch):
-        self.lang = epoch['language']
-        self.task = epoch['task']
-        self.role = epoch['role']
-        self.run = epoch['run']
-        self.file = epoch['file']
-        self.results = {}
-        self.max_epoch = 0
-        self.__class__.runs.append(self)
+    def results(self, metric, filters):
+        if metric == 'f1':
+            def f1(p, r):
+                return 2*p*r/(p+r+ 1e-12)
 
-    def add_epoch(self, epoch):
-        epoch_id = epoch['epoch']
-        self.max_epoch = max(self.max_epoch, epoch_id)
-        self.results[epoch_id] = epoch
-
-    def read_metric(self, metric_name):
-        buffer = []
-        for e in xrange(self.max_epoch):
-            epoch_id = e + 1
-            buffer.append(self.results[epoch_id][metric_name])
-        return buffer
-
-    def max_metric(self, metric_name):
-        buff = self.read_metric(metric_name)
-        return max(buff)
-
-    def max_metric_epoch(self, metric_name):
-        buff = self.read_metric(metric_name)
-        max = 0
-        max_id = 0
-        for i, val in enumerate(buff):
-            if val > max:
-                max = val
-                max_id = i+1
-        return max_id
-
-def is_int(str):
-    try:
-        int(str)
-        return True
-    except ValueError:
-        return False
+            return [f1(rec['precision'], rec['recall']) for rec in self.records if self.is_rec_relevant(filters, rec)]
+        else:
+            return [rec[metric] for rec in self.records if self.is_rec_relevant(filters, rec)]
 
 
-def is_float(str):
-    try:
-        float(str)
-        return not is_int(str)
-    except ValueError:
-        return False
 
 
-def is_str(str):
-    return not (is_float(str) or is_int(str))
-
-import glob
-files = glob.glob('/media/piko/Data/fiit/data/cll-para-sharing/logs/lr_sched/*')
-records = []
-for file in files:
-    with open(file, 'r') as f:
-        for line in f:
-            line = line.strip()
-            if not line.startswith('#'):
-                dct = ast.literal_eval(line)
-                dct['file'] = f.name.split('/')[-1]
-                Run.process_epoch(dct)
-
-import matplotlib.pyplot as plt
-
-en_pos = Run.get_runs(role='dev', task='dep', lang='en')
-for run in en_pos:
-    metric = 'uas'
-    print run.max_metric(metric), run.file
-    plt.plot(run.read_metric(metric), label='%s'%(run.lang))
-plt.legend()
-plt.show()
+opt = '0.003'
+print opt
+e = Experiment('/media/piko/Data/fiit/data/cll-para-sharing/logs/august_grid/*')
+e.graph_results(
+    {
+        'task': 'dep',
+        'learning_rate': opt
+    },
+    {
+        'role': 'dev'
+    },
+    'las'
+)

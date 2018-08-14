@@ -15,7 +15,7 @@ class EmbeddingManager:
         for lang in self.languages:
             self.embeddings[lang] = dict()
             emb_file = os.path.join(self.config.emb_path, lang)
-            with codecs.open(emb_file, encoding='utf-8') as f:
+            with codecs.open(emb_file, 'r', encoding='utf-8') as f:
                 f.readline()  # first init line in emb files
                 for line in f:
                     try:

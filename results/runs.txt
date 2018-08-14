@@ -1,56 +1,20 @@
-# python ./test.py epochs 100 learning_rate 0.01 &&
-# python ./test.py epochs 100 learning_rate 0.003 &&
-# python ./test.py epochs 100 learning_rate 0.001 &&
-# python ./test.py epochs 100 learning_rate 0.0003 &&
-# python ./test.py epochs 100 learning_rate 0.0001 &
+bash ./production.sh batch_size 8 learning_rate 0.003000 optimizer adam tasks dep-cs &&
+bash ./production.sh batch_size 8 learning_rate 0.003000 optimizer rmsprop tasks dep-cs &&
+bash ./production.sh batch_size 8 learning_rate 0.001000 optimizer adam tasks dep-cs &&
+bash ./production.sh batch_size 8 learning_rate 0.001000 optimizer rmsprop tasks dep-cs &&
+bash ./production.sh batch_size 8 learning_rate 0.000300 optimizer adam tasks dep-cs &&
+bash ./production.sh batch_size 8 learning_rate 0.000300 optimizer rmsprop tasks dep-cs &&
+bash ./production.sh batch_size 16 learning_rate 0.003000 optimizer adam tasks dep-cs &&
+bash ./production.sh batch_size 16 learning_rate 0.003000 optimizer rmsprop tasks dep-cs &&
+bash ./production.sh batch_size 16 learning_rate 0.001000 optimizer adam tasks dep-cs &&
+bash ./production.sh batch_size 16 learning_rate 0.001000 optimizer rmsprop tasks dep-cs &&
+bash ./production.sh batch_size 16 learning_rate 0.000300 optimizer adam tasks dep-cs &&
+bash ./production.sh batch_size 16 learning_rate 0.000300 optimizer rmsprop tasks dep-cs &&
+bash ./production.sh batch_size 32 learning_rate 0.003000 optimizer adam tasks dep-cs &&
+bash ./production.sh batch_size 32 learning_rate 0.003000 optimizer rmsprop tasks dep-cs &&
+bash ./production.sh batch_size 32 learning_rate 0.001000 optimizer adam tasks dep-cs &&
+bash ./production.sh batch_size 32 learning_rate 0.001000 optimizer rmsprop tasks dep-cs &&
+bash ./production.sh batch_size 32 learning_rate 0.000300 optimizer adam tasks dep-cs &&
+bash ./production.sh batch_size 32 learning_rate 0.000300 optimizer rmsprop tasks dep-cs
 
-# python ./test.py epochs 100 learning_rate 0.01 &&
-# python ./test.py epochs 100 learning_rate 0.003 &&
-# python ./test.py epochs 100 learning_rate 0.001 &&
-# python ./test.py epochs 100 learning_rate 0.0003 &&
-# python ./test.py epochs 100 learning_rate 0.0001 &
-
-# python ./test.py epochs 100 learning_rate 0.03 setup posen &&
-# python ./test.py epochs 100 learning_rate 0.03 setup neres &&
-# python ./test.py epochs 100 learning_rate 0.003 setup posen optimizer rmsprop &&
-# python ./test.py epochs 100 learning_rate 0.003 setup posen optimizer adagrad &&
-# python ./test.py epochs 100 learning_rate 0.003 setup posen optimizer adam &&
-# python ./test.py epochs 100 learning_rate 0.003 setup posen optimizer sgd &&
-# python ./test.py epochs 100 learning_rate 0.003 setup neres optimizer rmsprop &&
-# python ./test.py epochs 100 learning_rate 0.003 setup neres optimizer adagrad &&
-# python ./test.py epochs 100 learning_rate 0.003 setup neres optimizer adam &&
-# python ./test.py epochs 100 learning_rate 0.003 setup neres optimizer sgd &
-
-# python ./test.py epochs 100 learning_rate 0.01 setup neres optimizer adagrad &&
-# python ./test.py epochs 100 learning_rate 0.01 setup neres optimizer sgd &&
-# python ./test.py epochs 100 learning_rate 0.03 setup neres optimizer adagrad &&
-# python ./test.py epochs 100 learning_rate 0.03 setup neres optimizer sgd &
-# python ./test.py epochs 100 learning_rate 0.003 setup posen train_embeddings True
-
-# python ./test.py epochs 100 learning_rate 0.001 setup posen optimizer rmsprop batch_size 16 &&
-# python ./test.py epochs 100 learning_rate 0.001 setup posen optimizer rmsprop batch_size 32 &&
-# python ./test.py epochs 100 learning_rate 0.001 setup posen optimizer rmsprop batch_size 64 &&
-# python ./test.py epochs 100 learning_rate 0.003 setup posen optimizer rmsprop batch_size 16 &&
-# python ./test.py epochs 100 learning_rate 0.003 setup posen optimizer rmsprop batch_size 32 &&
-# python ./test.py epochs 100 learning_rate 0.003 setup posen optimizer rmsprop batch_size 64 &&
-# python ./test.py epochs 100 learning_rate 0.01 setup posen optimizer rmsprop batch_size 16 &&
-python ./test.py epochs 100 learning_rate 0.01 setup posen optimizer rmsprop batch_size 32 &&
-python ./test.py epochs 100 learning_rate 0.01 setup posen optimizer rmsprop batch_size 64 &&
-python ./test.py epochs 100 learning_rate 0.001 setup posen optimizer adam batch_size 16 &&
-python ./test.py epochs 100 learning_rate 0.001 setup posen optimizer adam batch_size 32 &&
-python ./test.py epochs 100 learning_rate 0.001 setup posen optimizer adam batch_size 64 &&
-python ./test.py epochs 100 learning_rate 0.003 setup posen optimizer adam batch_size 16 &&
-python ./test.py epochs 100 learning_rate 0.003 setup posen optimizer adam batch_size 32 &&
-python ./test.py epochs 100 learning_rate 0.003 setup posen optimizer adam batch_size 64 &&
-python ./test.py epochs 100 learning_rate 0.01 setup posen optimizer adam batch_size 16 &&
-python ./test.py epochs 100 learning_rate 0.01 setup posen optimizer adam batch_size 32 &&
-python ./test.py epochs 100 learning_rate 0.01 setup posen optimizer adam batch_size 64 &&
-
-python ./test.py epochs 100 learning_rate 0.003 setup posen optimizer adam batch_size 8 &&
-python ./test.py epochs 100 learning_rate 0.003 setup posen optimizer adam batch_size 128 &&
-python ./test.py epochs 100 learning_rate 0.01 setup posen optimizer adam batch_size 8 &&
-python ./test.py epochs 100 learning_rate 0.01 setup posen optimizer adam batch_size 128 &&
-
-256 batch size
-sputis SL-ST + ML-MT default setup
-dropout?
+pre ner-de, pos-es a dep-cs tusim
