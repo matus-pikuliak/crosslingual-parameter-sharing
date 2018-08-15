@@ -11,8 +11,9 @@ class Model:
     def __init__(self, data_manager, config):
         self.config = config
         self.dm = data_manager
-        self.sess = None
+        self.timestamp = datetime.datetime.now().strftime('%Y-%m-%d-%H%M%S')
         self.logger = self.initialize_logger()
+
 
     def close(self):
         self.sess.close()
@@ -379,9 +380,14 @@ class Model:
         self.sess.run(tf.global_variables_initializer())
 
         if self.config.show_graph:
-            tf.summary.FileWriter(self.config.log_path, self.sess.graph)
+            tf.summary.FileWriter(self.config.model_path, self.sess.graph)
             for variable in tf.global_variables():
                 print variable
+
+        self.saver = tf.train.Saver()
+
+        if self.config.saved_model != 'na':
+            self.saver.restore(self.sess, os.path.join(self.config.model_path, self.config.saved_model+".model"))
 
     def run_experiment(self, train, test, epochs):
         self.logger.log_critical('Run started.')
@@ -396,6 +402,8 @@ class Model:
             if i == 0:
                 epoch_time = datetime.datetime.now() - start_time
                 self.logger.log_critical('ETA: %s' % str(start_time + epoch_time * self.config.epochs))
+        if self.config.save_parameters:
+            self.saver.save(self.sess, os.path.join(self.config.model_path, self.timestamp+".model"))
         end_time = datetime.datetime.now()
         self.logger.log_message(end_time)
         self.logger.log_message('Training took: '+str(end_time-start_time))
@@ -664,10 +672,9 @@ class Model:
         return viterbi_sequences, loss
 
     def initialize_logger(self):
-        timestamp = datetime.datetime.now().strftime('%Y-%m-%d-%H%M%S')
         return LoggerInit(
             self.config.setup,
-            filename=os.path.join(self.config.log_path, timestamp),
+            filename=os.path.join(self.config.log_path, self.timestamp),
             slack_channel=self.config.slack_channel,
             slack_token=self.config.slack_token
         ).logger

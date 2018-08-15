@@ -80,3 +80,4 @@ A zaroven, vo viacerych pripadoch nebol model dotrenovany.
 Zaver: Treba dalsie experimenty, predbezne nastavujem learning_rate na 0.003
 
 Batch size aj learning rate sa ukazali ako pomerne citlive parametre. Na toto si treba dat pozor.
+DP bol nedotrenovany, 30 epoch moze byt prilis malo.

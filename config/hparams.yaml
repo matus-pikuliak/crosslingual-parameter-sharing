@@ -32,6 +32,8 @@ default: &default
   # settings
   use_gpu: true
   show_graph: false
+  save_parameters: false
+  saved_model: na
 
   char_level_type: rnn # / cnn - po experimente vyhodit
 
