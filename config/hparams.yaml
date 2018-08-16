@@ -7,7 +7,7 @@ default: &default
   char_level: true
 
   crf_sharing: true
-  word_lstm_size: 100
+  word_lstm_size: 150
   char_lstm_size: 100
 
   learning_rate: 0.003
