@@ -33,6 +33,18 @@ class Dataset():
     def __len__(self):
         return len(self.samples)
 
+    def print_stats(self):
+        samples = len(self.samples)
+        words = sum([len(sample.words) for sample in self.samples])
+        chars = sum([sum([len(word) for word in sample.words]) for sample in self.samples])
+        print "#samples: %d" % samples
+        print "#words: %d" % words
+        print "#chars: %d" % chars
+        print "avg sample (words): %f" % (float(words)/samples)
+        print "avg sample (chars): %f" % (float(chars)/samples)
+        print "avg word (chars): %f" % (float(chars)/words)
+        print np.histogram([len(sample) for sample in self.samples], xrange(0, 70))
+
     def load_file(self, filename, max_size=None):
         bf = []
         samples = []

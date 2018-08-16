@@ -13,7 +13,9 @@ class Model:
         self.dm = data_manager
         self.timestamp = datetime.datetime.now().strftime('%Y-%m-%d-%H%M%S')
         self.logger = self.initialize_logger()
-
+        
+    def f_type(self):
+        return tf.float32
 
     def close(self):
         self.sess.close()
@@ -47,9 +49,9 @@ class Model:
             max_length = tf.shape(self.word_ids)[1]
 
             output = tf.reshape(self.word_lstm_output, [-1, 2 * self.config.word_lstm_size])
-            W = tf.get_variable(dtype=tf.float32, shape=[2 * self.config.word_lstm_size, tag_count],
+            W = tf.get_variable(dtype=self.f_type(), shape=[2 * self.config.word_lstm_size, tag_count],
                                 name="weights")
-            b = tf.get_variable(dtype=tf.float32, shape=[tag_count], initializer=tf.zeros_initializer(),
+            b = tf.get_variable(dtype=self.f_type(), shape=[tag_count], initializer=tf.zeros_initializer(),
                                 name="biases")
             output = tf.matmul(output, W) + b
             self.predicted_labels[task_code] = tf.reshape(output, [-1, max_length, tag_count])
@@ -61,7 +63,7 @@ class Model:
 
             # loss
             log_likelihood, trans_params = tf.contrib.crf.crf_log_likelihood(
-                self.predicted_labels[task_code],
+                tf.cast(self.predicted_labels[task_code], tf.float32),
                 self.true_labels[task_code],
                 self.sequence_lengths)
             self.trans_params[task_code] = trans_params  # need to evaluate it for decoding
@@ -73,7 +75,7 @@ class Model:
 
     def add_dep(self, task_code):
         with tf.variable_scope(task_code):
-            root = tf.get_variable("root_vector", dtype=tf.float32, shape=[2*self.config.word_lstm_size])  # dim
+            root = tf.get_variable("root_vector", dtype=self.f_type(), shape=[2*self.config.word_lstm_size])  # dim
             root = tf.expand_dims(root, 0)
             root = tf.expand_dims(root, 0)
             root = tf.tile(
@@ -96,9 +98,11 @@ class Model:
             combinations = tf.concat([tile_a, tile_b], axis=3)
             combinations = tf.reshape(combinations, [-1, 4*self.config.word_lstm_size])
 
-            W = tf.get_variable("W", dtype=tf.float32, shape=[4*self.config.word_lstm_size, 500])
-            b = tf.get_variable("b", dtype=tf.float32, shape=[500])
-            W2 = tf.get_variable("W2", dtype=tf.float32, shape=[500, 1])
+            hidden = 500
+
+            W = tf.get_variable("W", dtype=self.f_type(), shape=[4*self.config.word_lstm_size, hidden])
+            b = tf.get_variable("b", dtype=self.f_type(), shape=[hidden])
+            W2 = tf.get_variable("W2", dtype=self.f_type(), shape=[hidden, 1])
 
             seq_mask = tf.reshape(tf.sequence_mask(self.sequence_lengths), shape=[-1])
 
@@ -112,10 +116,11 @@ class Model:
             _arc_ids = tf.boolean_mask(_arc_ids, seq_mask)
 
             predicted_arc_ids = tf.argmax(combinations, axis=1)
+            _predicted_arc_ids = tf.reshape(predicted_arc_ids, tf.shape(self.arc_ids))
 
             self.golden_arc_ids = tf.placeholder(tf.bool, shape=[])
-            _predicted_arc_ids = tf.reshape(predicted_arc_ids, tf.shape(self.arc_ids))
             relevant_arc_ids = tf.cond(self.golden_arc_ids, lambda: self.arc_ids, lambda: _predicted_arc_ids)
+
             relevant_arc_ids = tf.one_hot(relevant_arc_ids, tf.shape(words_root)[1], on_value=True, off_value=False, dtype=tf.bool)
             relevant_arc_ids = tf.reshape(relevant_arc_ids, [-1])
             relevant_arcs = tf.boolean_mask(all_combinations, relevant_arc_ids)
@@ -126,8 +131,8 @@ class Model:
             labels = tf.boolean_mask(labels, seq_mask)
             one_hot_labels = tf.one_hot(labels, len(self.dm.task_vocabs['dep']))
 
-            W3 = tf.get_variable("W3", dtype=tf.float32, shape=[500, len(self.dm.task_vocabs['dep'])])
-            b3 = tf.get_variable("b3", dtype=tf.float32, shape=[len(self.dm.task_vocabs['dep'])])
+            W3 = tf.get_variable("W3", dtype=self.f_type(), shape=[hidden, len(self.dm.task_vocabs['dep'])])
+            b3 = tf.get_variable("b3", dtype=self.f_type(), shape=[len(self.dm.task_vocabs['dep'])])
             predicted_arc_labels = tf.matmul(relevant_arcs, W3) + b3
             predicted_arc_labels_ids = tf.argmax(predicted_arc_labels, axis=1)
             loss_las = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(
@@ -167,9 +172,9 @@ class Model:
                 tf.multiply(premise, hypothesis),
                 premise - hypothesis
             ], axis=1)
-            W = tf.get_variable("W", dtype=tf.float32, shape=[8 * self.config.word_lstm_size, 500])
-            b = tf.get_variable("b", dtype=tf.float32, shape=[500])
-            W2 = tf.get_variable("W2", dtype=tf.float32, shape=[500, len(self.dm.task_vocabs['nli'])])
+            W = tf.get_variable("W", dtype=self.f_type(), shape=[8 * self.config.word_lstm_size, 500])
+            b = tf.get_variable("b", dtype=self.f_type(), shape=[500])
+            W2 = tf.get_variable("W2", dtype=self.f_type(), shape=[500, len(self.dm.task_vocabs['nli'])])
 
             representation = tf.matmul(representation, W) + b
             representation = tf.matmul(tf.nn.tanh(representation), W2)
@@ -195,14 +200,14 @@ class Model:
             batch_size = tf.size(self.sequence_lengths)
             vocab_size = min(self.config.lmo_vocab_size + 1, len(self.dm.lang_vocabs[lang])) # +1 <unk>
 
-            start_vec = tf.get_variable('start_vec', shape=[self.config.word_lstm_size], dtype=tf.float32)
+            start_vec = tf.get_variable('start_vec', shape=[self.config.word_lstm_size], dtype=self.f_type())
             start_vec = tf.expand_dims(start_vec, 0)
             start_vec = tf.tile(start_vec, [batch_size, 1])
             start_vec = tf.expand_dims(start_vec, 1)
             _fd, _ = tf.split(self.lstm_fw, [max_len - 1, 1], axis=1)
             _fd = tf.concat([start_vec, _fd], 1)
 
-            end_vec = tf.get_variable('end_vec', shape=[self.config.word_lstm_size], dtype=tf.float32)
+            end_vec = tf.get_variable('end_vec', shape=[self.config.word_lstm_size], dtype=self.f_type())
             end_vec = tf.expand_dims(end_vec, 0)
             end_vec = tf.tile(end_vec, [batch_size, 1])
             end_vec = tf.expand_dims(end_vec, 1)
@@ -211,7 +216,7 @@ class Model:
             end_vec = tf.matmul(one_hot, end_vec)
 
             _, _bd = tf.split(self.lstm_fw, [1, max_len - 1], axis=1)
-            zeros = tf.zeros([batch_size, 1, self.config.word_lstm_size], dtype=tf.float32)
+            zeros = tf.zeros([batch_size, 1, self.config.word_lstm_size], dtype=self.f_type())
             _bd = tf.concat([_bd, zeros], 1)
             _bd = _bd + end_vec
 
@@ -227,9 +232,9 @@ class Model:
             )
             # if id is more than vocab size, it is set to <unk> id = 0
 
-            W = tf.get_variable("W", dtype=tf.float32, shape=[2 * self.config.word_lstm_size, 500])
-            b = tf.get_variable("b", dtype=tf.float32, shape=[500])
-            W2 = tf.get_variable("W2", dtype=tf.float32, shape=[500, vocab_size])
+            W = tf.get_variable("W", dtype=self.f_type(), shape=[2 * self.config.word_lstm_size, 500])
+            b = tf.get_variable("b", dtype=self.f_type(), shape=[500])
+            W2 = tf.get_variable("W2", dtype=self.f_type(), shape=[500, vocab_size])
 
             rp = tf.matmul(rp, W) + b
             rp = tf.matmul(tf.nn.tanh(rp), W2)
@@ -246,10 +251,10 @@ class Model:
 
         #
         # hyperparameters
-        self.learning_rate = tf.placeholder(dtype=tf.float32, shape=[],
+        self.learning_rate = tf.placeholder(dtype=self.f_type(), shape=[],
         name="lr")
 
-        self.dropout = tf.placeholder(dtype=tf.float32, shape=[],
+        self.dropout = tf.placeholder(dtype=self.f_type(), shape=[],
         name="dropout")
 
         #
@@ -287,9 +292,9 @@ class Model:
         _word_embeddings = dict()
         for lang in self.dm.languages():
             _word_embeddings[lang] = tf.get_variable(
-                dtype=tf.float32,
+                dtype=self.f_type(),
                 # shape=[None, self.config.word_emb_size],
-                initializer=tf.cast(self.dm.embeddings[lang], tf.float32),
+                initializer=tf.cast(self.dm.embeddings[lang], self.f_type()),
                 trainable=self.config.train_emb,
                 name="word_embeddings_%s" % lang)
 
@@ -302,7 +307,7 @@ class Model:
 
         if self.config.char_level:
             _char_embeddings = tf.get_variable(
-                dtype=tf.float32,
+                dtype=self.f_type(),
                 shape=(self.dm.char_count(), self.config.char_emb_size),
                 name="char_embeddings"
             )
@@ -319,13 +324,13 @@ class Model:
                 cell_bw = tf.contrib.cudnn_rnn.CudnnCompatibleLSTMCell(self.config.char_lstm_size)
                 word_lengths = tf.reshape(self.word_lengths, [-1])
                 (output_fw, output_bw), _ = tf.nn.bidirectional_dynamic_rnn(
-                    cell_fw, cell_bw, self.char_embeddings,
+                    cell_fw, cell_bw, tf.cast(self.char_embeddings, tf.float32),
                     sequence_length=word_lengths, dtype=tf.float32)
                 # shape(batch_size*max_sentence, max_word, 2 x word_lstm_size)
-                char_lstm_output = tf.concat([output_fw, output_bw], axis=-1)
+                char_lstm_output = tf.cast(tf.concat([output_fw, output_bw], axis=-1), self.f_type())
                 char_lstm_output = tf.reduce_sum(char_lstm_output, 1)
 
-                word_lengths = tf.cast(word_lengths, dtype=tf.float32)
+                word_lengths = tf.cast(word_lengths, dtype=self.f_type())
                 word_lengths = tf.add(word_lengths, 1e-8)
                 word_lengths = tf.expand_dims(word_lengths, 1)
                 word_lengths = tf.tile(word_lengths, [1, 2 * self.config.char_lstm_size])
@@ -342,9 +347,11 @@ class Model:
             cell_fw = tf.contrib.cudnn_rnn.CudnnCompatibleLSTMCell(self.config.word_lstm_size)
             cell_bw = tf.contrib.cudnn_rnn.CudnnCompatibleLSTMCell(self.config.word_lstm_size)
             (self.lstm_fw, self.lstm_bw), _ = tf.nn.bidirectional_dynamic_rnn(
-                cell_fw, cell_bw, self.word_embeddings,
+                cell_fw, cell_bw, tf.cast(self.word_embeddings, tf.float32),
                 sequence_length=self.sequence_lengths, dtype=tf.float32)
             # shape(batch_size, max_length, 2 x word_lstm_size)
+            self.lstm_fw = tf.cast(self.lstm_fw, self.f_type())
+            self.lstm_bw = tf.cast(self.lstm_bw, self.f_type())
             self.lstm_fw = tf.nn.dropout(self.lstm_fw, self.dropout)
             self.lstm_bw = tf.nn.dropout(self.lstm_bw, self.dropout)
             self.word_lstm_output = tf.concat([self.lstm_fw, self.lstm_bw], axis=-1)

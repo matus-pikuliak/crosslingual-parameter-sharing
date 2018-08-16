@@ -35,8 +35,6 @@ default: &default
   save_parameters: false
   saved_model: na
 
-  char_level_type: rnn # / cnn - po experimente vyhodit
-
 debug:
   <<: *default
   word_lstm_size: 10

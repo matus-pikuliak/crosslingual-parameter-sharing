@@ -72,6 +72,7 @@ Pri POS to sa to dost myli, ale zda sa ze vacsi batch_size dominuje pri mensom l
 Pri NER podobne ako POS, aj ked dominancia pri mensom learning_rate je este viac viditelna
 Dominancia POS a NER mozu byt sposobena mensim poctom epoch. Viac dat sa tak pri malom learning_rate moze dost osvedcit.
 Zaver: 32, skusime experimentovat s vacsim poctom navzdory DEP
+Update: Viac sa ukazalo pre POS aj NER ako nevhodne. 32 je nateraz finalne cislo.
 
 Learning rate 0.003, 0.001, 0.0003
 0.0003 sa ukazalo ako jednoznacne maly learning rate.
@@ -81,3 +82,12 @@ Zaver: Treba dalsie experimenty, predbezne nastavujem learning_rate na 0.003
 
 Batch size aj learning rate sa ukazali ako pomerne citlive parametre. Na toto si treba dat pozor.
 DP bol nedotrenovany, 30 epoch moze byt prilis malo.
+
+# Float16
+Chcel som skusit namiesto float32 pouzit float16. Zo znizenymi pamatovymi narokmi by som potom mozno dokazal spustat
+DEP aj s vacsou batch size. Bohuzial viacere komponenty z contribu float16 vobec nepripustaju, napr. CUDNN LSTM alebo
+CRF loss. Stalo by za to pozriet sa, ci toto nie je adresovane v novsej verzii tensorflow.
+
+# Rozlicne casy spracovania datasetov
+Pri NER-es a NER-de som spozoroval velky rozdiel v case spracovania epochy. Spanielske vety su ale na dlzku v priemere
+2x take dlhe. Je to zrejme sposobene rozlicnou domenou datasetu.
