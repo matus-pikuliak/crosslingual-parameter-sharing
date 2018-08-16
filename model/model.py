@@ -63,7 +63,7 @@ class Model:
 
             # loss
             log_likelihood, trans_params = tf.contrib.crf.crf_log_likelihood(
-                tf.cast(self.predicted_labels[task_code], tf.float32),
+                self.predicted_labels[task_code],
                 self.true_labels[task_code],
                 self.sequence_lengths)
             self.trans_params[task_code] = trans_params  # need to evaluate it for decoding
@@ -324,10 +324,10 @@ class Model:
                 cell_bw = tf.contrib.cudnn_rnn.CudnnCompatibleLSTMCell(self.config.char_lstm_size)
                 word_lengths = tf.reshape(self.word_lengths, [-1])
                 (output_fw, output_bw), _ = tf.nn.bidirectional_dynamic_rnn(
-                    cell_fw, cell_bw, tf.cast(self.char_embeddings, tf.float32),
-                    sequence_length=word_lengths, dtype=tf.float32)
+                    cell_fw, cell_bw, self.char_embeddings,
+                    sequence_length=word_lengths, dtype=self.f_type())
                 # shape(batch_size*max_sentence, max_word, 2 x word_lstm_size)
-                char_lstm_output = tf.cast(tf.concat([output_fw, output_bw], axis=-1), self.f_type())
+                char_lstm_output = tf.concat([output_fw, output_bw], axis=-1)
                 char_lstm_output = tf.reduce_sum(char_lstm_output, 1)
 
                 word_lengths = tf.cast(word_lengths, dtype=self.f_type())
@@ -347,11 +347,9 @@ class Model:
             cell_fw = tf.contrib.cudnn_rnn.CudnnCompatibleLSTMCell(self.config.word_lstm_size)
             cell_bw = tf.contrib.cudnn_rnn.CudnnCompatibleLSTMCell(self.config.word_lstm_size)
             (self.lstm_fw, self.lstm_bw), _ = tf.nn.bidirectional_dynamic_rnn(
-                cell_fw, cell_bw, tf.cast(self.word_embeddings, tf.float32),
-                sequence_length=self.sequence_lengths, dtype=tf.float32)
+                cell_fw, cell_bw, self.word_embeddings,
+                sequence_length=self.sequence_lengths, dtype=self.f_type())
             # shape(batch_size, max_length, 2 x word_lstm_size)
-            self.lstm_fw = tf.cast(self.lstm_fw, self.f_type())
-            self.lstm_bw = tf.cast(self.lstm_bw, self.f_type())
             self.lstm_fw = tf.nn.dropout(self.lstm_fw, self.dropout)
             self.lstm_bw = tf.nn.dropout(self.lstm_bw, self.dropout)
             self.word_lstm_output = tf.concat([self.lstm_fw, self.lstm_bw], axis=-1)
