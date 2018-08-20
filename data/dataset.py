@@ -56,7 +56,7 @@ class Dataset():
                 else:
                     if self.config.min_sentence_length <= len(bf) <= self.config.max_sentence_length:
                         samples.append(self.sample_class(bf, self))
-                        if len(samples) == max_size:
+                        if self.lang == 'cs' and self.role == 'train' and len(samples) == max_size:
                             bf = []
                             break
                     bf = []

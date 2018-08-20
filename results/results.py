@@ -15,12 +15,14 @@ class Experiment:
 
     def graph_results(self, filters, result_filters, metric):
 
+        result_filters.update(filters)
+
         runs = self.relevant_runs(filters)
         for run in runs:
             results = run.results(metric, result_filters)
             print results
             print max(results)
-            plt.plot(results, label='-')
+            plt.plot(results, label=run.file)
         plt.legend()
         plt.show()
 
@@ -40,9 +42,10 @@ class Run:
                     dct = ast.literal_eval(line)
                     dct['file'] = f.name.split('/')[-1]
                     self.records.append(dct)
+        self.file = path.split('/')[-1]
 
     def is_relevant(self, filters):
-        return self.is_rec_relevant(filters, self.records[0])
+        return sum([self.is_rec_relevant(filters, record) for record in self.records]) != 0
 
     def is_rec_relevant(self, filters, rec):
         for f in filters:
@@ -57,14 +60,14 @@ class Run:
 
 
 opt = '0.003'
-e = Experiment('/media/piko/Data/fiit/data/cll-para-sharing/logs/august_grid/*')
+e = Experiment('/media/piko/Data/fiit/data/cll-para-sharing/logs/august_slst_vs_mlmt/*')
 e.graph_results(
     {
-        'task': 'pos',
-        'learning_rate': opt
+        'task': 'dep',
+        'language': 'cs'
     },
     {
         'role': 'dev'
     },
-    'acc'
+    'las'
 )
