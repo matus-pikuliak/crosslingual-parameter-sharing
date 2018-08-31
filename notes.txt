@@ -102,5 +102,9 @@ Niekolko napadov ako to zachranit:
 4) Pre istotu iba ML a MT experimenty
 5) learning_rate tuning
 
+Ad 1: Pri cestine sa ukazalo ze niekde medzi 500 a 5000 training samplov sa viac oplati pouzit MLMT pristup.
+Pozitivny transfer tam teda prebieha, ale len pri low resource. Inak je stale vyhodnejsie mat data z identickej domeny.
+
+
 
 Treba si dat pozor, lebo max_dt_size funguje iba na ceske datasety
