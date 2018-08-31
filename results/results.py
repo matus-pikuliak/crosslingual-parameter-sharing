@@ -56,18 +56,14 @@ class Run:
     def results(self, metric, filters):
         return [rec[metric] for rec in self.records if self.is_rec_relevant(filters, rec)]
 
-
-
-
-opt = '0.003'
-e = Experiment('/media/piko/Data/fiit/data/cll-para-sharing/logs/august_slst_vs_mlmt/*')
+e = Experiment('/media/piko/Data/fiit/data/cll-para-sharing/logs/august_slst_vs_mlmt/50/*')
 e.graph_results(
     {
-        'task': 'dep',
+        'task': 'pos',
         'language': 'cs'
     },
     {
         'role': 'dev'
     },
-    'las'
+    'acc'
 )

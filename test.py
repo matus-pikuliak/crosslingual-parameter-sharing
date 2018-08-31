@@ -73,6 +73,8 @@ else:
     tls = config.tasks
 
 dm = DataManager(tls=tls, config=config)
+dm.print_stats()
+exit()
 dm.prepare()
 
 for train_set in train_sets:

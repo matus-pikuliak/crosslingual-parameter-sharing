@@ -12,7 +12,7 @@ import utils.general_utils as utils
 
 class Dataset():
 
-    def __init__(self, task, lang, role, filename=None, samples=None, config=None, max_size=None):
+    def __init__(self, task, lang, role, filename=None, samples=None, config=None):
         self.lang = lang
         self.task = task
         self.sample_class = {
@@ -25,7 +25,7 @@ class Dataset():
         self.role = role
         self.config = config
         if filename is not None:
-            self.samples = self.load_file(filename, max_size)
+            self.samples = self.load_file(filename)
         else:
             self.samples = samples
         self.reader = 0
@@ -37,15 +37,17 @@ class Dataset():
         samples = len(self.samples)
         words = sum([len(sample.words) for sample in self.samples])
         chars = sum([sum([len(word) for word in sample.words]) for sample in self.samples])
+        print "%s %s %s" % (self.lang, self.task, self.role)
         print "#samples: %d" % samples
         print "#words: %d" % words
         print "#chars: %d" % chars
         print "avg sample (words): %f" % (float(words)/samples)
         print "avg sample (chars): %f" % (float(chars)/samples)
         print "avg word (chars): %f" % (float(chars)/words)
-        print np.histogram([len(sample) for sample in self.samples], xrange(0, 70))
+        # print np.histogram([len(sample) for sample in self.samples], xrange(0, 70))
+        print
 
-    def load_file(self, filename, max_size=None):
+    def load_file(self, filename):
         bf = []
         samples = []
 
@@ -56,7 +58,9 @@ class Dataset():
                 else:
                     if self.config.min_sentence_length <= len(bf) <= self.config.max_sentence_length:
                         samples.append(self.sample_class(bf, self))
-                        if self.lang == 'cs' and self.role == 'train' and len(samples) == max_size:
+                        if self.lang == self.config.limited_language and \
+                                self.role == 'train' and \
+                                len(samples) == self.config.dt_size_limit:
                             bf = []
                             break
                     bf = []

@@ -27,10 +27,12 @@ class DataManager:
                 if not os.path.isfile(filename):
                     raise ValueError('File %s does not exist.' % filename)
 
-                max_size = self.config.max_dt_size
-                max_size = max_size if max_size > 0 else None
-                dt = Dataset(task, lang, role, filename=filename, config=self.config, max_size=max_size)
+                dt = Dataset(task, lang, role, filename=filename, config=self.config)
                 self.datasets.append(dt)
+
+    def print_stats(self):
+        for dt in self.datasets:
+            dt.print_stats()
 
     def prepare(self):
 

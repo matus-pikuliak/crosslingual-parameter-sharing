@@ -91,3 +91,16 @@ CRF loss. Stalo by za to pozriet sa, ci toto nie je adresovane v novsej verzii t
 # Rozlicne casy spracovania datasetov
 Pri NER-es a NER-de som spozoroval velky rozdiel v case spracovania epochy. Spanielske vety su ale na dlzku v priemere
 2x take dlhe. Je to zrejme sposobene rozlicnou domenou datasetu.
+
+# ML MT experiment
+Vysledky z ML MT su prekvapivo zle. Vo vela ulohach sa nachadzaju na takej urovni, aku SL ST dosiahlo po par epochach.
+Model ma zrejme velke problemy vysporiadat sa so zmenami v domene a skonvergovat ku niecomu inteligentnemu.
+Niekolko napadov ako to zachranit:
+1) Experiment kde jeden jazyk bude low resource
+2) Experiment kde sa jeden jazyk bude vyberat viac ako ostatne
+3) Experiment kde sa natrenuje ML MT model a potom sa dotrenuje pre jednotlive ulohy
+4) Pre istotu iba ML a MT experimenty
+5) learning_rate tuning
+
+
+Treba si dat pozor, lebo max_dt_size funguje iba na ceske datasety

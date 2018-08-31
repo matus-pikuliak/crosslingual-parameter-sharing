@@ -422,6 +422,13 @@ class Model:
         dev_sets += [self.dm.fetch_dataset(task, lang, 'test') for (task, lang) in train]
         dev_sets += [self.dm.fetch_dataset(task, lang, 'dev') for (task, lang) in test]
 
+        if self.config.train_only != 'na':# TODO: odstranit po experimente (aj v hparams)
+            task, lang = self.config.train_only.split('-')
+            train_sets = [self.dm.fetch_dataset(task, lang, 'train')]
+            dev_sets = [self.dm.fetch_dataset(task, lang, 'train-dev'),
+                        self.dm.fetch_dataset(task, lang, 'test'),
+                        self.dm.fetch_dataset(task, lang, 'dev')]
+
         for _ in xrange(self.config.epoch_steps):
             for st in train_sets:
                 task_code = self.task_code(st.task, st.lang)
