@@ -105,6 +105,8 @@ Niekolko napadov ako to zachranit:
 Ad 1: Pri cestine sa ukazalo ze niekde medzi 500 a 5000 training samplov sa viac oplati pouzit MLMT pristup.
 Pozitivny transfer tam teda prebieha, ale len pri low resource. Inak je stale vyhodnejsie mat data z identickej domeny.
 
+Ad 3: Pre prilis malo dat to vysledky pochopitelne zhorsilo. Pre stredne mnozstvo to jasne pomohlo.
+Pre velke mnozstvo dat to vela nespravilo. Moze byt v poslednom pripade problem s tym, ze sa s modelom inicializuju aj
+Adam-related parametre ktore potom spomalia ucenie?
 
-
-Treba si dat pozor, lebo max_dt_size funguje iba na ceske datasety
+Stale sa ukazuje, ze tie modely su nedotrenovane. Namiesto fixneho casu treba pokial je to mozne zaviest early stopping.
