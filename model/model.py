@@ -393,6 +393,8 @@ class Model:
 
         if self.config.saved_model != 'na':
             self.saver.restore(self.sess, os.path.join(self.config.model_path, self.config.saved_model+".model"))
+            reset_op = tf.group([v.initializer for v in self.optimizer.variables()])
+            self.sess.run(reset_op)
 
     def run_experiment(self, train, test, epochs):
         self.logger.log_critical('Run started.')
