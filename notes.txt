@@ -105,6 +105,7 @@ Niekolko napadov ako to zachranit:
 Ad 1: Pri cestine sa ukazalo ze niekde medzi 500 a 5000 training samplov sa viac oplati pouzit MLMT pristup.
 Pozitivny transfer tam teda prebieha, ale len pri low resource. Inak je stale vyhodnejsie mat data z identickej domeny.
 
+MT vs MLMT - zda sa ze vysledky su horsie pre MT. Tie udaje z dalsich jazykov su teda prospesne.
 
 
 Treba si dat pozor, lebo max_dt_size funguje iba na ceske datasety
