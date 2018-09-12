@@ -56,14 +56,14 @@ class Run:
     def results(self, metric, filters):
         return [rec[metric] for rec in self.records if self.is_rec_relevant(filters, rec)]
 
-e = Experiment('/media/piko/Data/fiit/data/cll-para-sharing/logs/august_slst_vs_mlmt/50/*')
+e = Experiment('/media/fiit/5016BD1B16BD0350/Users/PC/FIIT Google Drive/data/cll-para-sharing/logs/august_slst_vs_mlmt/ml/5000/*')
 e.graph_results(
     {
-        'task': 'pos',
+        'task': 'dep',
         'language': 'cs'
     },
     {
         'role': 'dev'
     },
-    'acc'
+    'las'
 )

@@ -397,7 +397,7 @@ class Model:
             self.sess.run(reset_op)
 
     def run_experiment(self, train, test, epochs):
-        self.logger.log_critical('Run started.')
+        self.logger.log_critical('%s: Run started.' % self.config.server_name)
         self.name = ' '.join([' '.join(t) for t in train])
         self.logger.log_message("Now training " + self.name)
         start_time = datetime.datetime.now()
@@ -408,13 +408,13 @@ class Model:
             self.run_epoch(train=train, test=test)
             if i == 0:
                 epoch_time = datetime.datetime.now() - start_time
-                self.logger.log_critical('ETA: %s' % str(start_time + epoch_time * self.config.epochs))
+                self.logger.log_critical('%s ETA: %s' % (self.config.server_name, str(start_time + epoch_time * self.config.epochs)))
         if self.config.save_parameters:
             self.saver.save(self.sess, os.path.join(self.config.model_path, self.timestamp+".model"))
         end_time = datetime.datetime.now()
         self.logger.log_message(end_time)
         self.logger.log_message('Training took: '+str(end_time-start_time))
-        self.logger.log_critical('Run done.')
+        self.logger.log_critical('%s: Run done.' % self.config.server_name)
 
     def run_epoch(self, train, test):
 
