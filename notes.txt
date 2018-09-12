@@ -103,7 +103,6 @@ Niekolko napadov ako to zachranit:
 5) learning_rate tuning
 
 Ad 1: Pri cestine sa ukazalo ze niekde medzi 500 a 5000 training samplov sa viac oplati pouzit MLMT pristup.
-Pozitivny transfer tam teda prebieha, ale len pri low resource. Inak je stale vyhodnejsie mat data z ide
 Pozitivny transfer tam teda prebieha, ale len pri low resource. Inak je stale vyhodnejsie mat data z identickej domeny.
 
 Ad 3: Pre prilis malo dat to vysledky pochopitelne zhorsilo. Pre stredne mnozstvo to jasne pomohlo.
