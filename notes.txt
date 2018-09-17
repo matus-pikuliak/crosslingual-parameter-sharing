@@ -110,3 +110,5 @@ Pre velke mnozstvo dat to vela nespravilo. Moze byt v poslednom pripade problem 
 Adam-related parametre ktore potom spomalia ucenie?
 
 Stale sa ukazuje, ze tie modely su nedotrenovane. Namiesto fixneho casu treba pokial je to mozne zaviest early stopping.
+
+Pri dotrenovani nezalezi na tom, ci zresetujem Adam-related premenne. Vysledky su prakticky totozne.

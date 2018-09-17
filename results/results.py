@@ -2,6 +2,8 @@ import ast
 import glob
 import re
 import matplotlib.pyplot as plt
+import numpy as np
+import itertools
 
 
 class Experiment:
@@ -20,11 +22,29 @@ class Experiment:
         runs = self.relevant_runs(filters)
         for run in runs:
             results = run.results(metric, result_filters)
-            print results
-            print max(results)
+            #print results
+            #print max(results)
             plt.plot(results, label=run.file)
         plt.legend()
-        plt.show()
+
+    def results(self, filters, metric):
+
+        maxs = list()
+        dev_filters = dict(filters)
+        dev_filters.update({'role': 'dev'})
+
+        test_filters = dict(filters)
+        test_filters.update({'role': 'test'})
+        for run in self.relevant_runs(filters):
+            results = run.results(metric, dev_filters)
+            max_id = np.argmax(results)
+            results = run.results(metric, test_filters)
+            maxs.append(results[max_id])
+
+        return max(maxs)
+
+
+
 
 
 class Run:
@@ -56,14 +76,40 @@ class Run:
     def results(self, metric, filters):
         return [rec[metric] for rec in self.records if self.is_rec_relevant(filters, rec)]
 
-e = Experiment('/media/piko/Data/fiit/data/cll-para-sharing/logs/august_slst_vs_mlmt/full/*')
-e.graph_results(
-    {
-        'task': 'dep',
-        'language': 'cs'
-    },
-    {
-        'role': 'dev'
-    },
-    'uas'
-)
+sizes = ['full', '15000', '5000', '1500', '500', '50']
+regimes = ['slst', 'mt', 'ml', 'mlmt']
+
+task = 'dep'
+met = 'las'
+for (s,r) in itertools.product(sizes,regimes):
+    # e = Experiment('/media/piko/Data/fiit/data/cll-para-sharing/logs/august_slst_vs_mlmt/%s/%s/*' % (r,s))
+    # res = e.results(
+    #     {
+    #         'task': task,
+    #         'language': 'cs'
+    #     },
+    #     met
+    # )
+    # print res, s, r
+    # e.graph_results(
+    #     {
+    #         'task': task,
+    #         'language': 'cs'
+    #     },
+    #     {
+    #         'role': 'dev'
+    #     },
+    #     met
+    # )
+    # e.graph_results(
+    #     {
+    #         'task': task,
+    #         'language': 'cs'
+    #     },
+    #     {
+    #         'role': 'test'
+    #     },
+    #     met
+    # )
+    #plt.show()
+
