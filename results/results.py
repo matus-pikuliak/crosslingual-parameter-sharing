@@ -22,9 +22,8 @@ class Experiment:
         runs = self.relevant_runs(filters)
         for run in runs:
             results = run.results(metric, result_filters)
-            #print results
-            #print max(results)
-            plt.plot(results, label=run.file)
+            print max(results)
+            plt.plot(results, label=run.hyperparameters['tasks'])
         plt.legend()
 
     def results(self, filters, metric):
@@ -57,7 +56,7 @@ class Run:
                 if line.startswith('#'):
                     hps = line[3:-1]
                     if re.search('optimizer', hps):
-                        self.hyperparameters = hps
+                        self.hyperparameters = ast.literal_eval("{%s}" % hps)
                 else:
                     dct = ast.literal_eval(line)
                     dct['file'] = f.name.split('/')[-1]
@@ -77,20 +76,21 @@ class Run:
         return [rec[metric] for rec in self.records if self.is_rec_relevant(filters, rec)]
 
 sizes = ['full', '15000', '5000', '1500', '500', '50']
+sizes = ['500']
 regimes = ['slst', 'mt', 'ml', 'mlmt']
 
 task = 'dep'
-met = 'las'
+met = 'uas'
 for (s,r) in itertools.product(sizes,regimes):
-    # e = Experiment('/media/piko/Data/fiit/data/cll-para-sharing/logs/august_slst_vs_mlmt/%s/%s/*' % (r,s))
-    # res = e.results(
-    #     {
-    #         'task': task,
-    #         'language': 'cs'
-    #     },
-    #     met
-    # )
-    # print res, s, r
+    e = Experiment('/media/fiit/5016BD1B16BD0350/Users/PC/FIIT Google Drive/data/cll-para-sharing/logs/august_slst_vs_mlmt/%s/%s/*' % (r,s))
+    res = e.results(
+        {
+            'task': task,
+            'language': 'cs'
+        },
+        met
+    )
+    print res, s, r
     # e.graph_results(
     #     {
     #         'task': task,
@@ -101,15 +101,16 @@ for (s,r) in itertools.product(sizes,regimes):
     #     },
     #     met
     # )
-    # e.graph_results(
-    #     {
-    #         'task': task,
-    #         'language': 'cs'
-    #     },
-    #     {
-    #         'role': 'test'
-    #     },
-    #     met
-    # )
-    #plt.show()
+    e.graph_results(
+        {
+            'task': task,
+            'language': 'cs'
+        },
+        {
+            'role': 'test'
+        },
+        met
+    )
+
+plt.show()
 

@@ -24,6 +24,9 @@ class Dataset():
         }[self.task]
         self.role = role
         self.config = config
+        self.limited = self.is_limited()
+        if self.limited:
+            self.limit = self.config.dt_size_limit
         if filename is not None:
             self.samples = self.load_file(filename)
         else:
@@ -32,6 +35,17 @@ class Dataset():
 
     def __len__(self):
         return len(self.samples)
+
+    def is_limited(self):
+        if self.lang == self.config.limited_language and self.role == 'train':
+            return True
+        if self.config.limited_task != 'na':
+            task, lang = self.config.limited_task.split('-')
+            if self.task == task and self.lang == lang and self.role == 'train':
+                return True
+
+        return False
+
 
     def print_stats(self):
         samples = len(self.samples)
@@ -58,17 +72,16 @@ class Dataset():
                 else:
                     if self.config.min_sentence_length <= len(bf) <= self.config.max_sentence_length:
                         samples.append(self.sample_class(bf, self))
-                        if self.lang == self.config.limited_language and \
-                                self.role == 'train' and \
-                                len(samples) == self.config.dt_size_limit:
+                        if self.limited and len(samples) == self.limit:
                             bf = []
                             break
+
                     bf = []
         if len(bf) > 0:
             print "Warning: There are still words in buffer. Append newline at the end of file."
         return samples
 
-    def lang_vocab(self, embedding_vocab=set()):
+    def lang_vocab(self, embedding_vocab):
         vocab = dict()
         for sample in self.samples:
             for word in sample.words:

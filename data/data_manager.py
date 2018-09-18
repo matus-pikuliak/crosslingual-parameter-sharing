@@ -81,7 +81,7 @@ class DataManager:
 
         # create test-dev datasets?
         for dt in self.filter_datasets(role="train"):
-            self.datasets.append(Dataset(dt.task, dt.lang, 'train-dev', samples=dt.get_samples(1024)))
+            self.datasets.append(Dataset(dt.task, dt.lang, 'train-dev', samples=dt.get_samples(1024), config=self.config))
 
         # create final datasets and remove fulltext information
         for dt in self.datasets:
