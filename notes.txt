@@ -138,3 +138,9 @@ Pri POS sa sprava ako sa ocakava - po prechode na fine tuning zacne rapidne stup
 Pri NER azcne stupat najme pri ML*, ale skore sa aj tak zlepsuje pri fine tuningu.
 Pri DEP sa tiez vyrazne zlepsi skore, napriek stupajucej chybe.
 
+# zavery
+- ML sa ukazalo velmi silne, napriek tomu ze mame pomerne cudzie jazyky
+- MT treba lepsi pristup, toto takyto jednoduchy mdoel nezvlada
+- MLMT trpi nedostatkami MT, ale zaroven prebera z ML dobre vysledky - chcelo by to s tym MT zatocit
+- pre POS a DEP mame sota vysledky, ale SLST modelom
+
