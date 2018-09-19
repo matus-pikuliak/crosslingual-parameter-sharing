@@ -42,6 +42,18 @@ class Experiment:
 
         return max(maxs)
 
+    def result_history(self, filters, result_filters, metric):
+
+        result_filters.update(filters)
+        runs = self.relevant_runs(filters)
+
+        res = []
+        for run in runs:
+            results = run.results(metric, result_filters)
+            res += results
+        return res
+
+
 
 
 
@@ -76,13 +88,12 @@ class Run:
         return [rec[metric] for rec in self.records if self.is_rec_relevant(filters, rec)]
 
 sizes = ['full', '15000', '5000', '1500', '500', '50']
-sizes = ['500']
 regimes = ['slst', 'mt', 'ml', 'mlmt']
-
+sizes = ['500']
 task = 'dep'
 met = 'uas'
-for (s,r) in itertools.product(sizes,regimes):
-    e = Experiment('/media/fiit/5016BD1B16BD0350/Users/PC/FIIT Google Drive/data/cll-para-sharing/logs/august_slst_vs_mlmt/%s/%s/*' % (r,s))
+for (r, s) in itertools.product(regimes, sizes):
+    e = Experiment('/media/piko/Data/fiit/data/cll-para-sharing/logs/august_slst_vs_mlmt/%s/%s/*' % (r,s))
     res = e.results(
         {
             'task': task,
@@ -90,6 +101,17 @@ for (s,r) in itertools.product(sizes,regimes):
         },
         met
     )
+    hist = e.result_history(
+        {
+            'task': task,
+            'language': 'cs'
+        },
+        {
+            'role': 'dev'
+        },
+        met
+    )
+    plt.plot(hist)
     print res, s, r
     # e.graph_results(
     #     {
@@ -101,16 +123,16 @@ for (s,r) in itertools.product(sizes,regimes):
     #     },
     #     met
     # )
-    e.graph_results(
-        {
-            'task': task,
-            'language': 'cs'
-        },
-        {
-            'role': 'test'
-        },
-        met
-    )
+    # e.graph_results(
+    #     {
+    #         'task': task,
+    #         'language': 'en'
+    #     },
+    #     {
+    #         'role': 'test'
+    #     },
+    #     met
+    # )
 
 plt.show()
 

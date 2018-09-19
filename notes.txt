@@ -104,11 +104,37 @@ Niekolko napadov ako to zachranit:
 
 Ad 1: Pri cestine sa ukazalo ze niekde medzi 500 a 5000 training samplov sa viac oplati pouzit MLMT pristup.
 Pozitivny transfer tam teda prebieha, ale len pri low resource. Inak je stale vyhodnejsie mat data z identickej domeny.
+Pri fine-tuningu dokazem SL-ST porazat aj pri 5-15k training samploch.
 
 Ad 3: Pre prilis malo dat to vysledky pochopitelne zhorsilo. Pre stredne mnozstvo to jasne pomohlo.
 Pre velke mnozstvo dat to vela nespravilo. Moze byt v poslednom pripade problem s tym, ze sa s modelom inicializuju aj
 Adam-related parametre ktore potom spomalia ucenie?
 
+Ad 4: Pre DEP a NER sa lepsie ako MLMT javi cisto ML. Problem ale moze byt v tom, ze pri MT a MLMT obmedzujem velkost
+in-language uloh.
+
 Stale sa ukazuje, ze tie modely su nedotrenovane. Namiesto fixneho casu treba pokial je to mozne zaviest early stopping.
 
 Pri dotrenovani nezalezi na tom, ci zresetujem Adam-related premenne. Vysledky su prakticky totozne.
+
+Co treba skusit:
+- MLMT bez taskov, ktore nijako nesuvisia s target taskom (chceme porazit ML)
+- SLST s lr resetom
+- MLMT a MT s tym ze obmedzuje iba velkost target task dat (chceme porazit ML)
+
+
+# daj do prace
+full dep uas dev
+Po 30 epochach sa stale nevyrovnali SLST - lokalne optimum z ktoreho sa nevedia dostat?
+
+pri 5000 a 500 su tie vizualizacie tiez zaujimave
+
+pri sledovani metrik na train-dev je jasne, ze MLMT ma problem ich overfitnut, je tam privela signalu navyse, ktory to od optima odtrha. Opat to iste, ani po 30 epochach sa to nedostalo pri fitovani train dat na uroven SLST. - Je to poducene alebo v lokalnom?
+
+To ze je to horsie naucene badat aj pri analyze loss.
+
+LOSS 500
+Pri POS sa sprava ako sa ocakava - po prechode na fine tuning zacne rapidne stupat, pricom skore klesa
+Pri NER azcne stupat najme pri ML*, ale skore sa aj tak zlepsuje pri fine tuningu.
+Pri DEP sa tiez vyrazne zlepsi skore, napriek stupajucej chybe.
+
