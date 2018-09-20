@@ -88,23 +88,30 @@ class Run:
     def results(self, metric, filters):
         return [rec[metric] for rec in self.records if self.is_rec_relevant(filters, rec)]
 
+from matplotlib.ticker import FormatStrFormatter
+
 sizes = ['full', '15000', '5000', '1500', '500', '50']
 sizes = ['full', '5000', '500']
 regimes = ['slst', 'mt', 'ml', 'mlmt']
 tasks = [('dep', 'uas'), ('ner', 'f1'), ('pos', 'acc')]
 
-sizes = ['5000']
-tasks = [tasks[0]]
+#sizes = ['5000']
+#tasks = [tasks[0]]
+
 
 fig, ax_lst = plt.subplots(3, 3)  # a figure with a 2x2 grid of Axes
-plt.subplots_adjust(hspace=0.5, wspace=0.4)
+size = fig.get_size_inches()
+size[0] *= 1.3
+size[1] *= 1.4
+fig.set_size_inches(size)
 ax_lst = list(itertools.chain.from_iterable(ax_lst))
 for i, (size, (task, metric)) in enumerate(itertools.product(sizes, tasks)):
     ax = ax_lst[i]
     for regime in regimes:
         e = Experiment(
-            '/media/fiit/5016BD1B16BD0350/Users/PC/FIIT Google Drive/data/cll-para-sharing/logs/august_slst_vs_mlmt/%s/%s/*' % (
+            '/media/piko/Data/fiit/data/cll-para-sharing/logs/august_slst_vs_mlmt/%s/%s/*' % (
             regime, size))
+        #metric = 'loss'
         hist = e.result_history(
             {
                 'task': task,
@@ -113,12 +120,30 @@ for i, (size, (task, metric)) in enumerate(itertools.product(sizes, tasks)):
             {
                 'role': 'dev'
             },
-            'loss'
+            metric
         )
         ax.plot(hist)
+        hist = e.result_history(
+            {
+                'task': task,
+                'language': 'cs'
+            },
+            {
+                'role': 'test'
+            },
+            metric
+        )
+        ax.plot(hist)
+        ax.set_xlabel('epochs')
+        ax.set_ylabel(metric)
+
+        if task == 'pos':
+            ax.yaxis.set_major_formatter(FormatStrFormatter('%.0f'))
+        else:
+            ax.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
 
 
-    # res = e.results(
+            # res = e.results(
     #     {
     #         'task': task,
     #         'language': 'cs'
@@ -159,5 +184,18 @@ for i, (size, (task, metric)) in enumerate(itertools.product(sizes, tasks)):
     #     met
     # )
 
+pad = 5
+for ax, row in zip(ax_lst[0:9:3], sizes):
+    ax.annotate(row, xy=(0, 0.5), xytext=(-ax.yaxis.labelpad - pad, 0),
+                xycoords=ax.yaxis.label, textcoords='offset points',
+                size='large', ha='right', va='center')
+
+for ax, col in zip(ax_lst[0:3], [t for (t,_) in tasks]):
+    ax.annotate(col, xy=(0.5, 1), xytext=(0, pad),
+                xycoords='axes fraction', textcoords='offset points',
+                size='large', ha='center', va='baseline')
+
+plt.subplots_adjust(hspace=0.5, wspace=0.5, left=0.17, bottom=0.22)
+plt.legend(['Baseline', 'MT', 'ML', 'MTML'], loc=(0, -1.3))
 plt.show()
 

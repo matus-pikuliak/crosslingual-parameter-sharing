@@ -121,13 +121,11 @@ Co treba skusit:
 - MLMT bez taskov, ktore nijako nesuvisia s target taskom (chceme porazit ML)
 - SLST s lr resetom
 - MLMT a MT s tym ze obmedzuje iba velkost target task dat (chceme porazit ML)
-
+- skus MLMT este dotrenovat
+- treba sa pozriet preco je velky rozdiel medzi dev a test a ci by ich vymena zamavala poradim
+- MLMT ma problem fitnut training data, mozno pomoze lepsi task sampling
 
 # daj do prace
-full dep uas dev
-Po 30 epochach sa stale nevyrovnali SLST - lokalne optimum z ktoreho sa nevedia dostat?
-
-pri 5000 a 500 su tie vizualizacie tiez zaujimave
 
 pri sledovani metrik na train-dev je jasne, ze MLMT ma problem ich overfitnut, je tam privela signalu navyse, ktory to od optima odtrha. Opat to iste, ani po 30 epochach sa to nedostalo pri fitovani train dat na uroven SLST. - Je to poducene alebo v lokalnom?
 
