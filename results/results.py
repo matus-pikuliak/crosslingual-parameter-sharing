@@ -50,6 +50,7 @@ class Experiment:
         res = []
         for run in runs:
             results = run.results(metric, result_filters)
+            print results
             res += results
         return res
 
@@ -88,31 +89,55 @@ class Run:
         return [rec[metric] for rec in self.records if self.is_rec_relevant(filters, rec)]
 
 sizes = ['full', '15000', '5000', '1500', '500', '50']
+sizes = ['full', '5000', '500']
 regimes = ['slst', 'mt', 'ml', 'mlmt']
-sizes = ['500']
-task = 'dep'
-met = 'uas'
-for (r, s) in itertools.product(regimes, sizes):
-    e = Experiment('/media/piko/Data/fiit/data/cll-para-sharing/logs/august_slst_vs_mlmt/%s/%s/*' % (r,s))
-    res = e.results(
-        {
-            'task': task,
-            'language': 'cs'
-        },
-        met
-    )
-    hist = e.result_history(
-        {
-            'task': task,
-            'language': 'cs'
-        },
-        {
-            'role': 'dev'
-        },
-        met
-    )
-    plt.plot(hist)
-    print res, s, r
+tasks = [('dep', 'uas'), ('ner', 'f1'), ('pos', 'acc')]
+
+sizes = ['5000']
+tasks = [tasks[0]]
+
+fig, ax_lst = plt.subplots(3, 3)  # a figure with a 2x2 grid of Axes
+plt.subplots_adjust(hspace=0.5, wspace=0.4)
+ax_lst = list(itertools.chain.from_iterable(ax_lst))
+for i, (size, (task, metric)) in enumerate(itertools.product(sizes, tasks)):
+    ax = ax_lst[i]
+    for regime in regimes:
+        e = Experiment(
+            '/media/fiit/5016BD1B16BD0350/Users/PC/FIIT Google Drive/data/cll-para-sharing/logs/august_slst_vs_mlmt/%s/%s/*' % (
+            regime, size))
+        hist = e.result_history(
+            {
+                'task': task,
+                'language': 'cs'
+            },
+            {
+                'role': 'dev'
+            },
+            'loss'
+        )
+        ax.plot(hist)
+
+
+    # res = e.results(
+    #     {
+    #         'task': task,
+    #         'language': 'cs'
+    #     },
+    #     met
+    # )
+    # hist = e.result_history(
+    #     {
+    #         'task': task,
+    #         'language': 'cs'
+    #     },
+    #     {
+    #         'role': 'dev'
+    #     },
+    #     met
+    # )
+    # plt.plot(hist)
+    # plt.legend(['slst', 'mt', 'ml', 'mlmt'])
+    # print res, s, r
     # e.graph_results(
     #     {
     #         'task': task,
