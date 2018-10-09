@@ -1,5 +1,5 @@
-from sample import Sample
-import constants
+from .sample import Sample
+import data.constants as constants
 import numpy as np
 
 

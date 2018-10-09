@@ -1,11 +1,11 @@
 import itertools
 import os
 import numpy as np
-from dataset import Dataset
-from bidir import Bidir
-from embedding_manager import EmbeddingManager
+from .dataset import Dataset
+from .bidir import Bidir
+from .embedding_manager import EmbeddingManager
 import utils.general_utils as utils
-import constants
+import data.constants as constants
 
 
 class DataManager:
@@ -55,7 +55,7 @@ class DataManager:
             vocab.insert(0, constants.UNK_WORD)
             self.embeddings[lang] = np.zeros((len(vocab), self.config.word_emb_size))
             self.lang_vocabs[lang] = Bidir(vocab)
-            for id, word in self.lang_vocabs[lang].id_to_token.iteritems():
+            for id, word in self.lang_vocabs[lang].id_to_token.items():
                 if word is not constants.UNK_WORD:
                     self.embeddings[lang][id] = em.embedding(lang, word)
 
@@ -71,7 +71,7 @@ class DataManager:
         char_hist = dict()
         for dt in self.datasets:
             dt_hist = dt.char_hist()
-            for char, freq in dt_hist.iteritems():
+            for char, freq in dt_hist.items():
                 char_hist.setdefault(char, 0)
                 char_hist[char] += freq
         self.char_vocab = set([char for char in char_hist.keys() if char_hist[char] > 50])

@@ -1,4 +1,4 @@
-from sample import Sample
+from .sample import Sample
 import numpy as np
 
 

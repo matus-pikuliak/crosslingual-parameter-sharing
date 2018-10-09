@@ -24,7 +24,7 @@ class Logger(object):
         raise TypeError('This method needs to be defined in subclass.')
 
     def stdout(self, msg):
-        print str(msg)
+        print(str(msg))
 
     def stderr(self, msg):
         sys.stderr.write(str(msg))

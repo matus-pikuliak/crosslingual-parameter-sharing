@@ -387,7 +387,7 @@ class Model:
         if self.config.show_graph:
             tf.summary.FileWriter(self.config.model_path, self.sess.graph)
             for variable in tf.global_variables():
-                print variable
+                print(variable)
 
         self.saver = tf.train.Saver()
 
@@ -404,7 +404,7 @@ class Model:
         self.logger.log_message(start_time)
         self.logger.log_message(self.config.dump())
         self.epoch = 1
-        for i in xrange(epochs):
+        for i in range(epochs):
             self.run_epoch(train=train, test=test)
             if i == 0:
                 epoch_time = datetime.datetime.now() - start_time
@@ -431,7 +431,7 @@ class Model:
                         self.dm.fetch_dataset(task, lang, 'test'),
                         self.dm.fetch_dataset(task, lang, 'dev')]
 
-        for _ in xrange(self.config.epoch_steps):
+        for _ in range(self.config.epoch_steps):
             for st in train_sets:
                 task_code = self.task_code(st.task, st.lang)
 

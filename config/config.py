@@ -14,8 +14,8 @@ class Config:
         # anything between must be already contained in yaml's and must match the type
 
         dir = os.path.dirname(__file__)
-        hparams = yaml.safe_load(file(os.path.join(dir, 'hparams.yaml'), 'r'))
-        settings = yaml.safe_load(file(os.path.join(dir, 'settings.yaml'), 'r'))
+        hparams = yaml.safe_load(open(os.path.join(dir, 'hparams.yaml'), 'r'))
+        settings = yaml.safe_load(open(os.path.join(dir, 'settings.yaml'), 'r'))
         values = hparams['default']
         values.update(settings['default'])
 
@@ -53,8 +53,8 @@ class Config:
 
             skip_next = True
 
-        for k, v in values.iteritems():
+        for k, v in values.items():
             setattr(self, k, v)
 
     def dump(self):
-        return dict(vars(self).iteritems())
+        return dict(vars(self).items())

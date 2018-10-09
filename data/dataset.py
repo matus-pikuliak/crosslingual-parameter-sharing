@@ -2,10 +2,10 @@ import codecs
 
 import numpy as np
 
-from sample_sqt import SQTSample
-from sample_dep import DEPSample
-from sample_nli import NLISample
-from sample_lmo import LMOSample
+from .sample_sqt import SQTSample
+from .sample_dep import DEPSample
+from .sample_nli import NLISample
+from .sample_lmo import LMOSample
 
 import utils.general_utils as utils
 
@@ -51,15 +51,15 @@ class Dataset():
         samples = len(self.samples)
         words = sum([len(sample.words) for sample in self.samples])
         chars = sum([sum([len(word) for word in sample.words]) for sample in self.samples])
-        print "%s %s %s" % (self.lang, self.task, self.role)
-        print "#samples: %d" % samples
-        print "#words: %d" % words
-        print "#chars: %d" % chars
-        print "avg sample (words): %f" % (float(words)/samples)
-        print "avg sample (chars): %f" % (float(chars)/samples)
-        print "avg word (chars): %f" % (float(chars)/words)
-        # print np.histogram([len(sample) for sample in self.samples], xrange(0, 70))
-        print
+        print("%s %s %s" % (self.lang, self.task, self.role))
+        print("#samples: %d" % samples)
+        print("#words: %d" % words)
+        print("#chars: %d" % chars)
+        print("avg sample (words): %f" % (float(words)/samples))
+        print("avg sample (chars): %f" % (float(chars)/samples))
+        print("avg word (chars): %f" % (float(chars)/words))
+        # print(np.histogram([len(sample) for sample in self.samples], xrange(0, 70))
+        print()
 
     def load_file(self, filename):
         bf = []
@@ -78,7 +78,7 @@ class Dataset():
 
                     bf = []
         if len(bf) > 0:
-            print "Warning: There are still words in buffer. Append newline at the end of file."
+            print("Warning: There are still words in buffer. Append newline at the end of file.")
         return samples
 
     def lang_vocab(self, embedding_vocab):
@@ -117,7 +117,7 @@ class Dataset():
         return self.samples[:amount]
 
     def next_batch(self, batch_size): # If cyclic is set to true it will fill the batch to batch_size if it reaches the end of dataset
-        samples = np.take(self.samples, xrange(self.reader, self.reader + batch_size), axis=0, mode='wrap')
+        samples = np.take(self.samples, range(self.reader, self.reader + batch_size), axis=0, mode='wrap')
         self.reader += batch_size
         if self.reader >= len(self.samples):
             self.reader = len(self.samples) % self.reader
@@ -125,7 +125,7 @@ class Dataset():
         return self.final_batch(samples)
 
     def dev_batches(self, batch_size):
-        batches = np.array_split(self.samples, xrange(batch_size, len(self.samples), batch_size))
+        batches = np.array_split(self.samples, range(batch_size, len(self.samples), batch_size))
         for j, batch in enumerate(batches):
             batches[j] = self.final_batch(batch)
         return batches
@@ -137,6 +137,6 @@ class Dataset():
             sample.padded(max_sentence_length, max_word_length) for sample in samples
         ])
 
-        return tuple([np.stack(data[:, i]) for i in xrange(data.shape[1])])
+        return tuple([np.stack(data[:, i]) for i in range(data.shape[1])])
 
 

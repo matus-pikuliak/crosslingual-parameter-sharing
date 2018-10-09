@@ -1,5 +1,5 @@
 import numpy as np
-import constants
+import data.constants as constants
 
 
 class Sample(object):
