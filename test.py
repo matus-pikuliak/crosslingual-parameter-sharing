@@ -6,7 +6,7 @@ from config.config import Config
 from data.data_manager import DataManager
 from model.model import Model
 
-config = Config(sys.argv[1:])
+config = Config(*sys.argv[1:])
 
 a = [
     [('ner', 'en')],

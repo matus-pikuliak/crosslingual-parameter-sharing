@@ -1,13 +1,11 @@
-from logs.debug_logger import DebugLogger
-from logs.default_logger import DefaultLogger
-from logs.production_logger import ProductionLogger
-import yaml
 import os
+
+import yaml
 
 
 class Config:
 
-    def __init__(self, args=[]):
+    def __init__(self, *args):
 
         # setup must be first argument
         # tasks must be last argument in 'task-lang task-lang' format
