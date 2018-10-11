@@ -5,15 +5,15 @@ import yaml
 
 class Config:
     '''
-    Config stores all the hyperparameters and settings for the model. The procedure is as follows:
+    Config stores all the hyperparameters for the model. The procedure is as follows:
 
-    1. Load default parameters from hparams and settings.yaml.
-    2. If the first user argument is 'setup', overwrite values by setup-specific values from both
-       hparams and settings.
-    3. Overwrite loaded values with those specified in args in "key value" format.
+    1. Load default parameters from hparams and private.yaml files.
+    2. If the first user argument is 'setup', overwrite values by setup-specific parameters from both
+       hparams and private.
+    3. Overwrite loaded parameter values with those specified in args in "key value" format.
     (Not supported yet) X. If load_model is specified and load_settings is set to true, load config
                            values from log file.
-    5. The last user argument is tasks followed by "task-language" arguments.
+    5. The last optional user argument is tasks followed by "task-language" arguments.
 
     Each parameter value is type checked against the types specified in yaml files. Boolean values
     are interpreted as True if the value is string "true" in any casing, otherwise they are
@@ -21,12 +21,10 @@ class Config:
     yaml files. All the specified parameters must already be in yaml files.
     '''
 
-    #TODO: treba zlepsit wording tohoto popisku, aby bolo jasne co je argument / parameter / yaml files
-
     def __init__(self, *args):
         dir = os.path.dirname(__file__)
         hparams = yaml.safe_load(open(os.path.join(dir, 'hparams.yaml')))
-        settings = yaml.safe_load(open(os.path.join(dir, 'settings.yaml')))
+        settings = yaml.safe_load(open(os.path.join(dir, 'private.yaml')))
 
         self.values = hparams['default']
         self.values.update(settings['default'])
