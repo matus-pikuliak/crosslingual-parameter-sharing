@@ -391,7 +391,7 @@ class Model:
 
         self.saver = tf.train.Saver()
 
-        if self.config.saved_model != 'na':
+        if self.config.saved_model:
             self.saver.restore(self.sess, os.path.join(self.config.model_path, self.config.saved_model+".model"))
             reset_op = tf.group([v.initializer for v in self.optimizer.variables()])
             self.sess.run(reset_op)
@@ -424,7 +424,7 @@ class Model:
         dev_sets += [self.dm.fetch_dataset(task, lang, 'test') for (task, lang) in train]
         dev_sets += [self.dm.fetch_dataset(task, lang, 'dev') for (task, lang) in test]
 
-        if self.config.train_only != 'na':# TODO: odstranit po experimente (aj v hparams)
+        if self.config.train_only: # TODO: odstranit po experimente (aj v hparams)
             task, lang = self.config.train_only.split('-')
             train_sets = [self.dm.fetch_dataset(task, lang, 'train')]
             dev_sets = [self.dm.fetch_dataset(task, lang, 'train-dev'),

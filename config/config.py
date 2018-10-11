@@ -4,42 +4,52 @@ import yaml
 
 
 class Config:
+    '''
+    Config stores all the hyperparameters and settings for the model. The procedure is as follows:
+
+    1. Load default parameters from hparams and settings.yaml.
+    2. If the first user argument is 'setup', overwrite values by setup-specific values from both
+       hparams and settings.
+    3. Overwrite loaded values with those specified in args in "key value" format.
+    (Not supported yet) X. If load_model is specified and load_settings is set to true, load config
+                           values from log file.
+    5. The last user argument is tasks followed by "task-language" arguments.
+
+    Each parameter value is type checked against the types specified in yaml files. Boolean values
+    are interpreted as True if the value is string "true" in any casing, otherwise they are
+    interpreted as False. String parameters that are supposed to be None are set as "na" in the
+    yaml files. All the specified parameters must already be in yaml files.
+    '''
+
+    #TODO: treba zlepsit wording tohoto popisku, aby bolo jasne co je argument / parameter / yaml files
 
     def __init__(self, *args):
-
-        # setup must be first argument
-        # tasks must be last argument in 'task-lang task-lang' format
-        # anything between must be already contained in yaml's and must match the type
-
         dir = os.path.dirname(__file__)
-        hparams = yaml.safe_load(open(os.path.join(dir, 'hparams.yaml'), 'r'))
-        settings = yaml.safe_load(open(os.path.join(dir, 'settings.yaml'), 'r'))
-        values = hparams['default']
-        values.update(settings['default'])
+        hparams = yaml.safe_load(open(os.path.join(dir, 'hparams.yaml')))
+        settings = yaml.safe_load(open(os.path.join(dir, 'settings.yaml')))
 
-        skip_next = False
-        for i, arg in enumerate(args):
+        self.values = hparams['default']
+        self.values.update(settings['default'])
 
-            if skip_next:
-                skip_next = False
-                continue
+        ite = enumerate(args)
+        for i, arg in ite:
+
+            if arg not in self.values:
+                raise AttributeError('Argument \'%s\' is not permitted.' % arg)
 
             if arg == 'tasks':
-                values['tasks'] = [tuple(a.split('-')) for a in args[i+1:]]
+                self.values['tasks'] = [tuple(tl.split('-')) for _, tl in ite]
                 break
 
-            if arg == 'setup' and i != 0:
-                raise AttributeError('Argument \'setup\' must be first.')
+            _, value = next(ite)
 
             if arg == 'setup':
-                setup = args[i+1]
-                values.update(hparams[setup])
-                values.update(settings[setup])
+                if i > 0:
+                    raise AttributeError('Argument \'setup\' must be first.')
+                self.values.update(hparams[value])
+                self.values.update(settings[value])
 
-            value = args[i+1]
-            if arg not in values:
-                raise AttributeError('Argument \'%s\' is not permitted.' % arg)
-            arg_type = type(values[arg])
+            arg_type = type(self.values[arg])
             try:
                 if arg_type == bool:
                     value = (value.lower() == 'true')
@@ -47,12 +57,14 @@ class Config:
                     value = arg_type(value)
             except:
                 raise AttributeError('Could not type value of %s to %s' % (arg, arg_type))
-            values[arg] = value
 
-            skip_next = True
+            if value == 'na':
+                value = None
 
-        for k, v in values.items():
-            setattr(self, k, v)
+            self.values[arg] = value
 
-    def dump(self):
-        return dict(vars(self).items())
+    def __getattr__(self, item):
+        return self.values[item]
+
+    def __repr__(self):
+        return str(self.values)
