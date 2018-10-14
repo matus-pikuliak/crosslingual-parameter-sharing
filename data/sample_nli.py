@@ -15,7 +15,6 @@ class NLISample(Sample):
                 self.labels = [line.split('\t')[1].strip()]
                 self.premise_length = i
         self.hypothesis_length = len(self.words) - self.premise_length
-        self.dt = dataset
 
     def prepare(self, *args): # lang_vocab, task_vocab, char_vocab
         self.word_ids = self.prepare_word_ids(*args)

@@ -33,6 +33,9 @@ default: &default
   limited_task: na
   train_only: na
 
+  min_word_freq: 1
+  min_char_freq: 100
+
   # settings
   use_gpu: true
   show_graph: false

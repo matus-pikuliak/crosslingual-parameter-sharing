@@ -1,7 +1,6 @@
 from .sample import Sample
 import numpy as np
 
-
 class SQTSample(Sample):
 
     def __init__(self, lines, dataset):
@@ -12,7 +11,6 @@ class SQTSample(Sample):
             word, tag = line.split('\t')
             self.words.append(word.strip())
             self.labels.append(tag.strip())
-        self.dt = dataset
 
     def prepare(self, *args): # lang_vocab, task_vocab, char_vocab
         self.word_ids = self.prepare_word_ids(*args)

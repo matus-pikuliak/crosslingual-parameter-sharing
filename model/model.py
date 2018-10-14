@@ -27,6 +27,10 @@ class Model:
         else:
             return task + lang
 
+    def load_embeddins(self):
+        ...
+        # embeddings are now loaded here instead of in data manager
+
     def add_train_op(self, loss, task_code):
         grads, vs = zip(*self.optimizer.compute_gradients(loss))
         self.gradient_norm[task_code] = tf.global_norm(grads)

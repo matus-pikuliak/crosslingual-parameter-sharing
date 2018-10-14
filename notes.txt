@@ -142,3 +142,11 @@ Pri DEP sa tiez vyrazne zlepsi skore, napriek stupajucej chybe.
 - MLMT trpi nedostatkami MT, ale zaroven prebera z ML dobre vysledky - chcelo by to s tym MT zatocit
 - pre POS a DEP mame sota vysledky, ale SLST modelom
 
+# Predspracovanie
+Pri prezreti slov, ktore sa nenasli v embeddingoch mi naslo vela slov, ktore
+- boli spojene spojovnikom (toto najma pri LMO - tu by sa to dalo rozbit)
+- boli cislami (v MUSE je tag # - su to cisla?)
+- kusky textu s apostrofami ('s, 'll) - toto je v mUSE rozbite na <<'>> a <<ll>> napr.
+- taktiez slova s bodkami <<mr.>>, <<u.s.>>
+Bolo by fajn pozriet sa na to a zjednotit to, problem je, ze v POS tagoch napr. potom nie su tagy pre rozdelene slova a pod.
+

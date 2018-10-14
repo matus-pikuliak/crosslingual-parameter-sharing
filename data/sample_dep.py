@@ -14,7 +14,6 @@ class DEPSample(Sample):
             self.words.append(word.strip())
             self.arcs.append(int(arc))
             self.labels.append(arc_type.strip())
-        self.dt = dataset
 
     def prepare(self, *args): # lang_vocab, task_vocab, char_vocab
         self.word_ids = self.prepare_word_ids(*args)
