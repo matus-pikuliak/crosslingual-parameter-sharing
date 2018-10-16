@@ -8,7 +8,6 @@ class LMOSample(Sample):
         Sample.__init__(self)
         self.words = [line.strip() for line in lines]
         self.labels = []
-        self.dt = dataset
 
     def prepare(self, *args): # lang_vocab, task_vocab, char_vocab
         self.word_ids = self.prepare_word_ids(*args)

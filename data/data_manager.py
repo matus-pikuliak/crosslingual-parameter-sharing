@@ -12,13 +12,6 @@ class DataManager:
 
     def __init__(self, tls=None, tasks=None, languages=None, config=None):
 
-        # (task, language) tuples
-        self.tls = tls if tls is not None else list(itertools.product(tasks, languages))
-
-        if config is None:
-            raise TypeError('Config can not be empty')
-        self.config = config
-
         self.datasets = []
         for task, lang in self.tls:
             for role in constants.ROLES:

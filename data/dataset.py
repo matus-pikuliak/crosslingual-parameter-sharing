@@ -51,6 +51,7 @@ class Dataset():
         samples = len(self.samples)
         words = sum([len(sample.words) for sample in self.samples])
         chars = sum([sum([len(word) for word in sample.words]) for sample in self.samples])
+        max_word = sum([max([len(word) for word in sample.words]) for sample in self.samples])
         print("%s %s %s" % (self.lang, self.task, self.role))
         print("#samples: %d" % samples)
         print("#words: %d" % words)
@@ -58,6 +59,7 @@ class Dataset():
         print("avg sample (words): %f" % (float(words)/samples))
         print("avg sample (chars): %f" % (float(chars)/samples))
         print("avg word (chars): %f" % (float(chars)/words))
+        print("avg max word (chars) in sample: %f" % (float(max_word)/samples))
         # print(np.histogram([len(sample) for sample in self.samples], xrange(0, 70))
         print()
 
@@ -83,12 +85,17 @@ class Dataset():
 
     def lang_vocab(self, embedding_vocab):
         vocab = dict()
+        out = dict()
         for sample in self.samples:
             for word in sample.words:
                 word = word.lower()
                 if word in embedding_vocab: # TODO: lower() bcs of MUSE embeddings
                     vocab.setdefault(word, 0)
                     vocab[word] += 1
+                else:
+                    out.setdefault(word, 0)
+                    out[word] += 1
+        print(sorted(out.items(), key=lambda x: -x[1]))
         return vocab
 
     def task_vocab(self):
