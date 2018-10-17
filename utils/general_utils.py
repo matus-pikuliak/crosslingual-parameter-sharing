@@ -12,7 +12,7 @@ def interweave(a, b):
         c.append(b[i])
     return np.array(c)
 
-def profile(msg=None):
+def time_profile(msg=None):
     import os
     import psutil
     process = psutil.Process(os.getpid())

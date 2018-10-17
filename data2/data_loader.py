@@ -36,6 +36,7 @@ class DataLoader:
     def find_one(self, *args, **kwargs):
         return self.find(*args, **kwargs)[0]
 
+    @profile
     def load(self):
         self.lang_hists, self.task_hists, self.char_hist = self.load_hists()
         self.emb_vocabs = self.load_embedding_vocabs()
@@ -50,9 +51,12 @@ class DataLoader:
         ])
         self.print_char_vocab_details()
 
+        self.del_hists()
+
         for dt in self.datasets:
-            dt.del_hists()
+            utils.time_profile()
             dt.load()
+        pass
 
     def load_hists(self):
         for dt in self.datasets:
@@ -67,6 +71,11 @@ class DataLoader:
     def combine_hists(self, hist_type, *args, **kwargs):
         dts = self.find(*args, **kwargs)
         return utils.add_hists([dt.get_hist(hist_type) for dt in dts])
+
+    def del_hists(self):
+        for dt in self.datasets:
+            dt.del_hists()
+        del self.emb_vocabs
 
     def load_embedding_vocabs(self):
         vocabs = {}

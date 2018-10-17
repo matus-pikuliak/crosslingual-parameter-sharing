@@ -63,7 +63,7 @@ class Dataset:
         return self.dl.task_vocabs[self.task].label_to_id(label)
 
     def word_to_char_ids(self, word):
-        return np.array()
+        return self.dl.char_vocab.word_to_ids(word)
 
     def load(self):
         raise NotImplementedError
@@ -105,7 +105,7 @@ class Dataset:
             raise RuntimeError(f'Dataset.load_hists() was not called yet: ({self})')
         return hist[hist_type]
 
-    def read_samples(self):
+    def read_raw_samples(self):
         with open(self.filename, 'r') as f:
             lines = []
             for line in f:

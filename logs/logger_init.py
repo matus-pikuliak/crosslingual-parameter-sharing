@@ -1,4 +1,3 @@
-from .logger import Logger
 from .default_logger import DefaultLogger
 from .debug_logger import DebugLogger
 from .production_logger import ProductionLogger
