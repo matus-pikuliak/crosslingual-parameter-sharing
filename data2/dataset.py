@@ -74,8 +74,15 @@ class Dataset:
         self.task_hist = {}
 
         with open(self.filename, 'r') as f:
+            count = 0
             for line in f:
                 tokens = line.strip().split()
+                if not tokens:
+                    print(count)
+                    count += 1
+                    if count > 5000:
+                        break
+                    continue
                 if len(tokens) > 0:
                     word = tokens[0]
                     self.lang_hist.setdefault(word, 0)
@@ -107,6 +114,7 @@ class Dataset:
 
     def read_raw_samples(self):
         with open(self.filename, 'r') as f:
+            count = 0
             lines = []
             for line in f:
                 line = line.strip()
@@ -114,4 +122,7 @@ class Dataset:
                     lines.append(line.split())
                 else:
                     yield lines
+                    count += 1
+                    if count > 5000:
+                        break
                     lines = []
