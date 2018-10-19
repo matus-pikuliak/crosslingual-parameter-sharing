@@ -20,12 +20,6 @@ default: &default
   dropout: 0.5
   optimizer: adam # rmsprop/adam/adagrad/sgd
 
-  setup: default
-  tasks: null
-
-  max_sentence_length: 70
-  min_sentence_length: 2
-
   lmo_vocab_size: 10000 # how many words are output vocabulary for language modeling
 
   dt_size_limit: -1 # max number of samples read from a file (-1 is unlimited)
@@ -33,10 +27,15 @@ default: &default
   limited_task: na
   train_only: na
 
+  max_sentence_length: 70
+  min_sentence_length: 2
+  max_word_length: 20
   min_word_freq: 1
   min_char_freq: 100
 
   # settings
+  tasks: null
+  setup: default
   use_gpu: true
   show_graph: false
   save_parameters: false

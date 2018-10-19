@@ -5,18 +5,21 @@ class NLIDataset(Dataset):
 
     def create_samples(self):
         for sample in self.read_raw_samples():
-            premise = []
-            hypothesis = []
-            ac = premise
-            for line in sample:
-                ac.append(self.word_to_id(line[0]))
+            for i, line in enumerate(sample):
                 if len(line) > 1:
-                    ac = hypothesis
-                    label = self.label_to_id(line[1])
-            yield premise, label, hypothesis
+                    premise_len = i
+                    break
+            premise_ids = [self.word_to_id(sample[i][0]) for i in range(premise_len)]
+            premise_char_ids = [self.word_to_char_ids(sample[i][0]) for i in range(premise_len)]
+            hypothesis_ids = [self.word_to_id(sample[i][0]) for i in range(premise_len, len(sample))]
+            hypothesis_char_ids = [self.word_to_char_ids(sample[i][0]) for i in range(premise_len, len(sample))]
+            label = self.label_to_id(sample[premise_len][1])
+            yield premise_ids, premise_char_ids, hypothesis_ids, hypothesis_char_ids, label
 
 
     def load(self):
-        self.premise_ids, \
-        self.hypothesis_ids, \
+        from utils.general_utils import time_profile
+        time_profile()
+        self.premise_ids, self.premise_char_ids, \
+        self.hypothesis_ids, self.hypothesis_char_ids, \
         self.label_ids = zip(*self.create_samples())

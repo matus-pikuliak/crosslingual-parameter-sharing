@@ -41,20 +41,11 @@ class DataLoader:
         self.lang_hists, self.task_hists, self.char_hist = self.load_hists()
         self.emb_vocabs = self.load_embedding_vocabs()
 
-        self.lang_vocabs = self.create_lang_vocabs()
-        self.task_vocabs = {task: TaskVocab(vocab) for task, vocab in self.task_hists.items()}
-        self.char_vocab = CharVocab([
-            char
-            for char, count
-            in self.char_hist.items()
-            if count > self.config.min_char_freq
-        ])
-        self.print_char_vocab_details()
-
+        self.lang_vocabs, self.task_vocabs, self.char_vocab = self.load_vocabs()
+        self.print_vocab_details()
         self.del_hists()
 
         for dt in self.datasets:
-            utils.time_profile()
             dt.load()
         pass
 
@@ -85,7 +76,13 @@ class DataLoader:
                 vocabs[lang] = {line.split()[0]: 0 for line in f}
         return vocabs
 
-    def create_lang_vocabs(self):
+    def load_vocabs(self):
+        lang_vocabs = self.load_lang_vocabs()
+        task_vocabs = self.load_task_vocabs()
+        char_vocab = self.load_char_vocab()
+        return lang_vocabs, task_vocabs, char_vocab
+
+    def load_lang_vocabs(self):
 
         for lang in self.langs():
             for word in self.lang_hists[lang]:
@@ -95,7 +92,6 @@ class DataLoader:
                     self.emb_vocabs[lang][key] += amount
                 except KeyError:
                     pass
-            self.print_lang_vocab_details(lang)
 
         filter_size = self.config.min_word_freq
         return {
@@ -103,27 +99,37 @@ class DataLoader:
             for lang in self.langs()
         }
 
-    def print_lang_vocab_details(self, lang):
-        total_token = sum(count for count in self.lang_hists[lang].values())
-        total_word = len(self.lang_hists[lang])
-        filt_token = sum(
-            count
-            for count
-            in self.emb_vocabs[lang].values()
-            if count >= self.config.min_word_freq
-        )
-        filt_word = sum(
-            count >= self.config.min_word_freq
-            for count
-            in self.emb_vocabs[lang].values()
-        )
-        word_ratio = filt_word * 100 / total_word
-        token_ratio = filt_token * 100 / total_token
-        print(f'{lang} vocabulary constructed.\n'
-              f'It contains {filt_word} words ({word_ratio:.2f}%).\n'
-              f'It covers {filt_token} tokens ({token_ratio:.2f}%).\n')
+    def load_task_vocabs(self):
+        return {task: TaskVocab(vocab) for task, vocab in self.task_hists.items()}
 
-    def print_char_vocab_details(self):
+    def load_char_vocab(self):
+        return CharVocab([
+            char
+            for char, count
+            in self.char_hist.items()
+            if count > self.config.min_char_freq
+        ])
+
+    def print_vocab_details(self):
+        for lang in self.lang_vocabs:
+            total_token = sum(count for count in self.lang_hists[lang].values())
+            filt_token = sum(
+                count
+                for word, count
+                in self.emb_vocabs[lang].items()
+                if word in self.lang_vocabs[lang]
+            )
+
+            total_word = len(self.lang_hists[lang])
+            filt_word = len(self.lang_vocabs[lang])
+
+            word_ratio = filt_word * 100 / total_word
+            token_ratio = filt_token * 100 / total_token
+            print(f'{lang} vocabulary constructed.\n'
+                  f'It contains {filt_word} words ({word_ratio:.2f}%).\n'
+                  f'It covers {filt_token} tokens ({token_ratio:.2f}%).\n'
+                  f'{self.lang_vocabs[lang]}\n')
+
         total_char = len(self.char_hist)
         total_occ = sum(count for count in self.char_hist.values())
         filt_char = sum(
@@ -141,19 +147,14 @@ class DataLoader:
         occ_ratio = filt_occ * 100 / total_occ
         print(f'Character vocabulary constructed.\n'
               f'It contains {filt_char} characters ({char_ratio:.2f}%).\n'
-              f'It covers {filt_occ} character occurences ({occ_ratio:.2f}%).\n')
-
+              f'It covers {filt_occ} character occurences ({occ_ratio:.2f}%).\n'
+              f'{self.char_vocab}\n')
 
 
 # FEATURES
 '''
-max_size - min_size - samplu aj slova
-dataset limited_size
 dynamic loading for big datasets
 train-dev sets (possibly just first 1000 from train set)
 dataset stats (when loading)
 when loaded statically - shuffling
-
-print vocab example to make sure loaded data make sense
-
 '''

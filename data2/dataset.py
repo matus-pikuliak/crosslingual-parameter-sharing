@@ -1,8 +1,5 @@
 import os
 
-from data2.word_normalization import word_normalization
-
-
 class Dataset:
 
     def __new__(cls, task, *args):
@@ -63,6 +60,8 @@ class Dataset:
         return self.dl.task_vocabs[self.task].label_to_id(label)
 
     def word_to_char_ids(self, word):
+        if len(word) > self.config.max_word_length:
+            word = word[:self.config.max_word_length]
         return self.dl.char_vocab.word_to_ids(word)
 
     def load(self):
@@ -74,15 +73,10 @@ class Dataset:
         self.task_hist = {}
 
         with open(self.filename, 'r') as f:
-            count = 0
             for line in f:
                 tokens = line.strip().split()
                 if not tokens:
-                    print(count)
-                    count += 1
-                    if count > 5000:
-                        break
-                    continue
+                    ... # sample counter?
                 if len(tokens) > 0:
                     word = tokens[0]
                     self.lang_hist.setdefault(word, 0)
@@ -112,17 +106,26 @@ class Dataset:
             raise RuntimeError(f'Dataset.load_hists() was not called yet: ({self})')
         return hist[hist_type]
 
-    def read_raw_samples(self):
+    def raw_samples_gen(self):
         with open(self.filename, 'r') as f:
-            count = 0
             lines = []
             for line in f:
                 line = line.strip()
                 if line:
                     lines.append(line.split())
                 else:
-                    yield lines
-                    count += 1
-                    if count > 5000:
-                        break
+                    if self.config.min_sentence_length <= len(lines) <= self.config.max_sentence_length:
+                        yield lines
                     lines = []
+
+    def read_raw_samples(self, limit=None):
+        gen = self.raw_samples_gen()
+        if limit:
+            for _ in range(limit):
+                yield next(gen)
+        else:
+            yield from gen
+
+    def set_limit(self):
+        ...
+

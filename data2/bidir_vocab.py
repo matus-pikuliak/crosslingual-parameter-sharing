@@ -16,6 +16,9 @@ class BidirVocab:
     def __repr__(self):
         return str({k: self.id2t[k] for k in range(10)})+f' and {len(self)-10} others'
 
+    def __contains__(self, token):
+        return token in self.t2id
+
 
 class LangVocab(BidirVocab):
 
