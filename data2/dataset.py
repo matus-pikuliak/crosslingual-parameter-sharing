@@ -1,5 +1,8 @@
 import os
 
+import numpy as np
+
+
 class Dataset:
 
     def __new__(cls, task, *args):
@@ -49,9 +52,26 @@ class Dataset:
         self.config = config
         self.filename = os.path.join(config.data_path, task, lang, role)
         self.dl = data_loader
+        self.limit = self.set_limit()
 
     def __str__(self):
         return f'Dataset {self.task} {self.lang} {self.role} ({self.__class__.__name__})'
+
+    def __len__(self):
+        try:
+            return self.size
+        except AttributeError:
+            self.size = sum(1 for _ in self.read_raw_samples())
+            return self.size
+
+    def set_limit(self):
+        if (
+                self.config.limited_language == self.lang or
+                self.config.limited_task == self.task or
+                (self.config.limited_task_language and self.config.limited_task_language.split('-') == [self.task, self.lang])
+        ):
+            assert(self.config.limited_data_size > -1)
+            return self.config.limited_data_size
 
     def word_to_id(self, word):
         return self.dl.lang_vocabs[self.lang].word_to_id(word)
@@ -72,23 +92,24 @@ class Dataset:
         self.char_hist = {}
         self.task_hist = {}
 
-        with open(self.filename, 'r') as f:
-            for line in f:
-                tokens = line.strip().split()
-                if not tokens:
-                    ... # sample counter?
-                if len(tokens) > 0:
-                    word = tokens[0]
+        counter = 0
+        for sample in self.read_raw_samples():
+            counter += 1
+            for line in sample:
+
+                if len(line) > 0:
+                    word = line[0]
                     self.lang_hist.setdefault(word, 0)
                     self.lang_hist[word] += 1
                     for char in word:
                         self.char_hist.setdefault(char, 0)
                         self.char_hist[char] += 1
 
-                if len(tokens) > 1:
-                    label = tokens[1]
+                if len(line) > 1:
+                    label = line[1]
                     self.task_hist.setdefault(label, 0)
                     self.task_hist[label] += 1
+        #self.size = counter
 
     def del_hists(self):
         self.lang_hist.clear()
@@ -118,14 +139,51 @@ class Dataset:
                         yield lines
                     lines = []
 
-    def read_raw_samples(self, limit=None):
+    def read_raw_samples(self):
         gen = self.raw_samples_gen()
-        if limit:
-            for _ in range(limit):
+        if self.limit:
+            for _ in range(self.limit):
                 yield next(gen)
         else:
             yield from gen
 
-    def set_limit(self):
-        ...
+    def train_iterator(self, batch_size):
+        while True:
+            ids = np.random.permutation(len(self))
+            for i in range(0, len(self), batch_size):
+                batch_ids = ids[i:i+batch_size]
+                if len(batch_ids) < batch_size:
+                    break
+                yield self.prepare_samples_by_ids(batch_ids)
+
+    def test_iterator(self, batch_size, limit = None):
+        size = limit if limit else len(self)
+        for i in range(0, size, batch_size):
+            batch_ids = range(i, i + batch_size)
+            yield self.prepare_samples_by_ids(batch_ids)
+
+    @staticmethod
+    def pad_sequences_1d(sequences):
+        batch_size = len(sequences)
+        sequence_size = max(len(seq) for seq in sequences)
+        matrix = np.zeros((batch_size, sequence_size), dtype=np.int)
+        for i, seq in enumerate(sequences):
+            matrix[i,:len(seq)] = seq
+        lens = np.array([len(seq) for seq in sequences])
+        return matrix, lens
+
+    @staticmethod
+    def pad_sequences_2d(sequences):
+        batch_size = len(sequences)
+        sequence_size = max(len(seq) for seq in sequences)
+        subsequence_size = max(max(len(subseq) for subseq in seq) for seq in sequences)
+        matrix = np.zeros((batch_size, sequence_size, subsequence_size), dtype=np.int)
+        for i, seq in enumerate(sequences):
+            for j, subseq in enumerate(seq):
+                matrix[i,j,:len(subseq)] = subseq
+        lens, _ = Dataset.pad_sequences_1d([[len(subseq) for subseq in seq] for seq in sequences])
+        return matrix, lens
+
+
+
 

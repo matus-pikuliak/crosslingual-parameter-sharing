@@ -18,8 +18,6 @@ class NLIDataset(Dataset):
 
 
     def load(self):
-        from utils.general_utils import time_profile
-        time_profile()
         self.premise_ids, self.premise_char_ids, \
         self.hypothesis_ids, self.hypothesis_char_ids, \
         self.label_ids = zip(*self.create_samples())

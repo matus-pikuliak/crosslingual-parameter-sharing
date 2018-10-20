@@ -22,8 +22,9 @@ default: &default
 
   lmo_vocab_size: 10000 # how many words are output vocabulary for language modeling
 
-  dt_size_limit: -1 # max number of samples read from a file (-1 is unlimited)
+  limited_data_size: -1 # max number of samples read from a file (-1 is unlimited)
   limited_language: na
+  limited_task_language: na
   limited_task: na
   train_only: na
 

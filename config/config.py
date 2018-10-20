@@ -56,10 +56,11 @@ class Config:
             except:
                 raise AttributeError('Could not type value of %s to %s' % (arg, arg_type))
 
-            if value == 'na':
-                value = None
-
             self.values[arg] = value
+
+        for k, v in self.values.items():
+            if v == 'na':
+                self.values[k] = None
 
     def __getattr__(self, item):
         return self.values[item]

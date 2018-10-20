@@ -8,9 +8,9 @@ import utils.general_utils as utils
 
 class Model:
 
-    def __init__(self, data_manager, config):
+    def __init__(self, data_loader, config):
         self.config = config
-        self.dm = data_manager
+        self.dl = data_loader
         self.timestamp = datetime.datetime.now().strftime('%Y-%m-%d-%H%M%S')
         self.logger = self.initialize_logger()
         
@@ -27,9 +27,24 @@ class Model:
         else:
             return task + lang
 
-    def load_embeddins(self):
-        ...
-        # embeddings are now loaded here instead of in data manager
+    def load_embeddins(self, lang):
+        emb_path = os.path.join(self.config.emb_path, lang)
+        emb_matrix = np.zeros((len(self.dl.lang_vocabs[lang]), self.config.word_emb_size), dtype=np.float)
+        with open(emb_path, 'r') as f:
+            next(f)
+            for line in f:
+                try:
+                    word, rest = line.split(maxsplit=1)
+                except:
+                    print(line)
+                    raise AttributeError
+                if word in self.dl.lang_vocabs[lang]:
+                    i = self.dl.lang_vocabs[lang].t2id[word]
+                    try:
+                        emb_matrix[i] = [float(n) for n in rest.split()]
+                    except ValueError:
+                        print(line) # FIXME: sometimes there are two words in embeddings file, but I think it's better to clean the emb files instead
+        return emb_matrix
 
     def add_train_op(self, loss, task_code):
         grads, vs = zip(*self.optimizer.compute_gradients(loss))
@@ -49,7 +64,7 @@ class Model:
 
     def add_crf(self, task, task_code):
         with tf.variable_scope(task_code):
-            tag_count = len(self.dm.task_vocabs[task])
+            tag_count = len(self.dl.task_vocabs[task])
             max_length = tf.shape(self.word_ids)[1]
 
             output = tf.reshape(self.word_lstm_output, [-1, 2 * self.config.word_lstm_size])
@@ -133,10 +148,10 @@ class Model:
             self.true_labels[task_code] = tf.placeholder(tf.int64, shape=[None, None], name="labels")
             labels = tf.reshape(self.true_labels[task_code], [-1])
             labels = tf.boolean_mask(labels, seq_mask)
-            one_hot_labels = tf.one_hot(labels, len(self.dm.task_vocabs['dep']))
+            one_hot_labels = tf.one_hot(labels, len(self.dl.task_vocabs['dep']))
 
-            W3 = tf.get_variable("W3", dtype=self.f_type(), shape=[hidden, len(self.dm.task_vocabs['dep'])])
-            b3 = tf.get_variable("b3", dtype=self.f_type(), shape=[len(self.dm.task_vocabs['dep'])])
+            W3 = tf.get_variable("W3", dtype=self.f_type(), shape=[hidden, len(self.dl.task_vocabs['dep'])])
+            b3 = tf.get_variable("b3", dtype=self.f_type(), shape=[len(self.dl.task_vocabs['dep'])])
             predicted_arc_labels = tf.matmul(relevant_arcs, W3) + b3
             predicted_arc_labels_ids = tf.argmax(predicted_arc_labels, axis=1)
             loss_las = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(
@@ -178,14 +193,14 @@ class Model:
             ], axis=1)
             W = tf.get_variable("W", dtype=self.f_type(), shape=[8 * self.config.word_lstm_size, 500])
             b = tf.get_variable("b", dtype=self.f_type(), shape=[500])
-            W2 = tf.get_variable("W2", dtype=self.f_type(), shape=[500, len(self.dm.task_vocabs['nli'])])
+            W2 = tf.get_variable("W2", dtype=self.f_type(), shape=[500, len(self.dl.task_vocabs['nli'])])
 
             representation = tf.matmul(representation, W) + b
             representation = tf.matmul(tf.nn.tanh(representation), W2)
 
             self.true_labels[task_code] = tf.placeholder(tf.int64, shape=[None],
                                                   name="labels")
-            true_labels_one_hot = tf.one_hot(self.true_labels[task_code], depth=len(self.dm.task_vocabs['nli']))
+            true_labels_one_hot = tf.one_hot(self.true_labels[task_code], depth=len(self.dl.task_vocabs['nli']))
             self.loss[task_code] = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(
                 labels=true_labels_one_hot,
                 logits=representation,
@@ -202,7 +217,7 @@ class Model:
         with tf.variable_scope(task_code):
             max_len = tf.reduce_max(self.sequence_lengths)
             batch_size = tf.size(self.sequence_lengths)
-            vocab_size = min(self.config.lmo_vocab_size + 1, len(self.dm.lang_vocabs[lang])) # +1 <unk>
+            vocab_size = min(self.config.lmo_vocab_size + 1, len(self.dl.lang_vocabs[lang])) # +1 <unk>
 
             start_vec = tf.get_variable('start_vec', shape=[self.config.word_lstm_size], dtype=self.f_type())
             start_vec = tf.expand_dims(start_vec, 0)
@@ -288,23 +303,23 @@ class Model:
 
         # language flags
         self.language_flags = dict()
-        for lang in self.dm.languages():
+        for lang in self.dl.langs():
             self.language_flags[lang] = tf.placeholder_with_default(input=False, shape=[], name="language_flag_%s" % lang)
 
         #
         # word embeddings
         _word_embeddings = dict()
-        for lang in self.dm.languages():
+        for lang in self.dl.langs():
             _word_embeddings[lang] = tf.get_variable(
                 dtype=self.f_type(),
                 # shape=[None, self.config.word_emb_size],
-                initializer=tf.cast(self.dm.embeddings[lang], self.f_type()),
+                initializer=tf.cast(self.load_embeddins(lang), self.f_type()),
                 trainable=self.config.train_emb,
                 name="word_embeddings_%s" % lang)
 
 
         lambdas = lambda lang: lambda: _word_embeddings[lang]
-        cases = dict([(self.language_flags[lang], lambdas(lang)) for lang in self.dm.languages()])
+        cases = dict([(self.language_flags[lang], lambdas(lang)) for lang in self.dl.langs()])
         cased_word_embeddings = tf.case(cases) # TODO: when all are false it will pick default
         self.word_embeddings = tf.nn.embedding_lookup(cased_word_embeddings, self.word_ids,
         name="word_embeddings_lookup")
@@ -312,7 +327,7 @@ class Model:
         if self.config.char_level:
             _char_embeddings = tf.get_variable(
                 dtype=self.f_type(),
-                shape=(self.dm.char_count(), self.config.char_emb_size),
+                shape=(len(self.dl.char_vocab), self.config.char_emb_size),
                 name="char_embeddings"
             )
             self.char_embeddings = tf.nn.embedding_lookup(_char_embeddings, self.char_ids,
@@ -323,6 +338,7 @@ class Model:
 
                 max_sentence_length = tf.shape(self.char_embeddings)[1]
                 max_word_length = tf.shape(self.char_embeddings)[2]
+                # TODO: Check if it is really sensitive to padding
                 self.char_embeddings = tf.reshape(self.char_embeddings, [-1, max_word_length, self.config.char_emb_size])
                 cell_fw = tf.contrib.cudnn_rnn.CudnnCompatibleLSTMCell(self.config.char_lstm_size)
                 cell_bw = tf.contrib.cudnn_rnn.CudnnCompatibleLSTMCell(self.config.char_lstm_size)
@@ -366,7 +382,7 @@ class Model:
         self.gradient_norm = dict()
 
         used_task_codes = []
-        for (task, lang) in self.dm.tls:
+        for (task, lang) in self.config.tasks:
             task_code = self.task_code(task, lang)
             if task_code not in used_task_codes:
                 if task in ('ner', 'pos'):
@@ -406,7 +422,7 @@ class Model:
         self.logger.log_message("Now training " + self.name)
         start_time = datetime.datetime.now()
         self.logger.log_message(start_time)
-        self.logger.log_message(self.config.dump())
+        #self.logger.log_message(self.config.dump()) # FIXME
         self.epoch = 1
         for i in range(epochs):
             self.run_epoch(train=train, test=test)
@@ -422,27 +438,36 @@ class Model:
 
     def run_epoch(self, train, test):
 
-        train_sets = [self.dm.fetch_dataset(task, lang, 'train') for (task, lang) in train]
-        dev_sets = [self.dm.fetch_dataset(task, lang, 'dev') for (task, lang) in train]
-        dev_sets += [self.dm.fetch_dataset(task, lang, 'train-dev') for (task, lang) in train]
-        dev_sets += [self.dm.fetch_dataset(task, lang, 'test') for (task, lang) in train]
-        dev_sets += [self.dm.fetch_dataset(task, lang, 'dev') for (task, lang) in test]
+        train_sets = [(dt, dt.train_iterator(self.config.batch_size)) for dt in self.dl.find(role='train')] # FIXME: train sa vytvara zakazdym nanovo
+        dev_sets = [(dt, dt.test_iterator(self.config.batch_size, limit=1000)) for dt in self.dl.find(role='train')]
+        dev_sets += [(dt, dt.test_iterator(self.config.batch_size)) for dt in self.dl.find(role='dev')]
+        dev_sets += [(dt, dt.test_iterator(self.config.batch_size)) for dt in self.dl.find(role='test')]
 
-        if self.config.train_only: # TODO: odstranit po experimente (aj v hparams)
-            task, lang = self.config.train_only.split('-')
-            train_sets = [self.dm.fetch_dataset(task, lang, 'train')]
-            dev_sets = [self.dm.fetch_dataset(task, lang, 'train-dev'),
-                        self.dm.fetch_dataset(task, lang, 'test'),
-                        self.dm.fetch_dataset(task, lang, 'dev')]
+        # dev_sets = [self.dm.fetch_dataset(task, lang, 'dev') for (task, lang) in train]
+        # dev_sets += [self.dm.fetch_dataset(task, lang, 'train-dev') for (task, lang) in train]
+        # dev_sets += [self.dm.fetch_dataset(task, lang, 'test') for (task, lang) in train]
+        # dev_sets += [self.dm.fetch_dataset(task, lang, 'dev') for (task, lang) in test]
+
+        # if self.config.train_only: # TODO: odstranit po experimente (aj v hparams)
+        #     task, lang = self.config.train_only.split('-')
+        #     train_sets = [self.dm.fetch_dataset(task, lang, 'train')]
+        #     dev_sets = [self.dm.fetch_dataset(task, lang, 'train-dev'),
+        #                 self.dm.fetch_dataset(task, lang, 'test'),
+        #                 self.dm.fetch_dataset(task, lang, 'dev')]
 
         for _ in range(self.config.epoch_steps):
-            for st in train_sets:
+            for st, ite in train_sets:
                 task_code = self.task_code(st.task, st.lang)
 
                 if st.task in ('ner', 'pos'):
 
-                    minibatch = st.next_batch(self.config.batch_size)
-                    word_ids, char_ids, label_ids, sentence_lengths, word_lengths = minibatch
+                    word_ids, sentence_lengths, char_ids, word_lengths, label_ids = next(ite)
+
+                    print(word_ids.shape)
+                    print(label_ids.shape)
+                    print(char_ids.shape)
+                    print(word_lengths.shape)
+                    print(sentence_lengths.shape)
 
                     fd = {
                         self.word_ids: word_ids,
@@ -462,8 +487,7 @@ class Model:
 
 
                 if st.task in ('dep'):
-                    minibatch = st.next_batch(self.config.batch_size)
-                    word_ids, char_ids, label_ids, sentence_lengths, word_lengths, arcs = minibatch
+                    word_ids, char_ids, label_ids, sentence_lengths, word_lengths, arcs = next(ite)
 
                     fd = {
                         self.word_ids: word_ids,
@@ -481,7 +505,7 @@ class Model:
                     self.sess.run([self.train_op[task_code]], feed_dict=fd)
 
                 if st.task in ('nli'):
-                    minibatch = st.next_batch(self.config.batch_size)
+                    minibatch = next(ite)
                     prm_word_ids, hyp_word_ids, prm_char_ids, hyp_char_ids,\
                     prm_len, hyp_len, prm_word_lengths, hyp_word_lengths, label_ids = minibatch
                     word_ids = utils.interweave(prm_word_ids, hyp_word_ids)
@@ -503,7 +527,7 @@ class Model:
                     self.sess.run([self.train_op[task_code]], feed_dict=fd)
 
                 if st.task in ('lmo'):
-                    minibatch = st.next_batch(self.config.batch_size)
+                    minibatch = next(ite)
                     word_ids, char_ids, sentence_lengths, word_lengths = minibatch
                     fd = {
                         self.word_ids: word_ids,
@@ -518,7 +542,7 @@ class Model:
 
         self.logger.log_message("End of epoch " + str(self.epoch))
 
-        for st in dev_sets:
+        for st, ite in dev_sets:
             metrics = {
                 'language': st.lang,
                 'task': st.task,
@@ -555,7 +579,7 @@ class Model:
                     for (true_t, pred_t) in zip(lab, lab_pred):
                         accs.append(true_t == pred_t)
                         if dev_set.task == 'ner':
-                            O_token = self.dm.task_vocabs['ner'].token_to_id['O']
+                            O_token = self.dl.task_vocabs['ner'].token_to_id['O']
                             if true_t != O_token:
                                 expected_ner += 1
                             if pred_t != O_token:

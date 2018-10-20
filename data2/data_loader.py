@@ -36,7 +36,6 @@ class DataLoader:
     def find_one(self, *args, **kwargs):
         return self.find(*args, **kwargs)[0]
 
-    @profile
     def load(self):
         self.lang_hists, self.task_hists, self.char_hist = self.load_hists()
         self.emb_vocabs = self.load_embedding_vocabs()
@@ -47,7 +46,6 @@ class DataLoader:
 
         for dt in self.datasets:
             dt.load()
-        pass
 
     def load_hists(self):
         for dt in self.datasets:

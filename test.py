@@ -4,6 +4,7 @@ import sys
 
 from config.config import Config
 from data.data_manager import DataManager
+from data2.data_loader import DataLoader
 from model.model import Model
 
 config = Config(*sys.argv[1:])
@@ -72,11 +73,11 @@ else:
     train_sets = [config.tasks] # [[t] for t in config.tasks]
     tls = config.tasks
 
-dm = DataManager(tls=tls, config=config)
-dm.prepare()
+dl = DataLoader(config)
+dl.load()
 
 for train_set in train_sets:
-    model = Model(dm, config)
+    model = Model(dl, config)
     model.build_graph()
     model.run_experiment(
         train=train_set,
