@@ -1,6 +1,56 @@
 import os
+import threading
 
 import numpy as np
+
+
+preparates = {}
+event_create = {}
+event_send = {}
+event_end = {}
+
+class IteratorThread(threading.Thread):
+    def __init__(self, ite):
+        threading.Thread.__init__(self)
+        self.ite = ite
+        self._stopevent = threading.Event()
+
+    def run(self):
+        while not self._stopevent.is_set():
+            try:
+                preparates[self.ite] = next(self.ite)
+            except StopIteration:
+                preparates[self.ite] = StopIteration
+            event_create[self.ite].set()
+            event_send[self.ite].wait()
+            event_send[self.ite].clear()
+
+    def join(self, timeout=None):
+        self._stopevent.set()
+        threading.Thread.join(self)
+
+
+def multithread(iterator):
+
+    def wrapped(self, *args, **kwargs):
+        ite = iterator(self, *args, **kwargs)
+        self.generators.append(ite) # FIXME: Send a signal to kill generator from dataset when we finish computing, then it sends signal to its thread.
+        event_create[ite] = threading.Event()
+        event_send[ite] = threading.Event()
+        thr = IteratorThread(ite)
+        thr.start()
+
+        while True:
+            event_create[ite].wait()
+            event_create[ite].clear()
+            to_sent = preparates[ite]
+            if to_sent is StopIteration:
+                thr.join()
+                break
+            event_send[ite].set()
+            yield to_sent
+
+    return wrapped
 
 
 class Dataset:
@@ -53,6 +103,8 @@ class Dataset:
         self.filename = os.path.join(config.data_path, task, lang, role)
         self.dl = data_loader
         self.limit = self.set_limit()
+        self.loaded = False
+        self.generators = []
 
     def __str__(self):
         return f'Dataset {self.task} {self.lang} {self.role} ({self.__class__.__name__})'
@@ -85,7 +137,8 @@ class Dataset:
         return self.dl.char_vocab.word_to_ids(word)
 
     def load(self):
-        raise NotImplementedError
+        self._load()
+        self.loaded = True
 
     def load_hists(self):
         self.lang_hist = {}
@@ -127,7 +180,7 @@ class Dataset:
             raise RuntimeError(f'Dataset.load_hists() was not called yet: ({self})')
         return hist[hist_type]
 
-    def raw_samples_gen(self):
+    def raw_samples(self):
         with open(self.filename, 'r') as f:
             lines = []
             for line in f:
@@ -140,14 +193,31 @@ class Dataset:
                     lines = []
 
     def read_raw_samples(self):
-        gen = self.raw_samples_gen()
+        raw_samples = self.raw_samples()
         if self.limit:
             for _ in range(self.limit):
-                yield next(gen)
+                yield next(raw_samples)
         else:
-            yield from gen
+            yield from raw_samples
 
-    def train_iterator(self, batch_size):
+    def load_samples(self):
+        for raw_sample in self.read_raw_samples():
+            yield self.raw_sample_to_tuple(raw_sample)
+
+    def prepare_from_raw_samples(self, raw_samples):
+        samples = zip(*(self.raw_sample_to_tuple(raw) for raw in raw_samples))
+        return self.prepare_samples(*samples)
+
+
+    '''
+    train iterators are endless, test iterators iterate over dataset once.
+    cache iterators work with data loaded into memory, file iterators create samples dynamically from files.
+    '''
+
+    @multithread
+    def train_cache_iterator(self, batch_size):
+        if not self.loaded:
+            self.load()
         while True:
             ids = np.random.permutation(len(self))
             for i in range(0, len(self), batch_size):
@@ -156,11 +226,34 @@ class Dataset:
                     break
                 yield self.prepare_samples_by_ids(batch_ids)
 
-    def test_iterator(self, batch_size, limit = None):
-        size = limit if limit else len(self)
+    @multithread
+    def test_cache_iterator(self, batch_size, limit=None):
+        if not self.loaded:
+            self.load()
+        size = limit if limit and limit < len(self) else len(self)
         for i in range(0, size, batch_size):
-            batch_ids = range(i, i + batch_size)
+            batch_ids = range(i, min(size, i + batch_size))
             yield self.prepare_samples_by_ids(batch_ids)
+
+    @multithread
+    def train_file_iterator(self, batch_size):
+        while True:
+            sample_generator = self.read_raw_samples()
+            try:
+                while True:
+                    samples = [next(sample_generator) for _ in range(batch_size)]
+                    yield self.prepare_from_raw_samples(samples)
+            except StopIteration:
+                pass
+
+    @multithread
+    def test_file_iterator(self, batch_size, limit=None):
+        sample_generator = self.read_raw_samples()
+        size = limit if limit and limit < len(self) else len(self)
+        for i in range(0, size, batch_size):
+            batch_ids = range(i, min(size, i + batch_size))
+            samples = [next(sample_generator) for _ in batch_ids]
+            yield self.prepare_from_raw_samples(samples)
 
     @staticmethod
     def pad_sequences_1d(sequences):
@@ -180,9 +273,15 @@ class Dataset:
         matrix = np.zeros((batch_size, sequence_size, subsequence_size), dtype=np.int)
         for i, seq in enumerate(sequences):
             for j, subseq in enumerate(seq):
-                matrix[i,j,:len(subseq)] = subseq
+                matrix[i, j, :len(subseq)] = subseq
         lens, _ = Dataset.pad_sequences_1d([[len(subseq) for subseq in seq] for seq in sequences])
         return matrix, lens
+
+# FEATURES
+'''
+dynamic loading for big datasets
+dataset stats (when loading)
+'''
 
 
 

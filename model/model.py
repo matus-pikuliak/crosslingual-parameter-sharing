@@ -43,7 +43,7 @@ class Model:
                     try:
                         emb_matrix[i] = [float(n) for n in rest.split()]
                     except ValueError:
-                        print(line) # FIXME: sometimes there are two words in embeddings file, but I think it's better to clean the emb files instead
+                        pass # FIXME: sometimes there are two words in embeddings file, but I think it's better to clean the emb files instead
         return emb_matrix
 
     def add_train_op(self, loss, task_code):
@@ -438,10 +438,10 @@ class Model:
 
     def run_epoch(self, train, test):
 
-        train_sets = [(dt, dt.train_iterator(self.config.batch_size)) for dt in self.dl.find(role='train')] # FIXME: train sa vytvara zakazdym nanovo
-        dev_sets = [(dt, dt.test_iterator(self.config.batch_size, limit=1000)) for dt in self.dl.find(role='train')]
-        dev_sets += [(dt, dt.test_iterator(self.config.batch_size)) for dt in self.dl.find(role='dev')]
-        dev_sets += [(dt, dt.test_iterator(self.config.batch_size)) for dt in self.dl.find(role='test')]
+        train_sets = [(dt, dt.train_file_iterator(self.config.batch_size)) for dt in self.dl.find(role='train')] # FIXME: train sa vytvara zakazdym nanovo
+        dev_sets = [(dt, dt.test_file_iterator(self.config.batch_size, limit=1000)) for dt in self.dl.find(role='train')]
+        dev_sets += [(dt, dt.test_file_iterator(self.config.batch_size)) for dt in self.dl.find(role='dev')]
+        dev_sets += [(dt, dt.test_file_iterator(self.config.batch_size)) for dt in self.dl.find(role='test')]
 
         # dev_sets = [self.dm.fetch_dataset(task, lang, 'dev') for (task, lang) in train]
         # dev_sets += [self.dm.fetch_dataset(task, lang, 'train-dev') for (task, lang) in train]
@@ -463,12 +463,6 @@ class Model:
 
                     word_ids, sentence_lengths, char_ids, word_lengths, label_ids = next(ite)
 
-                    print(word_ids.shape)
-                    print(label_ids.shape)
-                    print(char_ids.shape)
-                    print(word_lengths.shape)
-                    print(sentence_lengths.shape)
-
                     fd = {
                         self.word_ids: word_ids,
                         self.true_labels[task_code]: label_ids,
@@ -487,7 +481,7 @@ class Model:
 
 
                 if st.task in ('dep'):
-                    word_ids, char_ids, label_ids, sentence_lengths, word_lengths, arcs = next(ite)
+                    word_ids, sentence_lengths, char_ids, word_lengths, label_ids, arcs = next(ite)
 
                     fd = {
                         self.word_ids: word_ids,
@@ -550,12 +544,12 @@ class Model:
                 'epoch': self.epoch,
                 'run': self.name
             }
-            metrics.update(self.run_evaluate(st))
+            metrics.update(self.run_evaluate(st, ite))
             self.logger.log_result(metrics)
 
         self.epoch += 1
 
-    def run_evaluate(self, dev_set):
+    def run_evaluate(self, dev_set, set_iterator):
         task_code = self.task_code(dev_set.task, dev_set.lang)
 
         if dev_set.task in ('ner', 'pos'):
@@ -567,8 +561,8 @@ class Model:
             precision = 0
             recall = 0
 
-            for i, minibatch in enumerate(dev_set.dev_batches(32)):
-                _, _, label_ids, sentence_lengths, _ = minibatch
+            for i, minibatch in enumerate(set_iterator):
+                _, sentence_lengths, _, _,label_ids = minibatch
 
                 labels_ids_predictions, loss = self.predict_crf_batch(minibatch, task_code, dev_set.lang)
                 losses.append(loss)
@@ -609,9 +603,9 @@ class Model:
             size = 0
             losses = []
 
-            for i, minibatch in enumerate(dev_set.dev_batches(16)):
+            for i, minibatch in enumerate(set_iterator):
 
-                word_ids, char_ids, label_ids, sentence_lengths, word_lengths, arcs = minibatch
+                word_ids, sentence_lengths, char_ids, word_lengths, label_ids, arcs = minibatch
 
                 fd = {
                     self.word_ids: word_ids,
@@ -639,7 +633,7 @@ class Model:
             losses = []
             sum = 0
 
-            for i, minibatch in enumerate(dev_set.dev_batches(16)):
+            for i, minibatch in enumerate(set_iterator):
                 prm_word_ids, hyp_word_ids, prm_char_ids, hyp_char_ids, \
                 prm_len, hyp_len, prm_word_lengths, hyp_word_lengths, label_ids = minibatch
                 word_ids = utils.interweave(prm_word_ids, hyp_word_ids)
@@ -667,7 +661,7 @@ class Model:
         if dev_set.task in ('lmo'):
             losses = []
 
-            for i, minibatch in enumerate(dev_set.dev_batches(16)):
+            for i, minibatch in enumerate(set_iterator):
                 word_ids, char_ids, sentence_lengths, word_lengths = minibatch
 
                 fd = {
@@ -688,7 +682,7 @@ class Model:
 
     def predict_crf_batch(self, minibatch, task_code, lang):
 
-        word_ids, char_ids, label_ids, sentence_lengths, word_lengths = minibatch
+        word_ids, sentence_lengths, char_ids, word_lengths, label_ids = minibatch
         fd = {
             self.word_ids: word_ids,
             self.true_labels[task_code]: label_ids,

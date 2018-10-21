@@ -3,7 +3,6 @@
 import sys
 
 from config.config import Config
-from data.data_manager import DataManager
 from data.data_loader import DataLoader
 from model.model import Model
 

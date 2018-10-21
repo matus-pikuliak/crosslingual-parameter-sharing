@@ -23,17 +23,17 @@ def time_profile(msg=None):
     print(f"memory now: {memory_now:,}")
     print(f'time now: {time_now}')
     try:
-        print(f"memory dif: {memory_now - profile.memory:,}")
+        print(f"memory dif: {memory_now - time_profile.memory:,}")
     except:
         pass
 
     try:
-        print(f'time dif: {time_now - profile.time}')
+        print(f'time dif: {time_now - time_profile.time}')
     except:
         pass
 
-    profile.time = time_now
-    profile.memory = memory_now
+    time_profile.time = time_now
+    time_profile.memory = memory_now
     print()
 
 def add_hists(hists):

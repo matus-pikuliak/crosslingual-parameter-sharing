@@ -44,9 +44,6 @@ class DataLoader:
         self.print_vocab_details()
         self.del_hists()
 
-        for dt in self.datasets:
-            dt.load()
-
     def load_hists(self):
         for dt in self.datasets:
             dt.load_hists()
@@ -147,12 +144,3 @@ class DataLoader:
               f'It contains {filt_char} characters ({char_ratio:.2f}%).\n'
               f'It covers {filt_occ} character occurences ({occ_ratio:.2f}%).\n'
               f'{self.char_vocab}\n')
-
-
-# FEATURES
-'''
-dynamic loading for big datasets
-train-dev sets (possibly just first 1000 from train set)
-dataset stats (when loading)
-when loaded statically - shuffling
-'''
