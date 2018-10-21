@@ -4,7 +4,7 @@ import sys
 
 from config.config import Config
 from data.data_manager import DataManager
-from data2.data_loader import DataLoader
+from data.data_loader import DataLoader
 from model.model import Model
 
 config = Config(*sys.argv[1:])

@@ -1,6 +1,6 @@
 import numpy as np
 
-from data2.dataset import Dataset
+from data.dataset import Dataset
 
 
 class LMODataset(Dataset):

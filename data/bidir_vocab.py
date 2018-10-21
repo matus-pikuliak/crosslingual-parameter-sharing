@@ -1,8 +1,5 @@
-import numpy as np
-
 import constants
-from data2.word_normalization import word_normalization
-
+from data.word_normalization import word_normalization
 
 class BidirVocab:
 

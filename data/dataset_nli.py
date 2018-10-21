@@ -1,4 +1,4 @@
-from data2.dataset import Dataset
+from data.dataset import Dataset
 
 
 class NLIDataset(Dataset):

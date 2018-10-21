@@ -1,149 +1,189 @@
-import codecs
+import os
 
 import numpy as np
 
-from .sample_sqt import SQTSample
-from .sample_dep import DEPSample
-from .sample_nli import NLISample
-from .sample_lmo import LMOSample
 
-import utils.general_utils as utils
+class Dataset:
 
+    def __new__(cls, task, *args):
+        '''
+        Dark magic that overwrites __new__ method for subclasses so they do not call this function by inheritance.
+        Subclasses must be listed here to avoid circular dependencies.
+        The whole point of this exercise is so we can create new datasets by calling Dataset(*args) and it will
+        automatically create suitable Dataset subclass.
+        '''
 
-class Dataset():
+        tasks_model = (
+            (('pos', 'ner'), 'sqt'),
+            (('lmo'), 'lmo'),
+            (('nli'), 'nli'),
+            (('dep'), 'dep')
+        )
 
-    def __init__(self, task, lang, role, filename=None, samples=None, config=None):
-        self.lang = lang
+        def module_name(model):
+            return f'data.dataset_{model}'
+
+        def subclass_name(model):
+            return f'{model.upper()}Dataset'
+
+        # loads relevant subclasses defined in tassk_models
+        datasets = {model: __import__(module_name(model), fromlist=[subclass_name(model)])
+                    for _, model in tasks_model}
+
+        # overwrites subclasses' __new__ method
+        def subclass_new(cls, *_, **__):
+            return object.__new__(cls)
+
+        for subclass in Dataset.__subclasses__():
+            subclass.__new__ = subclass_new
+
+        # creates suitable Dataset subclass based on the task user specified
+        for tasks, model in tasks_model:
+            if task in tasks:
+                subclass = getattr(datasets[model], subclass_name(model))
+                return subclass(task, *args)
+
+        raise AttributeError(f'Unknown task: {task}')
+
+    def __init__(self, task, lang, role, config, data_loader):
         self.task = task
-        self.sample_class = {
-            'ner': SQTSample,
-            'pos': SQTSample,
-            'dep': DEPSample,
-            'nli': NLISample,
-            'lmo': LMOSample
-        }[self.task]
+        self.lang = lang
         self.role = role
         self.config = config
-        self.limited = self.is_limited()
-        if self.limited:
-            self.limit = self.config.dt_size_limit
-        if filename is not None:
-            self.samples = self.load_file(filename)
-        else:
-            self.samples = samples
-        self.reader = 0
+        self.filename = os.path.join(config.data_path, task, lang, role)
+        self.dl = data_loader
+        self.limit = self.set_limit()
+
+    def __str__(self):
+        return f'Dataset {self.task} {self.lang} {self.role} ({self.__class__.__name__})'
 
     def __len__(self):
-        return len(self.samples)
+        try:
+            return self.size
+        except AttributeError:
+            self.size = sum(1 for _ in self.read_raw_samples())
+            return self.size
 
-    def is_limited(self):
-        if self.lang == self.config.limited_language and self.role == 'train':
-            return True
-        if self.config.limited_task != 'na':
-            task, lang = self.config.limited_task.split('-')
-            if self.task == task and self.lang == lang and self.role == 'train':
-                return True
+    def set_limit(self):
+        if (
+                self.config.limited_language == self.lang or
+                self.config.limited_task == self.task or
+                (self.config.limited_task_language and self.config.limited_task_language.split('-') == [self.task, self.lang])
+        ):
+            assert(self.config.limited_data_size > -1)
+            return self.config.limited_data_size
 
-        return False
+    def word_to_id(self, word):
+        return self.dl.lang_vocabs[self.lang].word_to_id(word)
 
+    def label_to_id(self, label):
+        return self.dl.task_vocabs[self.task].label_to_id(label)
 
-    def print_stats(self):
-        samples = len(self.samples)
-        words = sum([len(sample.words) for sample in self.samples])
-        chars = sum([sum([len(word) for word in sample.words]) for sample in self.samples])
-        max_word = sum([max([len(word) for word in sample.words]) for sample in self.samples])
-        print("%s %s %s" % (self.lang, self.task, self.role))
-        print("#samples: %d" % samples)
-        print("#words: %d" % words)
-        print("#chars: %d" % chars)
-        print("avg sample (words): %f" % (float(words)/samples))
-        print("avg sample (chars): %f" % (float(chars)/samples))
-        print("avg word (chars): %f" % (float(chars)/words))
-        print("avg max word (chars) in sample: %f" % (float(max_word)/samples))
-        # print(np.histogram([len(sample) for sample in self.samples], xrange(0, 70))
-        print()
+    def word_to_char_ids(self, word):
+        if len(word) > self.config.max_word_length:
+            word = word[:self.config.max_word_length]
+        return self.dl.char_vocab.word_to_ids(word)
 
-    def load_file(self, filename):
-        bf = []
-        samples = []
+    def load(self):
+        raise NotImplementedError
 
-        with codecs.open(filename, encoding='utf-8') as f:
+    def load_hists(self):
+        self.lang_hist = {}
+        self.char_hist = {}
+        self.task_hist = {}
+
+        counter = 0
+        for sample in self.read_raw_samples():
+            counter += 1
+            for line in sample:
+
+                if len(line) > 0:
+                    word = line[0]
+                    self.lang_hist.setdefault(word, 0)
+                    self.lang_hist[word] += 1
+                    for char in word:
+                        self.char_hist.setdefault(char, 0)
+                        self.char_hist[char] += 1
+
+                if len(line) > 1:
+                    label = line[1]
+                    self.task_hist.setdefault(label, 0)
+                    self.task_hist[label] += 1
+        #self.size = counter
+
+    def del_hists(self):
+        self.lang_hist.clear()
+        self.task_hist.clear()
+        self.char_hist.clear()
+
+    def get_hist(self, hist_type):
+        try:
+            hist = {
+                'lang': self.lang_hist,
+                'char': self.char_hist,
+                'task': self.task_hist
+            }
+        except AttributeError:
+            raise RuntimeError(f'Dataset.load_hists() was not called yet: ({self})')
+        return hist[hist_type]
+
+    def raw_samples_gen(self):
+        with open(self.filename, 'r') as f:
+            lines = []
             for line in f:
-                if line.strip():
-                    bf.append(line)
+                line = line.strip()
+                if line:
+                    lines.append(line.split())
                 else:
-                    if self.config.min_sentence_length <= len(bf) <= self.config.max_sentence_length:
-                        samples.append(self.sample_class(bf, self))
-                        if self.limited and len(samples) == self.limit:
-                            bf = []
-                            break
+                    if self.config.min_sentence_length <= len(lines) <= self.config.max_sentence_length:
+                        yield lines
+                    lines = []
 
-                    bf = []
-        if len(bf) > 0:
-            print("Warning: There are still words in buffer. Append newline at the end of file.")
-        return samples
+    def read_raw_samples(self):
+        gen = self.raw_samples_gen()
+        if self.limit:
+            for _ in range(self.limit):
+                yield next(gen)
+        else:
+            yield from gen
 
-    def lang_vocab(self, embedding_vocab):
-        vocab = dict()
-        out = dict()
-        for sample in self.samples:
-            for word in sample.words:
-                word = word.lower()
-                if word in embedding_vocab: # TODO: lower() bcs of MUSE embeddings
-                    vocab.setdefault(word, 0)
-                    vocab[word] += 1
-                else:
-                    out.setdefault(word, 0)
-                    out[word] += 1
-        print(sorted(out.items(), key=lambda x: -x[1]))
-        return vocab
+    def train_iterator(self, batch_size):
+        while True:
+            ids = np.random.permutation(len(self))
+            for i in range(0, len(self), batch_size):
+                batch_ids = ids[i:i+batch_size]
+                if len(batch_ids) < batch_size:
+                    break
+                yield self.prepare_samples_by_ids(batch_ids)
 
-    def task_vocab(self):
-        vocab = set()
-        for sample in self.samples:
-            for label in sample.labels:
-                vocab.add(label)
-        return vocab
+    def test_iterator(self, batch_size, limit = None):
+        size = limit if limit else len(self)
+        for i in range(0, size, batch_size):
+            batch_ids = range(i, i + batch_size)
+            yield self.prepare_samples_by_ids(batch_ids)
 
-    def char_hist(self):
-        hist = dict()
-        for sample in self.samples:
-            for word in sample.words:
-                for char in word:
-                    hist.setdefault(char, 0)
-                    hist[char] += 1
-        return hist
+    @staticmethod
+    def pad_sequences_1d(sequences):
+        batch_size = len(sequences)
+        sequence_size = max(len(seq) for seq in sequences)
+        matrix = np.zeros((batch_size, sequence_size), dtype=np.int)
+        for i, seq in enumerate(sequences):
+            matrix[i,:len(seq)] = seq
+        lens = np.array([len(seq) for seq in sequences])
+        return matrix, lens
 
-    def prepare(self, lang_vocab, task_vocab, char_vocab):
-        for sample in self.samples:
-            sample.prepare(lang_vocab, task_vocab, char_vocab)
-        self.samples = np.array(self.samples)
-        np.random.shuffle(self.samples)
+    @staticmethod
+    def pad_sequences_2d(sequences):
+        batch_size = len(sequences)
+        sequence_size = max(len(seq) for seq in sequences)
+        subsequence_size = max(max(len(subseq) for subseq in seq) for seq in sequences)
+        matrix = np.zeros((batch_size, sequence_size, subsequence_size), dtype=np.int)
+        for i, seq in enumerate(sequences):
+            for j, subseq in enumerate(seq):
+                matrix[i,j,:len(subseq)] = subseq
+        lens, _ = Dataset.pad_sequences_1d([[len(subseq) for subseq in seq] for seq in sequences])
+        return matrix, lens
 
-    def get_samples(self, amount=1):
-        return self.samples[:amount]
 
-    def next_batch(self, batch_size): # If cyclic is set to true it will fill the batch to batch_size if it reaches the end of dataset
-        samples = np.take(self.samples, range(self.reader, self.reader + batch_size), axis=0, mode='wrap')
-        self.reader += batch_size
-        if self.reader >= len(self.samples):
-            self.reader = len(self.samples) % self.reader
-            np.random.shuffle(self.samples)
-        return self.final_batch(samples)
-
-    def dev_batches(self, batch_size):
-        batches = np.array_split(self.samples, range(batch_size, len(self.samples), batch_size))
-        for j, batch in enumerate(batches):
-            batches[j] = self.final_batch(batch)
-        return batches
-
-    def final_batch(self, samples):
-        max_sentence_length = max([sample.word_count for sample in samples])
-        max_word_length = max([max(sample.char_count) for sample in samples])
-        data = np.array([
-            sample.padded(max_sentence_length, max_word_length) for sample in samples
-        ])
-
-        return tuple([np.stack(data[:, i]) for i in range(data.shape[1])])
 
 

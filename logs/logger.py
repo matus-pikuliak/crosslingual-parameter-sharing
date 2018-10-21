@@ -9,19 +9,19 @@ class Logger(object):
         self.slack_token = slack_token
 
     def log_debug(self, msg):
-        raise TypeError('This method needs to be defined in subclass.')
+        raise NotImplementedError('This method needs to be defined in subclass.')
 
     def log_error(self, msg):
-        raise TypeError('This method needs to be defined in subclass.')
+        raise NotImplementedError('This method needs to be defined in subclass.')
 
     def log_message(self, msg):
-        raise TypeError('This method needs to be defined in subclass.')
+        raise NotImplementedError('This method needs to be defined in subclass.')
 
     def log_result(self, msg):
-        raise TypeError('This method needs to be defined in subclass.')
+        raise NotImplementedError('This method needs to be defined in subclass.')
 
     def log_critical(self, msg):
-        raise TypeError('This method needs to be defined in subclass.')
+        raise NotImplementedError('This method needs to be defined in subclass.')
 
     def stdout(self, msg):
         print(str(msg))

@@ -3,9 +3,9 @@ import os
 
 import utils.general_utils as utils
 import constants as constants
-from data2.dataset import Dataset
-from data2.bidir_vocab import LangVocab, TaskVocab, CharVocab
-from data2.word_normalization import word_normalization
+from data.dataset import Dataset
+from data.bidir_vocab import LangVocab, TaskVocab, CharVocab
+from data.word_normalization import word_normalization
 
 
 class DataLoader:
