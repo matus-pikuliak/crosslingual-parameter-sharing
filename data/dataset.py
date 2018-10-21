@@ -27,6 +27,7 @@ class IteratorThread(threading.Thread):
 
     def join(self, timeout=None):
         self._stopevent.set()
+        event_send[self.ite].set()
         threading.Thread.join(self)
 
 
@@ -276,13 +277,6 @@ class Dataset:
                 matrix[i, j, :len(subseq)] = subseq
         lens, _ = Dataset.pad_sequences_1d([[len(subseq) for subseq in seq] for seq in sequences])
         return matrix, lens
-
-# FEATURES
-'''
-dynamic loading for big datasets
-dataset stats (when loading)
-'''
-
 
 
 

@@ -18,6 +18,7 @@ class Model:
         return tf.float32
 
     def close(self):
+        # FIXME: Kill dataset threads (try to kill them even when Ctrl+C - or do they get killed with the shortcut as well?
         self.sess.close()
         tf.reset_default_graph()
 
