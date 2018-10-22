@@ -12,7 +12,7 @@ class LMODataset(Dataset):
     def _load(self):
         self.word_ids, self.char_ids = zip(*self.load_samples())
 
-    def prepare_samples_by_ids(self, ids):
+    def prepare_samples_from_cache(self, ids):
         word_ids = [self.word_ids[i] for i in ids]
         char_ids = [self.char_ids[i] for i in ids]
         return self.prepare_samples(word_ids, char_ids)

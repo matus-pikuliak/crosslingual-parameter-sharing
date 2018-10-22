@@ -14,7 +14,9 @@ class SQTDataset(Dataset):
     def _load(self):
         self.word_ids, self.char_ids, self.label_ids = zip(*self.load_samples())
 
-    def prepare_samples_by_ids(self, ids):
+    # FIXME: This pattern is similar in all dataset, similar to ho _load is similar.
+    # Maybe we can encapsulate the cache attributes somehow
+    def prepare_samples_from_cache(self, ids):
         word_ids = [self.word_ids[i] for i in ids]
         char_ids = [self.char_ids[i] for i in ids]
         label_ids = [self.label_ids[i] for i in ids]

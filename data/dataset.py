@@ -174,7 +174,7 @@ class Dataset:
                 batch_ids = ids[i:i+batch_size]
                 if len(batch_ids) < batch_size:
                     break
-                yield self.prepare_samples_by_ids(batch_ids)
+                yield self.prepare_samples_from_cache(batch_ids)
 
     @multithreading
     def test_cache_generator(self, batch_size, limit=None):
@@ -183,7 +183,7 @@ class Dataset:
         size = limit if limit and limit < len(self) else len(self)
         for i in range(0, size, batch_size):
             batch_ids = range(i, min(size, i + batch_size))
-            yield self.prepare_samples_by_ids(batch_ids)
+            yield self.prepare_samples_from_cache(batch_ids)
 
     @multithreading
     def train_file_generator(self, batch_size):

@@ -437,13 +437,14 @@ class Model:
         self.logger.log_message('Training took: '+str(end_time-start_time))
         self.logger.log_critical('%s: Run done.' % self.config.server_name)
 
-    @profile
     def run_epoch(self, train, test):
 
-        train_sets = [(dt, dt.train_file_iterator(self.config.batch_size)) for dt in self.dl.find(role='train')] # FIXME: train sa vytvara zakazdym nanovo
-        dev_sets = [(dt, dt.test_file_iterator(self.config.batch_size, limit=1000)) for dt in self.dl.find(role='train')]
-        dev_sets += [(dt, dt.test_file_iterator(self.config.batch_size)) for dt in self.dl.find(role='dev')]
-        dev_sets += [(dt, dt.test_file_iterator(self.config.batch_size)) for dt in self.dl.find(role='test')]
+
+        # FIXME: how to choose proper generator?
+        train_sets = [(dt, dt.train_file_generator(self.config.batch_size)) for dt in self.dl.find(role='train')] # FIXME: train sa vytvara zakazdym nanovo
+        dev_sets = [(dt, dt.test_file_generator(self.config.batch_size, limit=1000)) for dt in self.dl.find(role='train')]
+        dev_sets += [(dt, dt.test_file_generator(self.config.batch_size)) for dt in self.dl.find(role='dev')]
+        dev_sets += [(dt, dt.test_file_generator(self.config.batch_size)) for dt in self.dl.find(role='test')]
 
         # dev_sets = [self.dm.fetch_dataset(task, lang, 'dev') for (task, lang) in train]
         # dev_sets += [self.dm.fetch_dataset(task, lang, 'train-dev') for (task, lang) in train]
@@ -501,13 +502,7 @@ class Model:
                     self.sess.run([self.train_op[task_code]], feed_dict=fd)
 
                 if st.task in ('nli'):
-                    minibatch = next(ite)
-                    prm_word_ids, hyp_word_ids, prm_char_ids, hyp_char_ids,\
-                    prm_len, hyp_len, prm_word_lengths, hyp_word_lengths, label_ids = minibatch
-                    word_ids = utils.interweave(prm_word_ids, hyp_word_ids)
-                    char_ids = utils.interweave(prm_char_ids, hyp_char_ids)
-                    sentence_lengths = utils.interweave(prm_len, hyp_len)
-                    word_lengths = utils.interweave(prm_word_lengths, hyp_word_lengths)
+                    word_ids, sentence_lengths, char_ids, word_lengths, label_ids = next(ite)
 
                     fd = {
                         self.word_ids: word_ids,
@@ -523,8 +518,7 @@ class Model:
                     self.sess.run([self.train_op[task_code]], feed_dict=fd)
 
                 if st.task in ('lmo'):
-                    minibatch = next(ite)
-                    word_ids, char_ids, sentence_lengths, word_lengths = minibatch
+                    word_ids, sentence_lengths, char_ids, word_lengths = next(ite)
                     fd = {
                         self.word_ids: word_ids,
                         self.sequence_lengths: sentence_lengths,
@@ -636,12 +630,7 @@ class Model:
             sum = 0
 
             for i, minibatch in enumerate(set_iterator):
-                prm_word_ids, hyp_word_ids, prm_char_ids, hyp_char_ids, \
-                prm_len, hyp_len, prm_word_lengths, hyp_word_lengths, label_ids = minibatch
-                word_ids = utils.interweave(prm_word_ids, hyp_word_ids)
-                char_ids = utils.interweave(prm_char_ids, hyp_char_ids)
-                sentence_lengths = utils.interweave(prm_len, hyp_len)
-                word_lengths = utils.interweave(prm_word_lengths, hyp_word_lengths)
+                word_ids, sentence_lengths, char_ids, word_lengths, label_ids = minibatch
 
                 fd = {
                     self.word_ids: word_ids,
@@ -664,7 +653,7 @@ class Model:
             losses = []
 
             for i, minibatch in enumerate(set_iterator):
-                word_ids, char_ids, sentence_lengths, word_lengths = minibatch
+                word_ids, sentence_lengths, char_ids, word_lengths = minibatch
 
                 fd = {
                     self.word_ids: word_ids,
@@ -677,6 +666,7 @@ class Model:
 
                 loss = self.sess.run([self.loss[task_code]], feed_dict=fd)
                 losses.append(loss)
+                # FIXME: perplexity
 
             output = {'loss': np.mean(losses)}
 

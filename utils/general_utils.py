@@ -6,6 +6,7 @@ def dirs(path):
     return filter(lambda dir: os.path.isdir(path+'/'+dir), os.listdir(path))
 
 def interweave(a, b):
+    assert(a.shape[0] == b.shape[0])
     c = []
     for i in range(a.shape[0]):
         c.append(a[i])
