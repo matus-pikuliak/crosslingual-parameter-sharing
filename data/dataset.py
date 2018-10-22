@@ -1,57 +1,6 @@
 import os
-import threading
-
+from .multithreading import multithreading
 import numpy as np
-
-
-preparates = {}
-event_create = {}
-event_send = {}
-event_end = {}
-
-class IteratorThread(threading.Thread):
-    def __init__(self, ite):
-        threading.Thread.__init__(self)
-        self.ite = ite
-        self._stopevent = threading.Event()
-
-    def run(self):
-        while not self._stopevent.is_set():
-            try:
-                preparates[self.ite] = next(self.ite)
-            except StopIteration:
-                preparates[self.ite] = StopIteration
-            event_create[self.ite].set()
-            event_send[self.ite].wait()
-            event_send[self.ite].clear()
-
-    def join(self, timeout=None):
-        self._stopevent.set()
-        event_send[self.ite].set()
-        threading.Thread.join(self)
-
-
-def multithread(iterator):
-
-    def wrapped(self, *args, **kwargs):
-        ite = iterator(self, *args, **kwargs)
-        self.generators.append(ite) # FIXME: Send a signal to kill generator from dataset when we finish computing, then it sends signal to its thread.
-        event_create[ite] = threading.Event()
-        event_send[ite] = threading.Event()
-        thr = IteratorThread(ite)
-        thr.start()
-
-        while True:
-            event_create[ite].wait()
-            event_create[ite].clear()
-            to_sent = preparates[ite]
-            if to_sent is StopIteration:
-                thr.join()
-                break
-            event_send[ite].set()
-            yield to_sent
-
-    return wrapped
 
 
 class Dataset:
@@ -215,8 +164,8 @@ class Dataset:
     cache iterators work with data loaded into memory, file iterators create samples dynamically from files.
     '''
 
-    @multithread
-    def train_cache_iterator(self, batch_size):
+    @multithreading
+    def train_cache_generator(self, batch_size):
         if not self.loaded:
             self.load()
         while True:
@@ -227,8 +176,8 @@ class Dataset:
                     break
                 yield self.prepare_samples_by_ids(batch_ids)
 
-    @multithread
-    def test_cache_iterator(self, batch_size, limit=None):
+    @multithreading
+    def test_cache_generator(self, batch_size, limit=None):
         if not self.loaded:
             self.load()
         size = limit if limit and limit < len(self) else len(self)
@@ -236,8 +185,8 @@ class Dataset:
             batch_ids = range(i, min(size, i + batch_size))
             yield self.prepare_samples_by_ids(batch_ids)
 
-    @multithread
-    def train_file_iterator(self, batch_size):
+    @multithreading
+    def train_file_generator(self, batch_size):
         while True:
             sample_generator = self.read_raw_samples()
             try:
@@ -247,8 +196,8 @@ class Dataset:
             except StopIteration:
                 pass
 
-    @multithread
-    def test_file_iterator(self, batch_size, limit=None):
+    @multithreading
+    def test_file_generator(self, batch_size, limit=None):
         sample_generator = self.read_raw_samples()
         size = limit if limit and limit < len(self) else len(self)
         for i in range(0, size, batch_size):

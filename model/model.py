@@ -437,6 +437,7 @@ class Model:
         self.logger.log_message('Training took: '+str(end_time-start_time))
         self.logger.log_critical('%s: Run done.' % self.config.server_name)
 
+    @profile
     def run_epoch(self, train, test):
 
         train_sets = [(dt, dt.train_file_iterator(self.config.batch_size)) for dt in self.dl.find(role='train')] # FIXME: train sa vytvara zakazdym nanovo
