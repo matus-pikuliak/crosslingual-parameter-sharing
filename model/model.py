@@ -3,24 +3,10 @@ import numpy as np
 import datetime
 import os
 from logs.logger_init import LoggerInit
-import utils.general_utils as utils
+from model.general_model import GeneralModel
 
 
-class Model:
-
-    def __init__(self, data_loader, config):
-        self.config = config
-        self.dl = data_loader
-        self.timestamp = datetime.datetime.now().strftime('%Y-%m-%d-%H%M%S')
-        self.logger = self.initialize_logger()
-        
-    def f_type(self):
-        return tf.float32
-
-    def close(self):
-        # FIXME: Kill dataset threads (try to kill them even when Ctrl+C - or do they get killed with the shortcut as well?
-        self.sess.close()
-        tf.reset_default_graph()
+class Model(GeneralModel):
 
     def task_code(self, task, lang):
         if self.config.crf_sharing:
@@ -47,31 +33,15 @@ class Model:
                         pass # FIXME: sometimes there are two words in embeddings file, but I think it's better to clean the emb files instead
         return emb_matrix
 
-    def add_train_op(self, loss, task_code):
-        grads, vs = zip(*self.optimizer.compute_gradients(loss))
-        self.gradient_norm[task_code] = tf.global_norm(grads)
-        if self.config.clip > 0:
-            grads, _ = tf.clip_by_global_norm(grads, self.config.clip)
-        return self.optimizer.apply_gradients(zip(grads, vs))
-
-    def current_learning_rate(self):
-
-        if self.config.learning_rate_schedule == 'static':
-            return self.config.learning_rate
-        elif self.config.learning_rate_schedule == 'decay':
-            return self.config.learning_rate * pow(self.config.learning_rate_decay, self.epoch)
-        else:
-            raise AttributeError('lr_schedule must be set to static or decay')
-
     def add_crf(self, task, task_code):
         with tf.variable_scope(task_code):
             tag_count = len(self.dl.task_vocabs[task])
             max_length = tf.shape(self.word_ids)[1]
 
             output = tf.reshape(self.word_lstm_output, [-1, 2 * self.config.word_lstm_size])
-            W = tf.get_variable(dtype=self.f_type(), shape=[2 * self.config.word_lstm_size, tag_count],
+            W = tf.get_variable(dtype=self.type, shape=[2 * self.config.word_lstm_size, tag_count],
                                 name="weights")
-            b = tf.get_variable(dtype=self.f_type(), shape=[tag_count], initializer=tf.zeros_initializer(),
+            b = tf.get_variable(dtype=self.type, shape=[tag_count], initializer=tf.zeros_initializer(),
                                 name="biases")
             output = tf.matmul(output, W) + b
             self.predicted_labels[task_code] = tf.reshape(output, [-1, max_length, tag_count])
@@ -91,11 +61,12 @@ class Model:
 
         # training
         # Rremoving this part from task scope lets the graph reuse optimizer parameters
+        # FIXME: Is that so?
         self.train_op[task_code] = self.add_train_op(self.loss[task_code], task_code)
 
     def add_dep(self, task_code):
         with tf.variable_scope(task_code):
-            root = tf.get_variable("root_vector", dtype=self.f_type(), shape=[2*self.config.word_lstm_size])  # dim
+            root = tf.get_variable("root_vector", dtype=self.type, shape=[2*self.config.word_lstm_size])  # dim
             root = tf.expand_dims(root, 0)
             root = tf.expand_dims(root, 0)
             root = tf.tile(
@@ -120,9 +91,9 @@ class Model:
 
             hidden = 500
 
-            W = tf.get_variable("W", dtype=self.f_type(), shape=[4*self.config.word_lstm_size, hidden])
-            b = tf.get_variable("b", dtype=self.f_type(), shape=[hidden])
-            W2 = tf.get_variable("W2", dtype=self.f_type(), shape=[hidden, 1])
+            W = tf.get_variable("W", dtype=self.type, shape=[4*self.config.word_lstm_size, hidden])
+            b = tf.get_variable("b", dtype=self.type, shape=[hidden])
+            W2 = tf.get_variable("W2", dtype=self.type, shape=[hidden, 1])
 
             seq_mask = tf.reshape(tf.sequence_mask(self.sequence_lengths), shape=[-1])
 
@@ -151,8 +122,8 @@ class Model:
             labels = tf.boolean_mask(labels, seq_mask)
             one_hot_labels = tf.one_hot(labels, len(self.dl.task_vocabs['dep']))
 
-            W3 = tf.get_variable("W3", dtype=self.f_type(), shape=[hidden, len(self.dl.task_vocabs['dep'])])
-            b3 = tf.get_variable("b3", dtype=self.f_type(), shape=[len(self.dl.task_vocabs['dep'])])
+            W3 = tf.get_variable("W3", dtype=self.type, shape=[hidden, len(self.dl.task_vocabs['dep'])])
+            b3 = tf.get_variable("b3", dtype=self.type, shape=[len(self.dl.task_vocabs['dep'])])
             predicted_arc_labels = tf.matmul(relevant_arcs, W3) + b3
             predicted_arc_labels_ids = tf.argmax(predicted_arc_labels, axis=1)
             loss_las = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(
@@ -192,9 +163,9 @@ class Model:
                 tf.multiply(premise, hypothesis),
                 premise - hypothesis
             ], axis=1)
-            W = tf.get_variable("W", dtype=self.f_type(), shape=[8 * self.config.word_lstm_size, 500])
-            b = tf.get_variable("b", dtype=self.f_type(), shape=[500])
-            W2 = tf.get_variable("W2", dtype=self.f_type(), shape=[500, len(self.dl.task_vocabs['nli'])])
+            W = tf.get_variable("W", dtype=self.type, shape=[8 * self.config.word_lstm_size, 500])
+            b = tf.get_variable("b", dtype=self.type, shape=[500])
+            W2 = tf.get_variable("W2", dtype=self.type, shape=[500, len(self.dl.task_vocabs['nli'])])
 
             representation = tf.matmul(representation, W) + b
             representation = tf.matmul(tf.nn.tanh(representation), W2)
@@ -220,14 +191,14 @@ class Model:
             batch_size = tf.size(self.sequence_lengths)
             vocab_size = min(self.config.lmo_vocab_size + 1, len(self.dl.lang_vocabs[lang])) # +1 <unk>
 
-            start_vec = tf.get_variable('start_vec', shape=[self.config.word_lstm_size], dtype=self.f_type())
+            start_vec = tf.get_variable('start_vec', shape=[self.config.word_lstm_size], dtype=self.type)
             start_vec = tf.expand_dims(start_vec, 0)
             start_vec = tf.tile(start_vec, [batch_size, 1])
             start_vec = tf.expand_dims(start_vec, 1)
             _fd, _ = tf.split(self.lstm_fw, [max_len - 1, 1], axis=1)
             _fd = tf.concat([start_vec, _fd], 1)
 
-            end_vec = tf.get_variable('end_vec', shape=[self.config.word_lstm_size], dtype=self.f_type())
+            end_vec = tf.get_variable('end_vec', shape=[self.config.word_lstm_size], dtype=self.type)
             end_vec = tf.expand_dims(end_vec, 0)
             end_vec = tf.tile(end_vec, [batch_size, 1])
             end_vec = tf.expand_dims(end_vec, 1)
@@ -236,7 +207,7 @@ class Model:
             end_vec = tf.matmul(one_hot, end_vec)
 
             _, _bd = tf.split(self.lstm_fw, [1, max_len - 1], axis=1)
-            zeros = tf.zeros([batch_size, 1, self.config.word_lstm_size], dtype=self.f_type())
+            zeros = tf.zeros([batch_size, 1, self.config.word_lstm_size], dtype=self.type)
             _bd = tf.concat([_bd, zeros], 1)
             _bd = _bd + end_vec
 
@@ -252,9 +223,9 @@ class Model:
             )
             # if id is more than vocab size, it is set to <unk> id = 0
 
-            W = tf.get_variable("W", dtype=self.f_type(), shape=[2 * self.config.word_lstm_size, 500])
-            b = tf.get_variable("b", dtype=self.f_type(), shape=[500])
-            W2 = tf.get_variable("W2", dtype=self.f_type(), shape=[500, vocab_size])
+            W = tf.get_variable("W", dtype=self.type, shape=[2 * self.config.word_lstm_size, 500])
+            b = tf.get_variable("b", dtype=self.type, shape=[500])
+            W2 = tf.get_variable("W2", dtype=self.type, shape=[500, vocab_size])
 
             rp = tf.matmul(rp, W) + b
             rp = tf.matmul(tf.nn.tanh(rp), W2)
@@ -266,15 +237,15 @@ class Model:
 
         self.train_op[task_code] = self.add_train_op(self.loss[task_code], task_code)
 
-    def build_graph(self):
+    def _build_graph(self):
 
 
         #
         # hyperparameters
-        self.learning_rate = tf.placeholder(dtype=self.f_type(), shape=[],
+        self.learning_rate = tf.placeholder(dtype=self.type, shape=[],
         name="lr")
 
-        self.dropout = tf.placeholder(dtype=self.f_type(), shape=[],
+        self.dropout = tf.placeholder(dtype=self.type, shape=[],
         name="dropout")
 
         #
@@ -312,9 +283,9 @@ class Model:
         _word_embeddings = dict()
         for lang in self.dl.langs():
             _word_embeddings[lang] = tf.get_variable(
-                dtype=self.f_type(),
+                dtype=self.type,
                 # shape=[None, self.config.word_emb_size],
-                initializer=tf.cast(self.load_embeddins(lang), self.f_type()),
+                initializer=tf.cast(self.load_embeddins(lang), self.type),
                 trainable=self.config.train_emb,
                 name="word_embeddings_%s" % lang)
 
@@ -327,7 +298,7 @@ class Model:
 
         if self.config.char_level:
             _char_embeddings = tf.get_variable(
-                dtype=self.f_type(),
+                dtype=self.type,
                 shape=(len(self.dl.char_vocab), self.config.char_emb_size),
                 name="char_embeddings"
             )
@@ -346,12 +317,12 @@ class Model:
                 word_lengths = tf.reshape(self.word_lengths, [-1])
                 (output_fw, output_bw), _ = tf.nn.bidirectional_dynamic_rnn(
                     cell_fw, cell_bw, self.char_embeddings,
-                    sequence_length=word_lengths, dtype=self.f_type())
+                    sequence_length=word_lengths, dtype=self.type)
                 # shape(batch_size*max_sentence, max_word, 2 x word_lstm_size)
                 char_lstm_output = tf.concat([output_fw, output_bw], axis=-1)
                 char_lstm_output = tf.reduce_sum(char_lstm_output, 1)
 
-                word_lengths = tf.cast(word_lengths, dtype=self.f_type())
+                word_lengths = tf.cast(word_lengths, dtype=self.type)
                 word_lengths = tf.add(word_lengths, 1e-8)
                 word_lengths = tf.expand_dims(word_lengths, 1)
                 word_lengths = tf.tile(word_lengths, [1, 2 * self.config.char_lstm_size])
@@ -369,7 +340,7 @@ class Model:
             cell_bw = tf.contrib.cudnn_rnn.CudnnCompatibleLSTMCell(self.config.word_lstm_size)
             (self.lstm_fw, self.lstm_bw), _ = tf.nn.bidirectional_dynamic_rnn(
                 cell_fw, cell_bw, self.word_embeddings,
-                sequence_length=self.sequence_lengths, dtype=self.f_type())
+                sequence_length=self.sequence_lengths, dtype=self.type)
             # shape(batch_size, max_length, 2 x word_lstm_size)
             self.lstm_fw = tf.nn.dropout(self.lstm_fw, self.dropout)
             self.lstm_bw = tf.nn.dropout(self.lstm_bw, self.dropout)
@@ -396,26 +367,7 @@ class Model:
             if task in ('lmo'):
                 self.add_lmo(task_code, lang)
 
-        if self.config.use_gpu:
-            self.sess = tf.Session(config=tf.ConfigProto(
-            ))
-        else:
-            self.sess = tf.Session(config=tf.ConfigProto(
-                device_count={'GPU': 0, 'CPU': 1},
-            ))
-        self.sess.run(tf.global_variables_initializer())
 
-        if self.config.show_graph:
-            tf.summary.FileWriter(self.config.model_path, self.sess.graph)
-            for variable in tf.global_variables():
-                print(variable)
-
-        self.saver = tf.train.Saver()
-
-        if self.config.saved_model:
-            self.saver.restore(self.sess, os.path.join(self.config.model_path, self.config.saved_model+".model"))
-            reset_op = tf.group([v.initializer for v in self.optimizer.variables()])
-            self.sess.run(reset_op)
 
     def run_experiment(self, train, test, epochs):
         self.logger.log_critical('%s: Run started.' % self.config.server_name)
@@ -699,10 +651,3 @@ class Model:
 
         return viterbi_sequences, loss
 
-    def initialize_logger(self):
-        return LoggerInit(
-            self.config.setup,
-            filename=os.path.join(self.config.log_path, self.timestamp),
-            slack_channel=self.config.slack_channel,
-            slack_token=self.config.slack_token
-        ).logger
