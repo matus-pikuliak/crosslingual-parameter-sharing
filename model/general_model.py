@@ -36,13 +36,9 @@ class GeneralModel:
         ...
         self._build_graph()
 
-        if self.config.use_gpu:
-            self.sess = tf.Session(config=tf.ConfigProto(
-            ))
-        else:
-            self.sess = tf.Session(config=tf.ConfigProto(
-                device_count={'GPU': 0, 'CPU': 1},
-            ))
+        config = None if self.config.use_gpu else tf.ConfigProto(device_count={'GPU': 0, 'CPU': 1})
+        self.sess = tf.Session(config=config)
+
         self.sess.run(tf.global_variables_initializer())
 
         if self.config.show_graph:
