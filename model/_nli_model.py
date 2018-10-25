@@ -54,3 +54,28 @@ class NLIModel:
         }
 
         self.sess.run([self.train_op[task_code]], feed_dict=fd)
+
+    def evaluate(self, set_iterator, task_code):
+        counts = []
+        losses = []
+        sum = 0
+
+        for i, minibatch in enumerate(set_iterator):
+            word_ids, sentence_lengths, char_ids, word_lengths, label_ids = minibatch
+
+            fd = {
+                self.word_ids: word_ids,
+                self.true_labels[task_code]: label_ids,
+                self.sequence_lengths: sentence_lengths,
+                self.dropout: 1,
+                self.word_lengths: word_lengths,
+                self.char_ids: char_ids,
+                self.language_flags[dev_set.lang]: True
+            }
+
+            count, loss = self.sess.run([self.correct_labels_count, self.loss[task_code]], feed_dict=fd)
+            counts.append(count)
+            losses.append(loss)
+            sum += len(label_ids)
+
+        output = {'acc': float(np.sum(counts)) / sum, 'loss': np.mean(losses)}

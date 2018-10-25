@@ -55,6 +55,7 @@ class LMOModel:
 
         self.train_op[task_code] = self.add_train_op(self.loss[task_code], task_code)
 
+
     def train(self, minibatch, task_code):
         word_ids, sentence_lengths, char_ids, word_lengths = minibatch
         fd = {
@@ -67,3 +68,25 @@ class LMOModel:
             self.language_flags[st.lang]: True
         }
         self.sess.run([self.train_op[task_code]], feed_dict=fd)
+
+
+    def evaluate(self, set_iterator, task_code):
+        losses = []
+
+        for i, minibatch in enumerate(set_iterator):
+            word_ids, sentence_lengths, char_ids, word_lengths = minibatch
+
+            fd = {
+                self.word_ids: word_ids,
+                self.sequence_lengths: sentence_lengths,
+                self.dropout: 1,
+                self.word_lengths: word_lengths,
+                self.char_ids: char_ids,
+                self.language_flags[dev_set.lang]: True
+            }
+
+            loss = self.sess.run([self.loss[task_code]], feed_dict=fd)
+            losses.append(loss)
+            # FIXME: perplexity
+
+        output = {'loss': np.mean(losses)}

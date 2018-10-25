@@ -108,3 +108,32 @@ class DEPModel:
         }
 
         self.sess.run([self.train_op[task_code]], feed_dict=fd)
+
+    def evaluate(self, set_iterator, task_code):
+        uases = 0
+        lases = 0
+        size = 0
+        losses = []
+
+        for i, minibatch in enumerate(set_iterator):
+            word_ids, sentence_lengths, char_ids, word_lengths, label_ids, arcs = minibatch
+
+            fd = {
+                self.word_ids: word_ids,
+                self.true_labels[task_code]: label_ids,
+                self.sequence_lengths: sentence_lengths,
+                self.dropout: 1,
+                self.word_lengths: word_lengths,
+                self.char_ids: char_ids,
+                self.arc_ids: arcs,
+                self.golden_arc_ids: False,
+                self.language_flags[dev_set.lang]: True
+            }
+
+            uas, las, loss = self.sess.run([self.uas, self.las, self.loss[task_code]], feed_dict=fd)
+            uases += uas
+            lases += las
+            size += np.sum(sentence_lengths)
+            losses.append(loss)
+
+        output = {'uas': float(uases) / size, 'loss': np.mean(losses), 'las': float(lases) / size}
