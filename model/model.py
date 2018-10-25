@@ -6,10 +6,10 @@ import os
 from logs.logger_init import LoggerInit
 
 from model.general_model import GeneralModel
-from model._dep_model import DEPModel
-from model._lmo_model import LMOModel
-from model._nli_model import NLIModel
-from model._sqt_model import SQTModel
+from model._model_dep import DEPModel
+from model._model_lmo import LMOModel
+from model._model_nli import NLIModel
+from model._model_sqt import SQTModel
 
 
 class Model(GeneralModel, DEPModel, LMOModel, NLIModel, SQTModel):

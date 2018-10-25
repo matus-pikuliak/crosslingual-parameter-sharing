@@ -1,7 +1,9 @@
 import os
-from .multithreading import multithreading
+
 import numpy as np
 
+from .multithreading import multithreading
+import constants
 
 class Dataset:
 
@@ -13,22 +15,15 @@ class Dataset:
         automatically create suitable Dataset subclass.
         '''
 
-        tasks_model = (
-            (('pos', 'ner'), 'sqt'),
-            (('lmo'), 'lmo'),
-            (('nli'), 'nli'),
-            (('dep'), 'dep')
-        )
+        def module_name(task):
+            return f'data.dataset_{task}'
 
-        def module_name(model):
-            return f'data.dataset_{model}'
-
-        def subclass_name(model):
-            return f'{model.upper()}Dataset'
+        def subclass_name(task):
+            return f'{task.upper()}Dataset'
 
         # loads relevant subclasses defined in tassk_models
-        datasets = {model: __import__(module_name(model), fromlist=[subclass_name(model)])
-                    for _, model in tasks_model}
+        dataset_classes = {task: __import__(module_name(task), fromlist=[subclass_name(task)])
+                    for task in constants.TASKS}
 
         # overwrites subclasses' __new__ method
         def subclass_new(cls, *_, **__):
@@ -38,12 +33,11 @@ class Dataset:
             subclass.__new__ = subclass_new
 
         # creates suitable Dataset subclass based on the task user specified
-        for tasks, model in tasks_model:
-            if task in tasks:
-                subclass = getattr(datasets[model], subclass_name(model))
-                return subclass(task, *args)
-
-        raise AttributeError(f'Unknown task: {task}')
+        try:
+            subclass = getattr(dataset_classes[task], subclass_name(task))
+        except KeyError:
+            raise AttributeError(f'Unknown task: {task}')
+        return subclass(task, *args)
 
     def __init__(self, task, lang, role, config, data_loader):
         self.task = task

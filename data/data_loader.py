@@ -16,7 +16,7 @@ class DataLoader:
         self.datasets = [Dataset(*tlr, config, self) for tlr in tlrs]
 
     def __str__(self):
-        return '\n\n'.join([str(dt) for dt in self.datasets])
+        return '\n'.join([str(dt) for dt in self.datasets])
 
     def tasks(self):
         return {tl[0] for tl in self.config.tasks}
@@ -43,6 +43,7 @@ class DataLoader:
         self.lang_vocabs, self.task_vocabs, self.char_vocab = self.load_vocabs()
         self.print_vocab_details()
         self.del_hists()
+        print(self)
 
     def load_hists(self):
         for dt in self.datasets:
