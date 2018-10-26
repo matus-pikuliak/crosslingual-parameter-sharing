@@ -1,5 +1,5 @@
 from model._model_sqt import SQTModel
 
 
-class POSModel(NERModel):
+class NERModel(SQTModel):
     pass

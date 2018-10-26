@@ -4,15 +4,13 @@ import datetime
 import os
 
 from logs.logger_init import LoggerInit
+from model.dataset_iterator import DatasetIterator
 
 from model.general_model import GeneralModel
-from model._model_dep import DEPModel
-from model._model_lmo import LMOModel
-from model._model_nli import NLIModel
-from model._model_sqt import SQTModel
 
+# FIXME: funguje vsetky dataset size limitations? aj train_only?
 
-class Model(GeneralModel, DEPModel, LMOModel, NLIModel, SQTModel):
+class Model(GeneralModel):
 
     def task_code(self, task, lang):
         if self.config.crf_sharing:
@@ -154,19 +152,19 @@ class Model(GeneralModel, DEPModel, LMOModel, NLIModel, SQTModel):
         self.train_op = dict()
         self.gradient_norm = dict()
 
-        used_task_codes = []
-        for (task, lang) in self.config.tasks:
-            task_code = self.task_code(task, lang)
-            if task_code not in used_task_codes:
-                if task in ('ner', 'pos'):
-                    self.add_crf(task, task_code)
-                if task in ('dep'):
-                    self.add_dep(task_code)
-                if task in ('nli'):
-                    self.add_nli(task_code)
-                used_task_codes.append(task_code)
-            if task in ('lmo'):
-                self.add_lmo(task_code, lang)
+        # used_task_codes = []
+        # for (task, lang) in self.config.tasks:
+        #     task_code = self.task_code(task, lang)
+        #     if task_code not in used_task_codes:
+        #         if task in ('ner', 'pos'):
+        #             self.add_crf(task, task_code)
+        #         if task in ('dep'):
+        #             self.add_dep(task_code)
+        #         if task in ('nli'):
+        #             self.add_nli(task_code)
+        #         used_task_codes.append(task_code)
+        #     if task in ('lmo'):
+        #         self.add_lmo(task_code, lang)
 
 
 
@@ -179,7 +177,7 @@ class Model(GeneralModel, DEPModel, LMOModel, NLIModel, SQTModel):
         #self.logger.log_message(self.config.dump()) # FIXME
         self.epoch = 1
         for i in range(epochs):
-            self.run_epoch(train=train, test=test)
+            self.run_epoch()
             if i == 0:
                 epoch_time = datetime.datetime.now() - start_time
                 self.logger.log_critical('%s ETA: %s' % (self.config.server_name, str(start_time + epoch_time * self.config.epochs)))
@@ -190,81 +188,31 @@ class Model(GeneralModel, DEPModel, LMOModel, NLIModel, SQTModel):
         self.logger.log_message('Training took: '+str(end_time-start_time))
         self.logger.log_critical('%s: Run done.' % self.config.server_name)
 
-    def run_epoch(self, train, test):
+    def run_epoch(self):
 
+        train_sets = [DatasetIterator(dt, self.config) for dt in self.dl.find(role='train')]
+        eval_sets = [DatasetIterator(dt, self.config, is_train=False) for dt in self.dl.datasets]
 
-        # FIXME: how to choose proper generator?
-        train_sets = [(dt, dt.train_file_generator(self.config.batch_size)) for dt in self.dl.find(role='train')] # FIXME: train sa vytvara zakazdym nanovo
-        dev_sets = [(dt, dt.test_file_generator(self.config.batch_size, limit=1000)) for dt in self.dl.find(role='train')]
-        dev_sets += [(dt, dt.test_file_generator(self.config.batch_size)) for dt in self.dl.find(role='dev')]
-        dev_sets += [(dt, dt.test_file_generator(self.config.batch_size)) for dt in self.dl.find(role='test')]
-
-        # dev_sets = [self.dm.fetch_dataset(task, lang, 'dev') for (task, lang) in train]
-        # dev_sets += [self.dm.fetch_dataset(task, lang, 'train-dev') for (task, lang) in train]
-        # dev_sets += [self.dm.fetch_dataset(task, lang, 'test') for (task, lang) in train]
-        # dev_sets += [self.dm.fetch_dataset(task, lang, 'dev') for (task, lang) in test]
-
-        # if self.config.train_only: # TODO: odstranit po experimente (aj v hparams)
-        #     task, lang = self.config.train_only.split('-')
-        #     train_sets = [self.dm.fetch_dataset(task, lang, 'train')]
-        #     dev_sets = [self.dm.fetch_dataset(task, lang, 'train-dev'),
-        #                 self.dm.fetch_dataset(task, lang, 'test'),
-        #                 self.dm.fetch_dataset(task, lang, 'dev')]
+        # FIXME: Dopln train_only funkcionalitu (je to len redukcia train_sets?)
 
         for _ in range(self.config.epoch_steps):
-            for st, ite in train_sets:
-                task_code = self.task_code(st.task, st.lang)
+            for st in train_sets:
+                st.model.train(self, next(st.iterator), st.dataset)
 
-                if st.task in ('ner', 'pos'):
+        self.logger.log_message(f'Epoch {self.epoch} training done.')
 
-                    SQTModel.train(self, next(ite), task_code)
-
-                if st.task in ('dep'):
-
-                    DEPModel.train(self, next(ite), task_code)
-
-                if st.task in ('nli'):
-
-                    NLIModel.train(self, next(ite), task_code)
-
-                if st.task in ('lmo'):
-
-                    LMOModel.train(self, next(ite), task_code)
-
-
-        self.logger.log_message("End of epoch " + str(self.epoch))
-
-        for st, ite in dev_sets:
-            metrics = {
-                'language': st.lang,
-                'task': st.task,
-                'role': st.role,
-                'epoch': self.epoch,
-                'run': self.name
-            }
-            metrics.update(self.run_evaluate(st, ite))
-            self.logger.log_result(metrics)
+        for st in eval_sets:
+            results = st.model.evaluate(self, st.iterator, st.dataset)
+            results.update({
+                'language': st.dataset.lang,
+                'task': st.dataset.task,
+                'role': st.dataset.role,
+                'epoch': self.epoch
+            })
+            self.logger.log_result(results)
 
         self.epoch += 1
 
-    def run_evaluate(self, dev_set, set_iterator):
-        task_code = self.task_code(dev_set.task, dev_set.lang)
-
-        if dev_set.task in ('ner', 'pos'):
-
-            return SQTModel.evaluate(self, set_iterator, task_code)
-
-        if dev_set.task in ('dep'):
-
-            return DEPModel.evaluate(self, set_iterator, task_code)
-
-        if dev_set.task in ('nli'):
-
-            return NLIModel.evaluate(self, set_iterator, task_code)
-
-        if dev_set.task in ('lmo'):
-
-            return LMOModel.evaluate(self, set_iterator, task_code)
 
 
 

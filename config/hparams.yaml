@@ -33,6 +33,7 @@ default: &default
   max_word_length: 20
   min_word_freq: 1
   min_char_freq: 100
+  max_dataset_cache: 200000
 
   # settings
   tasks: null

@@ -81,6 +81,7 @@ class Dataset:
         return self.dl.char_vocab.word_to_ids(word)
 
     def load(self):
+        print(f'Loading {self}')
         self._load()
         self.loaded = True
 
@@ -106,7 +107,7 @@ class Dataset:
                     label = line[1]
                     self.task_hist.setdefault(label, 0)
                     self.task_hist[label] += 1
-        #self.size = counter
+        self.size = counter
 
     def del_hists(self):
         self.lang_hist.clear()

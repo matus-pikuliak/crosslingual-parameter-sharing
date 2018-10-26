@@ -16,7 +16,7 @@ class DataLoader:
         self.datasets = [Dataset(*tlr, config, self) for tlr in tlrs]
 
     def __str__(self):
-        return '\n'.join([str(dt) for dt in self.datasets])
+        return 'Created:\n'+'\n'.join([str(dt) for dt in self.datasets])+'\n'
 
     def tasks(self):
         return {tl[0] for tl in self.config.tasks}
