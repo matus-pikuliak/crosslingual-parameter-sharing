@@ -3,7 +3,7 @@ import tensorflow as tf
 
 class NLIModel:
 
-    def add_nli(self, task_code):
+    def add_task_layer(self, task_code):
         with tf.variable_scope(task_code):
             words = self.word_lstm_output
             reduction = tf.concat([

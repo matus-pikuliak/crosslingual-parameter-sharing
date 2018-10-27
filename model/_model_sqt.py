@@ -1,9 +1,10 @@
+import numpy as np
 import tensorflow as tf
 
 
 class SQTModel:
 
-    def add_crf(self, task, task_code):
+    def add_task_layer(self, task, task_code):
         with tf.variable_scope(task_code):
             tag_count = len(self.dl.task_vocabs[task])
             max_length = tf.shape(self.word_ids)[1]
@@ -25,7 +26,7 @@ class SQTModel:
             log_likelihood, trans_params = tf.contrib.crf.crf_log_likelihood(
                 self.predicted_labels[task_code],
                 self.true_labels[task_code],
-                self.sequence_lengths)
+                self.sentence_length)
             self.trans_params[task_code] = trans_params  # need to evaluate it for decoding
             self.loss[task_code] = tf.reduce_mean(-log_likelihood)
 
@@ -34,18 +35,19 @@ class SQTModel:
         # FIXME: Is that so?
         self.train_op[task_code] = self.add_train_op(self.loss[task_code], task_code)
 
-    def train(self, minibatch, task_code):
+    def train(self, minibatch, dataset):
         word_ids, sentence_lengths, char_ids, word_lengths, label_ids = minibatch
+        task_code = f'{dataset.task}'
 
         fd = {
             self.word_ids: word_ids,
             self.true_labels[task_code]: label_ids,
-            self.sequence_lengths: sentence_lengths,
+            self.sentence_length: sentence_lengths,
             self.learning_rate: self.current_learning_rate(),
             self.dropout: self.config.dropout,
             self.word_lengths: word_lengths,
             self.char_ids: char_ids,
-            self.language_flags[st.lang]: True
+            self.lang_flags[dataset.lang]: True
         }
 
         _, train_loss, gradient_norm = self.sess.run(
@@ -53,7 +55,7 @@ class SQTModel:
             , feed_dict=fd
         )
 
-    def evaluate(self, set_iterator, task_code):
+    def evaluate(self, iterator, dataset):
 
         accs = []
         losses = []
@@ -61,11 +63,12 @@ class SQTModel:
         predicted_ner = 0
         precision = 0
         recall = 0
+        task_code = self.task_code(dataset.task, dataset.lang)
 
-        for i, minibatch in enumerate(set_iterator):
+        for i, minibatch in enumerate(iterator):
             _, sentence_lengths, _, _, label_ids = minibatch
 
-            labels_ids_predictions, loss = self.predict_crf_batch(minibatch, task_code, dev_set.lang)
+            labels_ids_predictions, loss = SQTModel.predict_crf_batch(self, minibatch, task_code, dataset.lang)
             losses.append(loss)
 
             for lab, lab_pred, length in zip(label_ids, labels_ids_predictions, sentence_lengths):
@@ -73,7 +76,7 @@ class SQTModel:
                 lab_pred = lab_pred[:length]
                 for (true_t, pred_t) in zip(lab, lab_pred):
                     accs.append(true_t == pred_t)
-                    if dev_set.task == 'ner':
+                    if dataset.task == 'ner':
                         O_token = self.dl.task_vocabs['ner'].token_to_id['O']
                         if true_t != O_token:
                             expected_ner += 1
@@ -85,7 +88,7 @@ class SQTModel:
                             recall += 1
 
         output = {'acc': 100 * np.mean(accs), 'loss': np.mean(losses)}
-        if dev_set.task == 'ner':
+        if dataset.task == 'ner':
             precision = float(precision) / (predicted_ner + 1)
             recall = float(recall) / (expected_ner + 1)
             f1 = 2 * precision * recall / (precision + recall + 1e-12)
@@ -96,6 +99,7 @@ class SQTModel:
                 'recall': recall,
                 'f1': f1
             })
+        return output
 
 
     def predict_crf_batch(self, minibatch, task_code, lang):
@@ -104,11 +108,11 @@ class SQTModel:
         fd = {
             self.word_ids: word_ids,
             self.true_labels[task_code]: label_ids,
-            self.sequence_lengths: sentence_lengths,
+            self.sentence_length: sentence_lengths,
             self.dropout: 1,
             self.word_lengths: word_lengths,
             self.char_ids: char_ids,
-            self.language_flags[lang]: True
+            self.lang_flags[lang]: True
         }
 
         # get tag scores and transition params of CRF

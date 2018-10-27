@@ -3,7 +3,7 @@ import tensorflow as tf
 
 class LMOModel:
 
-    def add_lmo(self, task_code, lang):
+    def add_task_layer(self, task_code, lang):
         with tf.variable_scope(task_code):
             max_len = tf.reduce_max(self.sequence_lengths)
             batch_size = tf.size(self.sequence_lengths)

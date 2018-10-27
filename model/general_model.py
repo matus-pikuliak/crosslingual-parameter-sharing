@@ -33,7 +33,27 @@ class GeneralModel:
             raise AttributeError('lr_schedule must be set to static or decay')
 
     def build_graph(self):
-        ...
+
+        def add_hyperparameters(self):
+            self.learning_rate = tf.placeholder(
+                dtype=self.type, shape=[], name="lr"
+            )
+
+            self.dropout = tf.placeholder(
+                dtype=self.type, shape=[], name="dropout"
+            )
+
+            # optimizer
+            available_optimizers = {
+                'rmsprop': tf.train.RMSPropOptimizer,
+                'adagrad': tf.train.AdagradOptimizer,
+                'adam': tf.train.AdamOptimizer,
+                'sgd': tf.train.GradientDescentOptimizer
+            }
+            selected_optimizer = available_optimizers[self.config.optimizer]
+            self.optimizer = selected_optimizer(self.learning_rate)
+
+        add_hyperparameters(self)
         self._build_graph()
 
         config = None if self.config.use_gpu else tf.ConfigProto(device_count={'GPU': 0, 'CPU': 1})

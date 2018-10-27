@@ -3,7 +3,7 @@ import tensorflow as tf
 
 class DEPModel:
 
-    def add_dep(self, task_code):
+    def add_task_layer(self, task_code):
         with tf.variable_scope(task_code):
             root = tf.get_variable("root_vector", dtype=self.type, shape=[2*self.config.word_lstm_size])  # dim
             root = tf.expand_dims(root, 0)

@@ -81,9 +81,10 @@ class Dataset:
         return self.dl.char_vocab.word_to_ids(word)
 
     def load(self):
-        print(f'Loading {self}')
+        print(f'Loading {self}.')
         self._load()
         self.loaded = True
+        print(f'Loaded.')
 
     def load_hists(self):
         self.lang_hist = {}

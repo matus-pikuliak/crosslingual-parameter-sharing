@@ -47,7 +47,7 @@ debug:
   <<: *default
   word_lstm_size: 10
   char_lstm_size: 10
-  batch_size: 8
+  batch_size: 3
   epoch_steps: 10
   epochs: 5
 
