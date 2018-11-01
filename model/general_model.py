@@ -18,10 +18,10 @@ class GeneralModel:
 
     def add_train_op(self, loss, task_code):
         grads, vs = zip(*self.optimizer.compute_gradients(loss))
-        self.gradient_norm[task_code] = tf.global_norm(grads)
         if self.config.clip > 0:
             grads, _ = tf.clip_by_global_norm(grads, self.config.clip)
         return self.optimizer.apply_gradients(zip(grads, vs))
+        # FIXME: gradient_notm?
 
     def current_learning_rate(self):
 

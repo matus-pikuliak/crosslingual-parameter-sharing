@@ -1,19 +1,15 @@
-from model._model_dep import DEPModel
-from model._model_lmo import LMOModel
-from model._model_ner import NERModel
-from model._model_nli import NLIModel
-from model._model_pos import POSModel
+from model.layer import Layer
 
 
 class DatasetIterator:
 
     train_iterators = {}
 
-    def __init__(self, dataset, config, is_train=True):
+    def __init__(self, dataset, config, task_code_f, is_train=True):
         self.dataset = dataset
         self.config = config
         self.is_train = is_train
-        self.model = globals()[f'{dataset.task.upper()}Model']
+        self.layer = Layer.layers[task_code_f(dataset.task, dataset.lang)]
 
         if is_train:
             if dataset not in self.train_iterators:

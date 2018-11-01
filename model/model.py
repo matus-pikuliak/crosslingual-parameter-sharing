@@ -4,16 +4,13 @@ import datetime
 import os
 
 from logs.logger_init import LoggerInit
-from model._model_sqt import SQTModel
+from model._layer_ner import NERLayer
+from model._layer_pos import POSLayer
 from model.dataset_iterator import DatasetIterator
 from model.general_model import GeneralModel
-# from model._model_dep import DEPModel
-# from model._model_lmo import LMOModel
-# from model._model_ner import NERModel
-# from model._model_pos import POSModel
-# from model._model_nli import NLIModel
 
 # FIXME: funguje vsetky dataset size limitations? aj train_only?
+from model.layer import Layer
 
 class Model(GeneralModel):
 
@@ -23,17 +20,18 @@ class Model(GeneralModel):
         self.tasks = self.dl.tasks()
 
     def task_code(self, task, lang):
-        if self.config.crf_sharing:
+        if task == 'lmo':
+            return (task, lang)
+        if self.config.task_layer_sharing:
             return task
         else:
-            return task + lang
+            return (task, lang)
 
     def _build_graph(self):
         self.add_inputs()
         word_repr = self.add_word_processing()
         cont_repr = self.add_sentence_processing(word_repr)
         self.add_task_layers(cont_repr)
-        self.oink = cont_repr
 
     def add_inputs(self):
         # shape = (batch size, max_sentence_length)
@@ -86,13 +84,12 @@ class Model(GeneralModel):
                 dtype=self.type,
                 initializer=tf.cast(self.load_embeddings(lang), self.type),
                 trainable=self.config.train_emb,
-                name=f'word_embedding_matrix_{lang}'
-            )
+                name=f'word_embedding_matrix_{lang}')
             for lang in self.langs
         }
 
         pred_fn_pairs = {
-            self.lang_flags[lang]: lambda: emb_matrices[lang]
+            self.lang_flags[lang]: (lambda lang: lambda: emb_matrices[lang])(lang)
             for lang in self.langs
         }
         return tf.case(pred_fn_pairs=pred_fn_pairs, exclusive=True)  # TODO: when all are false it will pick default?
@@ -101,11 +98,12 @@ class Model(GeneralModel):
         emb_matrix = tf.get_variable(
             dtype=self.type,
             shape=(len(self.dl.char_vocab), self.config.char_emb_size),
-            name="char_embeddings"
-        )
+            name="char_embeddings")
+
         char_embeddings = tf.nn.embedding_lookup(
-            params=emb_matrix, ids=self.char_ids, name="char_embeddings_lookup"
-        )
+            params=emb_matrix,
+            ids=self.char_ids,
+            name="char_embeddings_lookup")
 
         shape = tf.shape(char_embeddings)
         max_sentence, max_word = shape[1], shape[2]
@@ -118,41 +116,25 @@ class Model(GeneralModel):
             cell_size=self.config.char_lstm_size,
             name_scope='char_bilstm',
             avg_pool=True,
-            dropout=False
-        )
+            dropout=False)
+
         char_lstm_out = tf.reshape(char_lstm_out, [-1, max_sentence, 2 * self.config.char_lstm_size])
         return char_lstm_out
 
     def add_sentence_processing(self, word_repr):
-        return self.lstm(inputs=word_repr,
-                         sequence_lengths=self.sentence_length,
-                         cell_size=self.config.word_lstm_size,
-                         name_scope='word_bilstm')
+        return self.lstm(
+            inputs=word_repr,
+            sequence_lengths=self.sentence_length,
+            cell_size=self.config.word_lstm_size,
+            name_scope='word_bilstm')
 
     def add_task_layers(self, cont_repr):
-
-        self.true_labels = dict()
-        self.predicted_labels = dict()
-        self.trans_params = dict()
-        self.loss = dict()
-        self.train_op = dict()
-        self.gradient_norm = dict()
-
-        used_task_codes = []
         for (task, lang) in self.config.tasks:
             task_code = self.task_code(task, lang)
-            if task_code not in used_task_codes:
-                if task in ('ner', 'pos'):
-                    SQTModel.add_task_layer(self, task, task_code) # TODO: maybe_add_task_layer
-                if task in ('dep'):
-                    self.add_dep(task_code)
-                if task in ('nli'):
-                    self.add_nli(task_code)
-                used_task_codes.append(task_code)
-            if task in ('lmo'):
-                self.add_lmo(task_code, lang)
-
-
+            if task_code not in Layer.layers:
+                layer_class = globals()[f'{task.upper()}Layer']
+                new_layer = layer_class(self, task, lang, cont_repr)
+                Layer.layers[task_code] = new_layer
 
     def run_experiment(self, train, test, epochs):
         self.logger.log_critical('%s: Run started.' % self.config.server_name)
@@ -176,19 +158,19 @@ class Model(GeneralModel):
 
     def run_epoch(self):
 
-        train_sets = [DatasetIterator(dt, self.config) for dt in self.dl.find(role='train')]
-        eval_sets = [DatasetIterator(dt, self.config, is_train=False) for dt in self.dl.datasets]
+        train_sets = [DatasetIterator(dt, self.config, self.task_code) for dt in self.dl.find(role='train')]
+        eval_sets = [DatasetIterator(dt, self.config, self.task_code, is_train=False) for dt in self.dl.datasets]
 
         # FIXME: Dopln train_only funkcionalitu (je to len redukcia train_sets?)
 
         for _ in range(self.config.epoch_steps):
             for st in train_sets:
-                st.model.train(self, next(st.iterator), st.dataset)
+                st.layer.train(next(st.iterator), st.dataset)
 
         self.logger.log_message(f'Epoch {self.epoch} training done.')
 
         for st in eval_sets:
-            results = st.model.evaluate(self, st.iterator, st.dataset)
+            results = st.layer.evaluate(st.iterator, st.dataset)
             results.update({
                 'language': st.dataset.lang,
                 'task': st.dataset.task,
@@ -238,6 +220,3 @@ class Model(GeneralModel):
                 out = tf.nn.dropout(out, self.dropout)
 
             return out
-
-
-

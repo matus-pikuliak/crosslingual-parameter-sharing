@@ -6,7 +6,7 @@ default: &default
   char_emb_size: 30
   char_level: true
 
-  crf_sharing: true
+  task_layer_sharing: true
   word_lstm_size: 150
   char_lstm_size: 100
 
