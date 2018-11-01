@@ -7,59 +7,46 @@ from model.layer import Layer
 class SQTLayer(Layer):
 
     def __init__(self, model, task, lang, cont_repr):
+        Layer.__init__(self, model, task, lang, cont_repr)
+        self.build_graph(cont_repr)
 
-        task_code = model.task_code(task, lang)
-        self.model = model
+    def build_graph(self, cont_repr):
+        tag_count = len(self.model.dl.task_vocabs[self.task])
 
-        with tf.variable_scope(task_code):
-            tag_count = len(model.dl.task_vocabs[task])
-            max_length = tf.shape(model.word_ids)[1]
+        with tf.variable_scope(self.task_code()):
+            hidden = tf.layers.dense(
+                inputs=cont_repr,
+                units=200,
+                activation=tf.nn.relu)
 
-            output = tf.reshape(cont_repr, [-1, 2 * model.config.word_lstm_size])
-            W = tf.get_variable(dtype=model.type, shape=[2 * model.config.word_lstm_size, tag_count],
-                                name="weights")
-            b = tf.get_variable(dtype=model.type, shape=[tag_count], initializer=tf.zeros_initializer(),
-                                name="biases")
-            output = tf.matmul(output, W) + b
-            self.predicted_labels = tf.reshape(output, [-1, max_length, tag_count])
-            #FIXME: no softmax or activation function?
+            # shape = (batch_size, max_sentence_length, tag_count)
+            self.logits = tf.layers.dense(
+                inputs=hidden,
+                units=tag_count,
+                name='predicted_logits')
 
-            # expected output
-            # shape = (batch_size, max_length)
-            self.true_labels = tf.placeholder(tf.int32, shape=[None, None],
-                                                  name="labels")
+            # shape = (batch_size, max_sentence_length)
+            self.desired = tf.placeholder(
+                dtype=tf.int32,
+                shape=[None, None],
+                name='desired_tag_ids')
 
-            # loss
-            log_likelihood, trans_params = tf.contrib.crf.crf_log_likelihood(
-                self.predicted_labels,
-                self.true_labels,
-                model.sentence_length)
-            self.trans_params = trans_params  # need to evaluate it for decoding
+            log_likelihood, self.transition_params = tf.contrib.crf.crf_log_likelihood(
+                inputs=self.logits,
+                tag_indices=self.desired,
+                sequence_lengths=self.model.sentence_lengths)
             self.loss = tf.reduce_mean(-log_likelihood)
 
-        # training
-        # Rremoving this part from task scope lets the graph reuse optimizer parameters
-        # FIXME: Is that so?
-        self.train_op = model.add_train_op(self.loss, task_code)
+        # Rremoving the train_op from the task variable scope makes the computational graph less weird.
+        self.train_op = self.model.add_train_op(self.loss, self.task_code())
 
     def train(self, minibatch, dataset):
-        word_ids, sentence_lengths, char_ids, word_lengths, label_ids = minibatch
-
-        fd = {
-            self.model.word_ids: word_ids,
-            self.true_labels: label_ids,
-            self.model.sentence_length: sentence_lengths,
-            self.model.learning_rate: self.model.current_learning_rate(),
-            self.model.dropout: self.model.config.dropout,
-            self.model.word_lengths: word_lengths,
-            self.model.char_ids: char_ids,
-            self.model.lang_flags[dataset.lang]: True
-        }
-
-        _, train_loss = self.model.sess.run(
-            [self.train_op, self.loss]
-            , feed_dict=fd
-        )
+        *_, desired = minibatch
+        fd = self.train_feed_dict(minibatch, dataset)
+        fd.update({
+            self.desired: desired,
+        })
+        self.model.sess.run(self.train_op, feed_dict=fd)
 
     def evaluate(self, iterator, dataset):
 
@@ -73,7 +60,7 @@ class SQTLayer(Layer):
         for i, minibatch in enumerate(iterator):
             _, sentence_lengths, _, _, label_ids = minibatch
 
-            labels_ids_predictions, loss = self.predict_crf_batch(minibatch, dataset.lang)
+            labels_ids_predictions, loss = self.predict_crf_batch(minibatch, dataset)
             losses.append(loss)
 
             for lab, lab_pred, length in zip(label_ids, labels_ids_predictions, sentence_lengths):
@@ -106,30 +93,23 @@ class SQTLayer(Layer):
             })
         return output
 
+    def predict_crf_batch(self, minibatch, dataset):
+        _, sentence_lengths, _, _, desired = minibatch
+        fd = self.test_feed_dict(minibatch, dataset)
+        fd.update({
+            self.desired: desired
+        })
 
-    def predict_crf_batch(self, minibatch, lang):
+        logits, transition_params, loss = self.model.sess.run(
+            fetches=[self.logits, self.transition_params, self.loss],
+            feed_dict=fd)
 
-        word_ids, sentence_lengths, char_ids, word_lengths, label_ids = minibatch
-        fd = {
-            self.model.word_ids: word_ids,
-            self.true_labels: label_ids,
-            self.model.sentence_length: sentence_lengths,
-            self.model.dropout: 1,
-            self.model.word_lengths: word_lengths,
-            self.model.char_ids: char_ids,
-            self.model.lang_flags[lang]: True
-        }
+        yield loss
 
-        # get tag scores and transition params of CRF
-        viterbi_sequences = []
-        logits, trans_params, loss = self.model.sess.run(
-            [self.predicted_labels, self.trans_params, self.loss], feed_dict=fd)
-
-        # iterate over the sentences because no batching in vitervi_decode
-        for logit, sequence_length in zip(logits, sentence_lengths):
-            logit = logit[:sequence_length]  # keep only the valid steps
-            viterbi_seq, viterbi_score = tf.contrib.crf.viterbi_decode(
-                logit, trans_params)
-            viterbi_sequences += [viterbi_seq]
-
-        return viterbi_sequences, loss
+        for log, len in zip(logits, sentence_lengths):
+            log = log[:len]
+            predicted, _ = tf.contrib.crf.viterbi_decode(
+                score=log,
+                transition_params=transition_params
+            )
+            yield predicted, desired

@@ -36,18 +36,21 @@ class Model(GeneralModel):
     def add_inputs(self):
         # shape = (batch size, max_sentence_length)
         self.word_ids = tf.placeholder(
-            dtype=tf.int32, shape=[None, None], name="word_ids"
-        )
+            dtype=tf.int32,
+            shape=[None, None],
+            name="word_ids")
 
         # shape = (batch size)
-        self.sentence_length = tf.placeholder(
-            dtype=tf.int32, shape=[None], name='sentence_length'
-        )
+        self.sentence_lengths = tf.placeholder(
+            dtype=tf.int32,
+            shape=[None],
+            name='sentence_lengths')
 
         # shape = (batch_size, max_sentence_length, max_word_length)
         self.char_ids = tf.placeholder(
-            dtype=tf.int32, shape=[None, None, None], name='char_ids'
-        )
+            dtype=tf.int32,
+            shape=[None, None, None],
+            name='char_ids')
 
         # shape = (batch_size, max_sentence_length)
         self.word_lengths = tf.placeholder(
@@ -56,8 +59,9 @@ class Model(GeneralModel):
 
         self.lang_flags = {
             lang: tf.placeholder_with_default(
-                input=False, shape=[], name=f'language_flag_{lang}'
-            )
+                input=False,
+                shape=[],
+                name=f'language_flag_{lang}')
             for lang in self.langs
         }
 
@@ -124,7 +128,7 @@ class Model(GeneralModel):
     def add_sentence_processing(self, word_repr):
         return self.lstm(
             inputs=word_repr,
-            sequence_lengths=self.sentence_length,
+            sequence_lengths=self.sentence_lengths,
             cell_size=self.config.word_lstm_size,
             name_scope='word_bilstm')
 
