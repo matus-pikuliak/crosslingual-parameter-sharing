@@ -14,14 +14,14 @@ class Layer:
         return self.model.task_code(self.task, self.lang)
 
     def sentence_mask(self):
-        return tf.sequence_mask(self.model.sentence_length)
+        return tf.sequence_mask(self.model.sentence_lengths)
 
     def basic_feed_dict(self, minibatch, dataset):
-        word_ids, sentence_length, char_ids, word_lengths, *_ = minibatch
+        word_ids, sentence_lengths, char_ids, word_lengths, *_ = minibatch
 
         return {
             self.model.word_ids: word_ids,
-            self.model.sentence_length: sentence_length,
+            self.model.sentence_lengths: sentence_lengths,
             self.model.char_ids: char_ids,
             self.model.word_lengths: word_lengths,
             self.model.lang_flags[dataset.lang]: True

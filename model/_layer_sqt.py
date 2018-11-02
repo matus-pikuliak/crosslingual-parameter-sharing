@@ -40,9 +40,9 @@ class SQTLayer(Layer):
         # Rremoving the train_op from the task variable scope makes the computational graph less weird.
         self.train_op = self.model.add_train_op(self.loss, self.task_code())
 
-    def train(self, minibatch, dataset):
-        *_, desired = minibatch
-        fd = self.train_feed_dict(minibatch, dataset)
+    def train(self, batch, dataset):
+        *_, desired = batch
+        fd = self.train_feed_dict(batch, dataset)
         fd.update({
             self.desired: desired,
         })
@@ -50,52 +50,29 @@ class SQTLayer(Layer):
 
     def evaluate(self, iterator, dataset):
 
-        accs = []
         losses = []
-        expected_ner = 0
-        predicted_ner = 0
-        precision = 0
-        recall = 0
+        accumulator = self.metrics_accumulator()
+        next(accumulator)
 
-        for i, minibatch in enumerate(iterator):
-            _, sentence_lengths, _, _, label_ids = minibatch
+        for batch in iterator:
+            predictor = self.predict_crf_batch(batch, dataset)
+            losses.append(next(predictor))
+            for predicted, desired in predictor:
+                metrics = accumulator.send((predicted, desired))
 
-            labels_ids_predictions, loss = self.predict_crf_batch(minibatch, dataset)
-            losses.append(loss)
+        metrics['loss'] = np.mean(losses)
+        return metrics
 
-            for lab, lab_pred, length in zip(label_ids, labels_ids_predictions, sentence_lengths):
-                lab = lab[:length]
-                lab_pred = lab_pred[:length]
-                for (true_t, pred_t) in zip(lab, lab_pred):
-                    accs.append(true_t == pred_t)
-                    if dataset.task == 'ner':
-                        O_token = self.model.dl.task_vocabs['ner'].token_to_id['O']
-                        if true_t != O_token:
-                            expected_ner += 1
-                        if pred_t != O_token:
-                            predicted_ner += 1
-                        if true_t != O_token and true_t == pred_t:
-                            precision += 1
-                        if pred_t != O_token and true_t == pred_t:
-                            recall += 1
+    def metrics_accumulator(self):
+        raise NotImplementedError
 
-        output = {'acc': 100 * np.mean(accs), 'loss': np.mean(losses)}
-        if dataset.task == 'ner':
-            precision = float(precision) / (predicted_ner + 1)
-            recall = float(recall) / (expected_ner + 1)
-            f1 = 2 * precision * recall / (precision + recall + 1e-12)
-            output.update({
-                'expected_ner_count': expected_ner,
-                'predicted_ner_count': predicted_ner,
-                'precision': precision,
-                'recall': recall,
-                'f1': f1
-            })
-        return output
-
-    def predict_crf_batch(self, minibatch, dataset):
-        _, sentence_lengths, _, _, desired = minibatch
-        fd = self.test_feed_dict(minibatch, dataset)
+    def predict_crf_batch(self, batch, dataset):
+        '''
+        First yields loss and then iterate over samples in batch.
+        Returned sequences are not padded anymore.
+        '''
+        _, sentence_lengths, _, _, desired = batch
+        fd = self.test_feed_dict(batch, dataset)
         fd.update({
             self.desired: desired
         })
@@ -106,10 +83,10 @@ class SQTLayer(Layer):
 
         yield loss
 
-        for log, len in zip(logits, sentence_lengths):
+        for log, des, len in zip(logits, desired, sentence_lengths):
             log = log[:len]
             predicted, _ = tf.contrib.crf.viterbi_decode(
                 score=log,
                 transition_params=transition_params
             )
-            yield predicted, desired
+            yield np.array(predicted), des[:len]
