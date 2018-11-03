@@ -1,6 +1,6 @@
 import numpy as np
 
-from model._layer_sqt import SQTLayer
+from model.layer_sqt import SQTLayer
 
 
 class POSLayer(SQTLayer):

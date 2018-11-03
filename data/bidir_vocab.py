@@ -11,7 +11,7 @@ class BidirVocab:
         return len(self.t2id)
 
     def __repr__(self):
-        return str({k: self.id2t[k] for k in range(10)})+f' and {len(self)-10} others'
+        return str({k: self.id2t[k] for k in range(min(10, len(self)))})+f' and {max(len(self)-10, 0)} others'
 
     def __contains__(self, token):
         return token in self.t2id

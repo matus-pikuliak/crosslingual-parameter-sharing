@@ -4,8 +4,8 @@ import datetime
 import os
 
 from logs.logger_init import LoggerInit
-from model._layer_ner import NERLayer
-from model._layer_pos import POSLayer
+from model.layer_ner import NERLayer
+from model.layer_pos import POSLayer
 from model.dataset_iterator import DatasetIterator
 from model.general_model import GeneralModel
 
