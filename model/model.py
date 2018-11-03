@@ -3,14 +3,16 @@ import numpy as np
 import datetime
 import os
 
-from logs.logger_init import LoggerInit
-from model.layer_ner import NERLayer
-from model.layer_pos import POSLayer
 from model.dataset_iterator import DatasetIterator
 from model.general_model import GeneralModel
-
-# FIXME: funguje vsetky dataset size limitations? aj train_only?
 from model.layer import Layer
+
+from constants import LOG_CRITICAL as CRITICAL
+from constants import LOG_MESSAGE as MESSAGE
+from constants import LOG_RESULT as RESULT
+
+from model.layer_ner import NERLayer
+from model.layer_pos import POSLayer
 
 class Model(GeneralModel):
 
@@ -45,6 +47,7 @@ class Model(GeneralModel):
             dtype=tf.int32,
             shape=[None],
             name='sentence_lengths')
+        self.sentence_lengths_mask = tf.sequence_mask(self.sentence_lengths)
 
         # shape = (batch_size, max_sentence_length, max_word_length)
         self.char_ids = tf.placeholder(
@@ -140,25 +143,24 @@ class Model(GeneralModel):
                 new_layer = layer_class(self, task, lang, cont_repr)
                 Layer.layers[task_code] = new_layer
 
-    def run_experiment(self, train, test, epochs):
-        self.logger.log_critical('%s: Run started.' % self.config.server_name)
-        self.name = ' '.join([' '.join(t) for t in train])
-        self.logger.log_message("Now training " + self.name)
+    def run_experiment(self):
         start_time = datetime.datetime.now()
-        self.logger.log_message(start_time)
-        #self.logger.log_message(self.config.dump()) # FIXME
+        self.log(f'Run started {start_time}', CRITICAL)
+        self.log(f'{self.config}', MESSAGE)
+
         self.epoch = 1
-        for i in range(epochs):
+
+        for i in range(self.config.epochs):
             self.run_epoch()
             if i == 0:
                 epoch_time = datetime.datetime.now() - start_time
-                self.logger.log_critical('%s ETA: %s' % (self.config.server_name, str(start_time + epoch_time * self.config.epochs)))
+                self.log(f'ETA {start_time + epoch_time * self.config.epochs}', CRITICAL)
+
         if self.config.save_parameters:
-            self.saver.save(self.sess, os.path.join(self.config.model_path, self.timestamp+".model"))
+            self.save()
+
         end_time = datetime.datetime.now()
-        self.logger.log_message(end_time)
-        self.logger.log_message('Training took: '+str(end_time-start_time))
-        self.logger.log_critical('%s: Run done.' % self.config.server_name)
+        self.log(f'Run done in {end_time - start_time}', CRITICAL)
 
     def run_epoch(self):
 
@@ -171,7 +173,7 @@ class Model(GeneralModel):
             for st in train_sets:
                 st.layer.train(next(st.iterator), st.dataset)
 
-        self.logger.log_message(f'Epoch {self.epoch} training done.')
+        self.log(f'Epoch {self.epoch} training done.', MESSAGE)
 
         for st in eval_sets:
             results = st.layer.evaluate(st.iterator, st.dataset)
@@ -181,7 +183,7 @@ class Model(GeneralModel):
                 'role': st.dataset.role,
                 'epoch': self.epoch
             })
-            self.logger.log_result(results)
+            self.log(results, RESULT)
 
         self.epoch += 1
 
@@ -189,17 +191,16 @@ class Model(GeneralModel):
         emb_path = os.path.join(self.config.emb_path, lang)
         emb_matrix = np.zeros((len(self.dl.lang_vocabs[lang]), self.config.word_emb_size), dtype=np.float)
         with open(emb_path, 'r') as f:
-            next(f)
+            next(f)  # skip first line with dimensions
             for line in f:
                 try:
                     word, rest = line.split(maxsplit=1)
                 except:
-                    print(line)
-                    raise AttributeError
+                    raise RuntimeError(f'Can not parse a line in embedding file: "{line}"')
                 if word in self.dl.lang_vocabs[lang]:
-                    i = self.dl.lang_vocabs[lang].t2id[word]
+                    id = self.dl.lang_vocabs[lang].t2id[word]
                     try:
-                        emb_matrix[i] = [float(n) for n in rest.split()]
+                        emb_matrix[id] = [float(n) for n in rest.split()]
                     except ValueError:
                         pass # FIXME: sometimes there are two words in embeddings file, but I think it's better to clean the emb files instead
         return emb_matrix

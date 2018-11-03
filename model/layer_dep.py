@@ -1,19 +1,25 @@
 import tensorflow as tf
 
+from model.layer import Layer
 
-class DEPModel:
 
-    def add_task_layer(self, task_code):
-        with tf.variable_scope(task_code):
-            root = tf.get_variable("root_vector", dtype=self.type, shape=[2*self.config.word_lstm_size])  # dim
+class DEPLayer(Layer):
+
+    def __init__(self, model, task, lang, cont_repr):
+        Layer.__init__(self, model, task, lang, cont_repr)
+        self.build_graph(cont_repr)
+
+    def build_graph(self, cont_repr):
+        with tf.variable_scope(self.task_code()):
+            root = tf.get_variable("root_vector", dtype=tf.float32, shape=[2*self.config.word_lstm_size])  # dim
             root = tf.expand_dims(root, 0)
             root = tf.expand_dims(root, 0)
             root = tf.tile(
                 root,
-                [tf.shape(self.word_lstm_output)[0], 1, 1]
+                [tf.shape(cont_repr)[0], 1, 1]
             )
 
-            words = self.word_lstm_output
+            words = cont_repr
             words_root = tf.concat([root, words], 1)
 
             tile_a = tf.tile(
@@ -30,11 +36,11 @@ class DEPModel:
 
             hidden = 500
 
-            W = tf.get_variable("W", dtype=self.type, shape=[4*self.config.word_lstm_size, hidden])
-            b = tf.get_variable("b", dtype=self.type, shape=[hidden])
-            W2 = tf.get_variable("W2", dtype=self.type, shape=[hidden, 1])
+            W = tf.get_variable("W", dtype=tf.float32, shape=[4*self.config.word_lstm_size, hidden])
+            b = tf.get_variable("b", dtype=tf.float32, shape=[hidden])
+            W2 = tf.get_variable("W2", dtype=tf.float32, shape=[hidden, 1])
 
-            seq_mask = tf.reshape(tf.sequence_mask(self.sequence_lengths), shape=[-1])
+            seq_mask = tf.reshape(tf.sequence_mask(self.model.sentence_lengths), shape=[-1])
 
             combinations = tf.nn.tanh(tf.matmul(combinations, W) + b)
             all_combinations = combinations
@@ -56,13 +62,13 @@ class DEPModel:
             relevant_arcs = tf.boolean_mask(all_combinations, relevant_arc_ids)
             relevant_arcs = tf.boolean_mask(relevant_arcs, seq_mask)
 
-            self.true_labels[task_code] = tf.placeholder(tf.int64, shape=[None, None], name="labels")
-            labels = tf.reshape(self.true_labels[task_code], [-1])
+            self.true_labels = tf.placeholder(tf.int64, shape=[None, None], name="labels")
+            labels = tf.reshape(self.true_labels, [-1])
             labels = tf.boolean_mask(labels, seq_mask)
             one_hot_labels = tf.one_hot(labels, len(self.dl.task_vocabs['dep']))
 
-            W3 = tf.get_variable("W3", dtype=self.type, shape=[hidden, len(self.dl.task_vocabs['dep'])])
-            b3 = tf.get_variable("b3", dtype=self.type, shape=[len(self.dl.task_vocabs['dep'])])
+            W3 = tf.get_variable("W3", dtype=tf.float32, shape=[hidden, len(self.dl.task_vocabs['dep'])])
+            b3 = tf.get_variable("b3", dtype=tf.float32, shape=[len(self.dl.task_vocabs['dep'])])
             predicted_arc_labels = tf.matmul(relevant_arcs, W3) + b3
             predicted_arc_labels_ids = tf.argmax(predicted_arc_labels, axis=1)
             loss_las = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(
@@ -85,29 +91,22 @@ class DEPModel:
                 logits=combinations,
                 dim=-1,
             ))
-            self.loss[task_code] = loss_las + loss_uas
+            self.loss = loss_las + loss_uas
 
-        self.train_op[task_code] = self.add_train_op(self.loss[task_code], task_code)
+        self.train_op = self.add_train_op(self.loss, self.task_code())
 
 
-    def train(self, minibatch, task_code):
+    def train(self, minibatch, dataset):
+        *_, desired_labels, desired_arcs = minibatch
 
-        word_ids, sentence_lengths, char_ids, word_lengths, label_ids, arcs = minibatch
+        fd = self.train_feed_dict(minibatch, dataset)
+        fd.update({
+            self.arc_ids: desired_arcs,
+            self.true_labels: desired_labels,
+            self.golden_arc_ids: True
+        })
 
-        fd = {
-            self.word_ids: word_ids,
-            self.sequence_lengths: sentence_lengths,
-            self.learning_rate: self.current_learning_rate(),
-            self.dropout: self.config.dropout,
-            self.word_lengths: word_lengths,
-            self.char_ids: char_ids,
-            self.arc_ids: arcs,
-            self.true_labels[task_code]: label_ids,
-            self.golden_arc_ids: True,
-            self.language_flags[st.lang]: True
-        }
-
-        self.sess.run([self.train_op[task_code]], feed_dict=fd)
+        self.model.sess.run(self.train_op, feed_dict=fd)
 
     def evaluate(self, set_iterator, task_code):
         uases = 0

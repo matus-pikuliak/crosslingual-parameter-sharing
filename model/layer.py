@@ -7,14 +7,12 @@ class Layer:
 
     def __init__(self, model, task, lang, *args):
         self.model = model
+        self.config = model.config
         self.task = task
         self.lang = lang
 
     def task_code(self):
         return self.model.task_code(self.task, self.lang)
-
-    def sentence_mask(self):
-        return tf.sequence_mask(self.model.sentence_lengths)
 
     def basic_feed_dict(self, minibatch, dataset):
         word_ids, sentence_lengths, char_ids, word_lengths, *_ = minibatch

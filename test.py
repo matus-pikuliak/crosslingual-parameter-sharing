@@ -78,9 +78,5 @@ dl.load()
 for train_set in train_sets:
     model = Model(dl, config)
     model.build_graph()
-    model.run_experiment(
-        train=train_set,
-        test=[],
-        epochs=config.epochs
-    )
+    model.run_experiment()
     model.close()

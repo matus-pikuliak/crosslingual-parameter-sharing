@@ -78,6 +78,13 @@ class GeneralModel:
         self.sess.close()
         tf.reset_default_graph()
 
+    def save(self):
+        self.saver.save(self.sess, os.path.join(self.config.model_path, self.timestamp + ".model"))
+
+    def log(self, message, level):
+        print(message)
+        ...
+
     def initialize_logger(self):
         return LoggerInit(
             self.config.setup,
