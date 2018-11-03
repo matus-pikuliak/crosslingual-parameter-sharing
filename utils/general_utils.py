@@ -29,6 +29,7 @@ def time_profile(msg=None):
     time_profile.memory = memory_now
     print()
 
+
 def add_hists(hists):
     final = dict(hists[0])
     for h in hists[1:]:
@@ -37,3 +38,10 @@ def add_hists(hists):
                 final[k] = 0
             final[k] += v
     return final
+
+
+def f1(p, r):
+    try:
+        return 2*p*r/(p+r)
+    except ZeroDivisionError:
+        return 0

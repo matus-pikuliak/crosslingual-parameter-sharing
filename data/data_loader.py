@@ -143,5 +143,5 @@ class DataLoader:
         occ_ratio = filt_occ * 100 / total_occ
         print(f'Character vocabulary constructed.\n'
               f'It contains {filt_char} characters ({char_ratio:.2f}%).\n'
-              f'It covers {filt_occ} character occurences ({occ_ratio:.2f}%).\n'
+              f'It covers {filt_occ} character occurrences ({occ_ratio:.2f}%).\n'
               f'{self.char_vocab}\n')

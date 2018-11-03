@@ -84,9 +84,8 @@ class SQTLayer(Layer):
         yield loss
 
         for log, des, len in zip(logits, desired, sentence_lengths):
-            log = log[:len]
             predicted, _ = tf.contrib.crf.viterbi_decode(
-                score=log,
+                score=log[:len],
                 transition_params=transition_params
             )
             yield np.array(predicted), des[:len]
