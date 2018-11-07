@@ -31,57 +31,8 @@ class DEPLayer(Layer):
 
             # shape = (sentence_lengths_sum x max_sentence_length+1 x hidden)
             pairs_repr = self.add_pairs(cont_repr)
-
-            predicted_arcs_logits = tf.layers.dense(
-                inputs=pairs_repr,
-                units=1
-            )
-            # FIXME: add -1000 for impossible predictions? out of range words and pairs of same words
-            predicted_arcs_logits = tf.squeeze(
-                input=predicted_arcs_logits,
-                axis=-1)  # must be specified because we need static tensor shape for boolean mask later
-            predicted_arcs_ids = tf.argmax(
-                input=predicted_arcs_logits,
-                axis=-1)
-            self.uas = tf.count_nonzero(tf.equal(predicted_arcs_ids, self.desired_arcs.ids))
-
-            uas_loss = tf.nn.softmax_cross_entropy_with_logits_v2(
-                labels=self.desired_arcs.one_hots,
-                logits=predicted_arcs_logits)
-            uas_loss = tf.reduce_mean(uas_loss)
-
-            selected_arcs_ids = tf.cond(
-                pred=self.use_desired_arcs,
-                true_fn=lambda: self.desired_arcs.ids,
-                false_fn=lambda: predicted_arcs_ids)
-            selected_arcs_mask = tf.one_hot(
-                indices=selected_arcs_ids,
-                depth=max_sentence_length+1,
-                on_value=True,
-                off_value=False,
-                dtype=tf.bool)
-            selected_pairs_repr = tf.boolean_mask(
-                tensor=pairs_repr,
-                mask=selected_arcs_mask)
-
-            predicted_labels_logits = tf.layers.dense(
-                inputs=selected_pairs_repr,
-                units=tag_count)
-            predicted_labels_ids = tf.argmax(
-                input=predicted_labels_logits,
-                axis=-1)
-
-            self.las = tf.count_nonzero(
-                tf.logical_and(
-                    tf.equal(predicted_labels_ids, self.desired_labels.ids),
-                    tf.equal(predicted_arcs_ids, self.desired_arcs.ids)
-                ))
-
-            las_loss = tf.nn.softmax_cross_entropy_with_logits_v2(
-                labels=self.desired_labels.one_hots,
-                logits=predicted_labels_logits)
-            las_loss = tf.reduce_mean(las_loss)
-
+            predicted_arcs_ids, uas_loss = self.add_uas(pairs_repr)
+            las_loss = self.add_las(pairs_repr, predicted_arcs_ids, max_sentence_length, tag_count)
             self.loss = (uas_loss + las_loss) / 2
 
         self.train_op = self.model.add_train_op(self.loss, self.task_code())
@@ -146,6 +97,63 @@ class DEPLayer(Layer):
             activation=tf.nn.relu)
 
         return valid_pairs_repr
+
+    def add_uas(self, pairs_repr):
+        predicted_arcs_logits = tf.layers.dense(
+            inputs=pairs_repr,
+            units=1
+        )
+        # FIXME: add -1000 for impossible predictions? out of range words and pairs of same words
+        predicted_arcs_logits = tf.squeeze(
+            input=predicted_arcs_logits,
+            axis=-1)  # must be specified because we need static tensor shape for boolean mask later
+        predicted_arcs_ids = tf.argmax(
+            input=predicted_arcs_logits,
+            axis=-1)
+        self.uas = tf.count_nonzero(tf.equal(predicted_arcs_ids, self.desired_arcs.ids))
+
+        uas_loss = tf.nn.softmax_cross_entropy_with_logits_v2(
+            labels=self.desired_arcs.one_hots,
+            logits=predicted_arcs_logits)
+        uas_loss = tf.reduce_mean(uas_loss)
+
+        return predicted_arcs_ids, uas_loss
+
+    def add_las(self, pairs_repr, predicted_arcs_ids, max_sentence_length, tag_count):
+
+        selected_arcs_ids = tf.cond(
+            pred=self.use_desired_arcs,
+            true_fn=lambda: self.desired_arcs.ids,
+            false_fn=lambda: predicted_arcs_ids)
+        selected_arcs_mask = tf.one_hot(
+            indices=selected_arcs_ids,
+            depth=max_sentence_length + 1,
+            on_value=True,
+            off_value=False,
+            dtype=tf.bool)
+        selected_pairs_repr = tf.boolean_mask(
+            tensor=pairs_repr,
+            mask=selected_arcs_mask)
+
+        predicted_labels_logits = tf.layers.dense(
+            inputs=selected_pairs_repr,
+            units=tag_count)
+        predicted_labels_ids = tf.argmax(
+            input=predicted_labels_logits,
+            axis=-1)
+
+        self.las = tf.count_nonzero(
+            tf.logical_and(
+                tf.equal(predicted_labels_ids, self.desired_labels.ids),
+                tf.equal(predicted_arcs_ids, self.desired_arcs.ids)
+            ))
+
+        las_loss = tf.nn.softmax_cross_entropy_with_logits_v2(
+            labels=self.desired_labels.one_hots,
+            logits=predicted_labels_logits)
+        las_loss = tf.reduce_mean(las_loss)
+
+        return las_loss
 
     def train(self, batch, dataset):
         *_, desired_labels, desired_arcs = batch
