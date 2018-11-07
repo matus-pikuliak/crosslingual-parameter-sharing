@@ -1,3 +1,6 @@
+from collections import namedtuple
+
+import numpy as np
 import tensorflow as tf
 
 from model.layer import Layer
@@ -10,129 +13,172 @@ class DEPLayer(Layer):
         self.build_graph(cont_repr)
 
     def build_graph(self, cont_repr):
+
         with tf.variable_scope(self.task_code()):
-            root = tf.get_variable("root_vector", dtype=tf.float32, shape=[2*self.config.word_lstm_size])  # dim
-            root = tf.expand_dims(root, 0)
-            root = tf.expand_dims(root, 0)
-            root = tf.tile(
-                root,
-                [tf.shape(cont_repr)[0], 1, 1]
+            max_sentence_length = tf.shape(cont_repr)[1]
+            tag_count = len(self.model.dl.task_vocabs[self.task])
+
+            self.desired_arcs = self.add_pair_labels(
+                name='desired_arcs',
+                depth=max_sentence_length+1)
+            self.desired_labels = self.add_pair_labels(
+                name='desired_labels',
+                depth=tag_count)
+            self.use_desired_arcs = tf.placeholder(
+                dtype=tf.bool,
+                shape=[],
+                name='use_desired_arcs_flag')
+
+            # shape = (sentence_lengths_sum x max_sentence_length+1 x hidden)
+            pairs_repr = self.add_pairs(cont_repr)
+
+            predicted_arcs_logits = tf.layers.dense(
+                inputs=pairs_repr,
+                units=1
             )
+            # FIXME: add -1000 for impossible predictions? out of range words and pairs of same words
+            predicted_arcs_logits = tf.squeeze(
+                input=predicted_arcs_logits,
+                axis=-1)  # must be specified because we need static tensor shape for boolean mask later
+            predicted_arcs_ids = tf.argmax(
+                input=predicted_arcs_logits,
+                axis=-1)
+            self.uas = tf.count_nonzero(tf.equal(predicted_arcs_ids, self.desired_arcs.ids))
 
-            words = cont_repr
-            words_root = tf.concat([root, words], 1)
+            uas_loss = tf.nn.softmax_cross_entropy_with_logits_v2(
+                labels=self.desired_arcs.one_hots,
+                logits=predicted_arcs_logits)
+            uas_loss = tf.reduce_mean(uas_loss)
 
-            tile_a = tf.tile(
-                tf.expand_dims(words, 2),
-                [1, 1, tf.shape(words_root)[1], 1]
-            )
-            tile_b = tf.tile(
-                tf.expand_dims(words_root, 1),
-                [1, tf.shape(words)[1], 1, 1]
-            )
+            selected_arcs_ids = tf.cond(
+                pred=self.use_desired_arcs,
+                true_fn=lambda: self.desired_arcs.ids,
+                false_fn=lambda: predicted_arcs_ids)
+            selected_arcs_mask = tf.one_hot(
+                indices=selected_arcs_ids,
+                depth=max_sentence_length+1,
+                on_value=True,
+                off_value=False,
+                dtype=tf.bool)
+            selected_pairs_repr = tf.boolean_mask(
+                tensor=pairs_repr,
+                mask=selected_arcs_mask)
 
-            combinations = tf.concat([tile_a, tile_b], axis=3)
-            combinations = tf.reshape(combinations, [-1, 4*self.config.word_lstm_size])
+            predicted_labels_logits = tf.layers.dense(
+                inputs=selected_pairs_repr,
+                units=tag_count)
+            predicted_labels_ids = tf.argmax(
+                input=predicted_labels_logits,
+                axis=-1)
 
-            hidden = 500
+            self.las = tf.count_nonzero(
+                tf.logical_and(
+                    tf.equal(predicted_labels_ids, self.desired_labels.ids),
+                    tf.equal(predicted_arcs_ids, self.desired_arcs.ids)
+                ))
 
-            W = tf.get_variable("W", dtype=tf.float32, shape=[4*self.config.word_lstm_size, hidden])
-            b = tf.get_variable("b", dtype=tf.float32, shape=[hidden])
-            W2 = tf.get_variable("W2", dtype=tf.float32, shape=[hidden, 1])
+            las_loss = tf.nn.softmax_cross_entropy_with_logits_v2(
+                labels=self.desired_labels.one_hots,
+                logits=predicted_labels_logits)
+            las_loss = tf.reduce_mean(las_loss)
 
-            seq_mask = tf.reshape(tf.sequence_mask(self.model.sentence_lengths), shape=[-1])
+            self.loss = (uas_loss + las_loss) / 2
 
-            combinations = tf.nn.tanh(tf.matmul(combinations, W) + b)
-            all_combinations = combinations
-            combinations = tf.matmul(combinations, W2)
-            combinations = tf.reshape(combinations, [-1, tf.shape(words_root)[1]])  # (batch_size x length) x length+1 (root)
+        self.train_op = self.model.add_train_op(self.loss, self.task_code())
+        # TODO: Check DEP problems - cycles, zero roots, more than one roots
 
-            self.arc_ids = tf.placeholder(tf.int64, shape=[None, None])  # batch size x length
-            _arc_ids = tf.reshape(self.arc_ids, [-1])
-            _arc_ids = tf.boolean_mask(_arc_ids, seq_mask)
+    PairLabel = namedtuple('PairLabels', ('placeholder', 'ids', 'one_hots'))
 
-            predicted_arc_ids = tf.argmax(combinations, axis=1)
-            _predicted_arc_ids = tf.reshape(predicted_arc_ids, tf.shape(self.arc_ids))
+    def add_pair_labels(self, name, depth):
+        # shape = (batch_size x max_sentence_length)
+        placeholder = tf.placeholder(
+            dtype=tf.int64,
+            shape=[None, None],
+            name=name)
 
-            self.golden_arc_ids = tf.placeholder(tf.bool, shape=[])
-            relevant_arc_ids = tf.cond(self.golden_arc_ids, lambda: self.arc_ids, lambda: _predicted_arc_ids)
+        # shape = (sentence_lengths_sum)
+        ids = tf.boolean_mask(
+            tensor=placeholder,
+            mask=self.model.sentence_lengths_mask)
 
-            relevant_arc_ids = tf.one_hot(relevant_arc_ids, tf.shape(words_root)[1], on_value=True, off_value=False, dtype=tf.bool)
-            relevant_arc_ids = tf.reshape(relevant_arc_ids, [-1])
-            relevant_arcs = tf.boolean_mask(all_combinations, relevant_arc_ids)
-            relevant_arcs = tf.boolean_mask(relevant_arcs, seq_mask)
+        # shape = (sentence_lengths_sum x depth)
+        one_hots = tf.one_hot(
+            indices=ids,
+            depth=depth)
 
-            self.true_labels = tf.placeholder(tf.int64, shape=[None, None], name="labels")
-            labels = tf.reshape(self.true_labels, [-1])
-            labels = tf.boolean_mask(labels, seq_mask)
-            one_hot_labels = tf.one_hot(labels, len(self.dl.task_vocabs['dep']))
+        return self.PairLabel(placeholder, ids, one_hots)
 
-            W3 = tf.get_variable("W3", dtype=tf.float32, shape=[hidden, len(self.dl.task_vocabs['dep'])])
-            b3 = tf.get_variable("b3", dtype=tf.float32, shape=[len(self.dl.task_vocabs['dep'])])
-            predicted_arc_labels = tf.matmul(relevant_arcs, W3) + b3
-            predicted_arc_labels_ids = tf.argmax(predicted_arc_labels, axis=1)
-            loss_las = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(
-                labels=one_hot_labels,
-                logits=predicted_arc_labels,
-                dim=-1,
-            ))
+    def add_pairs(self, cont_repr):
+        batch_size = tf.shape(cont_repr)[0]
+        max_sentence_length = tf.shape(cont_repr)[1]
 
+        root = tf.get_variable(
+            name="root_vector",
+            shape=[1, 1, 2 * self.config.word_lstm_size],
+            dtype=tf.float32)
+        root = tf.tile(
+            input=root,
+            multiples=[batch_size, 1, 1])
 
-            predicted_arc_ids = tf.boolean_mask(predicted_arc_ids, seq_mask)
-            uas = tf.equal(predicted_arc_ids, _arc_ids)
-            las = tf.logical_and(tf.equal(predicted_arc_labels_ids, labels), uas)
-            self.uas = tf.reduce_sum(tf.count_nonzero(uas))
-            self.las = tf.reduce_sum(tf.count_nonzero(las))
+        cont_repr_with_root = tf.concat(
+            values=[root, cont_repr],
+            axis=1)
 
-            combinations = tf.boolean_mask(combinations, seq_mask)
-            arc_one_hots = tf.one_hot(_arc_ids, tf.shape(words_root)[1])  # length+1
-            loss_uas = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(
-                labels=arc_one_hots,
-                logits=combinations,
-                dim=-1,
-            ))
-            self.loss = loss_las + loss_uas
+        tile_a = tf.tile(
+            input=tf.expand_dims(cont_repr, 2),
+            multiples=[1, 1, max_sentence_length + 1, 1])
+        tile_b = tf.tile(
+            input=tf.expand_dims(cont_repr_with_root, 1),
+            multiples=[1, max_sentence_length, 1, 1])
 
-        self.train_op = self.add_train_op(self.loss, self.task_code())
+        # shape = (batch_size, max_sentence_length, max_sentence_length+1, 4*word_lstm_size)
+        pairs = tf.concat(
+            values=[tile_a, tile_b],
+            axis=3)
 
+        valid_pairs = tf.boolean_mask(
+            tensor=pairs,
+            mask=self.model.sentence_lengths_mask)
 
-    def train(self, minibatch, dataset):
-        *_, desired_labels, desired_arcs = minibatch
+        valid_pairs_repr = tf.layers.dense(
+            inputs=valid_pairs,
+            units=300,  # FIXME: config?
+            activation=tf.nn.relu)
 
-        fd = self.train_feed_dict(minibatch, dataset)
+        return valid_pairs_repr
+
+    def train(self, batch, dataset):
+        *_, desired_labels, desired_arcs = batch
+
+        fd = self.train_feed_dict(batch, dataset)
         fd.update({
-            self.arc_ids: desired_arcs,
-            self.true_labels: desired_labels,
-            self.golden_arc_ids: True
+            self.desired_arcs.placeholder: desired_arcs,
+            self.desired_labels.placeholder: desired_labels,
+            self.use_desired_arcs: True
         })
-
         self.model.sess.run(self.train_op, feed_dict=fd)
 
-    def evaluate(self, set_iterator, task_code):
-        uases = 0
-        lases = 0
-        size = 0
-        losses = []
+    def evaluate(self, iterator, dataset):
 
-        for i, minibatch in enumerate(set_iterator):
-            word_ids, sentence_lengths, char_ids, word_lengths, label_ids, arcs = minibatch
+        results = []
 
-            fd = {
-                self.word_ids: word_ids,
-                self.true_labels[task_code]: label_ids,
-                self.sequence_lengths: sentence_lengths,
-                self.dropout: 1,
-                self.word_lengths: word_lengths,
-                self.char_ids: char_ids,
-                self.arc_ids: arcs,
-                self.golden_arc_ids: False,
-                self.language_flags[dev_set.lang]: True
-            }
+        for batch in iterator:
+            *_, desired_labels, desired_arcs = batch
+            fd = self.test_feed_dict(batch, dataset)
+            fd.update({
+                self.desired_arcs.placeholder: desired_arcs,
+                self.desired_labels.placeholder: desired_labels,
+                self.use_desired_arcs: False
+            })
+            batch_results = self.model.sess.run(
+                fetches=[self.loss, self.uas, self.las, self.model.total_batch_length],
+                feed_dict=fd
+            )
+            results.append(batch_results)
 
-            uas, las, loss = self.sess.run([self.uas, self.las, self.loss[task_code]], feed_dict=fd)
-            uases += uas
-            lases += las
-            size += np.sum(sentence_lengths)
-            losses.append(loss)
-
-        output = {'uas': float(uases) / size, 'loss': np.mean(losses), 'las': float(lases) / size}
+        loss, uas, las, length = zip(*results)
+        return {
+            'loss': np.mean(loss),
+            'uas': sum(uas)/sum(length),
+            'las': sum(las)/sum(length)
+        }

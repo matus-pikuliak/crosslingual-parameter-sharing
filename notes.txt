@@ -150,4 +150,12 @@ Pri prezreti slov, ktore sa nenasli v embeddingoch mi naslo vela slov, ktore
 - taktiez slova s bodkami <<mr.>>, <<u.s.>>
 Bolo by fajn pozriet sa na to a zjednotit to, problem je, ze v POS tagoch napr. potom nie su tagy pre rozdelene slova a pod.
 
+# Co mozno skumat v MLMT nastaveni?
+- vyvoj loss / performance
+- aktivacie na word a sentence-level LSTM layeroch - pouzivajus a rovnomerne? ako s tym zamava adversarial learning? vizualizacie
+- matice, ktore nasleduju za tymito layermi - pouzivaju neurony rovnomerne? nerozdeli si model parameter space pre
+  jednotlive ulohy? ako sa budu modely chovat pri zvysovani kapacity (MLMT by z toho mal profitovat najviac)
+  - tato matica by sa mala dat do modelu pridat v configu, inak by tam nemusela byt (je zhorsenie casovej narocnosti pridania takejto matice badatelne?)
+- ake su techniky na analyzu takychto modelov? zakladne statistiky, SVCCA, co este?
+
 

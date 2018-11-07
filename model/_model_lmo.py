@@ -3,6 +3,8 @@ import tensorflow as tf
 
 class LMOModel:
 
+    # TODO: when iterating files, at least start at random position
+
     def add_task_layer(self, task_code, lang):
         with tf.variable_scope(task_code):
             max_len = tf.reduce_max(self.sequence_lengths)

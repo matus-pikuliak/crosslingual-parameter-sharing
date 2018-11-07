@@ -14,8 +14,8 @@ class Layer:
     def task_code(self):
         return self.model.task_code(self.task, self.lang)
 
-    def basic_feed_dict(self, minibatch, dataset):
-        word_ids, sentence_lengths, char_ids, word_lengths, *_ = minibatch
+    def basic_feed_dict(self, batch, dataset):
+        word_ids, sentence_lengths, char_ids, word_lengths, *_ = batch
 
         return {
             self.model.word_ids: word_ids,
@@ -25,16 +25,16 @@ class Layer:
             self.model.lang_flags[dataset.lang]: True
         }
 
-    def train_feed_dict(self, minibatch, dataset):
-        fd = self.basic_feed_dict(minibatch, dataset)
+    def train_feed_dict(self, batch, dataset):
+        fd = self.basic_feed_dict(batch, dataset)
         fd.update({
             self.model.learning_rate: self.model.current_learning_rate(),
             self.model.dropout: self.model.config.dropout
         })
         return fd
 
-    def test_feed_dict(self, minibatch, dataset):
-        fd = self.basic_feed_dict(minibatch, dataset)
+    def test_feed_dict(self, batch, dataset):
+        fd = self.basic_feed_dict(batch, dataset)
         fd.update({
             self.model.dropout: 1
         })

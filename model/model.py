@@ -13,6 +13,7 @@ from constants import LOG_RESULT as RESULT
 
 from model.layer_ner import NERLayer
 from model.layer_pos import POSLayer
+from model.layer_dep import DEPLayer
 
 class Model(GeneralModel):
 
@@ -31,6 +32,7 @@ class Model(GeneralModel):
 
     def _build_graph(self):
         self.add_inputs()
+        self.add_utils()
         word_repr = self.add_word_processing()
         cont_repr = self.add_sentence_processing(word_repr)
         self.add_task_layers(cont_repr)
@@ -47,7 +49,6 @@ class Model(GeneralModel):
             dtype=tf.int32,
             shape=[None],
             name='sentence_lengths')
-        self.sentence_lengths_mask = tf.sequence_mask(self.sentence_lengths)
 
         # shape = (batch_size, max_sentence_length, max_word_length)
         self.char_ids = tf.placeholder(
@@ -143,6 +144,15 @@ class Model(GeneralModel):
                 new_layer = layer_class(self, task, lang, cont_repr)
                 Layer.layers[task_code] = new_layer
 
+    def add_utils(self):
+        '''
+        Several useful nodes.
+        '''
+
+        self.sentence_lengths_mask = tf.sequence_mask(self.sentence_lengths)
+
+        self.total_batch_length = tf.reduce_sum(self.sentence_lengths)
+
     def run_experiment(self):
         start_time = datetime.datetime.now()
         self.log(f'Run started {start_time}', CRITICAL)
@@ -218,7 +228,7 @@ class Model(GeneralModel):
             if avg_pool:
                 out = tf.reduce_sum(out, axis=1)
                 div_mask = tf.cast(sequence_lengths, tf.float32)
-                div_mask = tf.expand_dims(div_mask, axis=-1)  # Axis needed for proper dimension broadcasting.
+                div_mask = tf.expand_dims(div_mask, axis=-1)  # Axis needed for broadcasting.
                 out = tf.divide(out, div_mask)
 
             if dropout:
