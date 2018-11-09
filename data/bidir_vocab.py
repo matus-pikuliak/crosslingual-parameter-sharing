@@ -5,7 +5,7 @@ class BidirVocab:
 
     def __init__(self, tokens):
         self.t2id = {word: i for i, word in enumerate(tokens)}
-        self.id2t = {i:word for i, word in enumerate(tokens)}
+        self.id2t = {i: word for i, word in enumerate(tokens)}
 
     def __len__(self):
         return len(self.t2id)

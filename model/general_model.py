@@ -22,6 +22,7 @@ class GeneralModel:
             grads, _ = tf.clip_by_global_norm(grads, self.config.clip)
         return self.optimizer.apply_gradients(zip(grads, vs))
         # FIXME: gradient_notm?
+        # FIXME: task_code is redundant
 
     def current_learning_rate(self):
 

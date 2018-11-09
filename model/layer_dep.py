@@ -101,8 +101,7 @@ class DEPLayer(Layer):
     def add_uas(self, pairs_repr):
         predicted_arcs_logits = tf.layers.dense(
             inputs=pairs_repr,
-            units=1
-        )
+            units=1)
         # FIXME: add -1000 for impossible predictions? out of range words and pairs of same words
         predicted_arcs_logits = tf.squeeze(
             input=predicted_arcs_logits,
@@ -110,7 +109,11 @@ class DEPLayer(Layer):
         predicted_arcs_ids = tf.argmax(
             input=predicted_arcs_logits,
             axis=-1)
-        self.uas = tf.count_nonzero(tf.equal(predicted_arcs_ids, self.desired_arcs.ids))
+        self.uas = tf.count_nonzero(
+            tf.equal(
+                predicted_arcs_ids,
+                self.desired_arcs.ids
+            ))
 
         uas_loss = tf.nn.softmax_cross_entropy_with_logits_v2(
             labels=self.desired_arcs.one_hots,
@@ -180,8 +183,7 @@ class DEPLayer(Layer):
             })
             batch_results = self.model.sess.run(
                 fetches=[self.loss, self.uas, self.las, self.model.total_batch_length],
-                feed_dict=fd
-            )
+                feed_dict=fd)
             results.append(batch_results)
 
         loss, uas, las, length = zip(*results)
