@@ -17,7 +17,7 @@ class SQTLayer(Layer):
 
             hidden = tf.layers.dense(
                 inputs=cont_repr,
-                units=200,
+                units=self.model.config.hidden_size,
                 activation=tf.nn.relu)
 
             # shape = (batch_size, max_sentence_length, tag_count)

@@ -6,8 +6,6 @@ from model.layer import Layer
 
 class LMOLayer(Layer):
 
-    # TODO: when iterating files, at least start at random position; deal with output vocab limitations
-
     def __init__(self, model, task, lang, cont_repr):
         Layer.__init__(self, model, task, lang, cont_repr)
         self.build_graph(cont_repr)
@@ -20,18 +18,22 @@ class LMOLayer(Layer):
             future = self.add_future(cont_repr)
             # shape = (sentence_lengths_sum x 2*word_lstm_size)
             context = tf.concat([past, future], axis=1)
-            # TODO: add weights matrix similar to other tasks (check if it is in other tasks)
-            # TODO: add some additional hidden layers?
-            predicted_word_logits = tf.layers.dense(
+
+            hidden = tf.layers.dense(
                 inputs=context,
+                units=self.model.config.hidden_size,
+                activation=tf.nn.relu)
+
+            predicted_word_logits = tf.layers.dense(
+                inputs=hidden,
                 units=len(self.model.dl.lang_vocabs[self.lang]))
 
-            desired_word_ids = self.add_desired_word_ids()
+            desired_word_ids = self.add_desired_word_ids() # TODO: word filtering
 
             loss = tf.nn.sparse_softmax_cross_entropy_with_logits(
                 labels=desired_word_ids,
                 logits=predicted_word_logits)
-            self.perplexity = tf.exp(loss)
+            self.perplexity = tf.reduce_sum(tf.exp(loss))
             self.loss = tf.reduce_mean(loss)
 
         self.train_op = self.model.add_train_op(self.loss, self.task_code())
@@ -54,6 +56,7 @@ class LMOLayer(Layer):
             value=fw_repr,
             num_or_size_splits=[-1, 1],
             axis=1)
+
         fw_repr = tf.concat(
             values=[start_tag, fw_repr],
             axis=1)
@@ -75,7 +78,7 @@ class LMOLayer(Layer):
             value=cont_repr,
             num_or_size_splits=2,
             axis=2)
-        bw_repr = tf.manip.roll( # FIXME: manip is deprecated in 1.12 ??
+        bw_repr = tf.manip.roll(  # FIXME: manip is deprecated in 1.12 ??
             input=bw_repr,
             shift=-1,
             axis=1)
@@ -92,8 +95,7 @@ class LMOLayer(Layer):
         bw_repr = tf.where(
             condition=mask,
             x=bw_repr,
-            y=end_tag
-        )
+            y=end_tag)
 
         bw_repr = tf.boolean_mask(
             tensor=bw_repr,
@@ -105,7 +107,6 @@ class LMOLayer(Layer):
             tensor=self.model.word_ids,
             mask=self.model.sentence_lengths_mask)
 
-
     def train(self, batch, dataset):
         fd = self.train_feed_dict(batch, dataset)
         self.model.sess.run(self.train_op, feed_dict=fd)
@@ -114,9 +115,15 @@ class LMOLayer(Layer):
         results = []
         for batch in iterator:
             fd = self.test_feed_dict(batch, dataset)
+            # FIXME: this is avx ready version
+            # batch_results = self.model.sess.run(
+            #     fetches=[self.loss, self.perplexity, self.model.total_batch_length],
+            #     feed_dict=fd)
             batch_results = self.model.sess.run(
-                fetches=[self.loss, self.perplexity, self.model.total_batch_length],
+                fetches=[self.loss, self.perplexity],
                 feed_dict=fd)
+            batch_results.append(sum(fd[self.model.sentence_lengths]))
+
             results.append(batch_results)
 
         loss, perplexity, length = zip(*results)

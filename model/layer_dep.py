@@ -28,10 +28,18 @@ class DEPLayer(Layer):
                 shape=[],
                 name='use_desired_arcs_flag')
 
+            hidden = tf.layers.dense(
+                inputs=cont_repr,
+                units=self.model.config.hidden_size,
+                activation=tf.nn.relu)
             # shape = (sentence_lengths_sum x max_sentence_length+1 x hidden)
-            pairs_repr = self.add_pairs(cont_repr)
-            predicted_arcs_ids, uas_loss = self.add_uas(pairs_repr)
-            las_loss = self.add_las(pairs_repr, predicted_arcs_ids, tag_count)
+            pairs_repr = self.add_pairs(hidden)
+            pairs_hidden = tf.layers.dense(
+                inputs=pairs_repr,
+                units=self.model.config.hidden_size,
+                activation=tf.nn.relu)
+            predicted_arcs_ids, uas_loss = self.add_uas(pairs_hidden)
+            las_loss = self.add_las(pairs_hidden, predicted_arcs_ids, tag_count)
             self.loss = (uas_loss + las_loss) / 2
 
         self.train_op = self.model.add_train_op(self.loss, self.task_code())

@@ -1,4 +1,4 @@
-default: &defaultK
+default: &default
   slack_token: token_here
   slack_channel: channel_name # or '@user'
   data_path: /path/to/data

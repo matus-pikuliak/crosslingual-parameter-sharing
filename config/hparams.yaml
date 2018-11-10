@@ -7,8 +7,9 @@ default: &default
   char_level: true
 
   task_layer_sharing: true
-  word_lstm_size: 150
+  word_lstm_size: 200
   char_lstm_size: 100
+  hidden_size: 200 # universal hidden size used for task-specific computations
 
   learning_rate: 0.003
   learning_rate_decay: 0.99
@@ -19,8 +20,6 @@ default: &default
   clip: 1
   dropout: 0.5
   optimizer: adam # rmsprop/adam/adagrad/sgd
-
-  lmo_vocab_size: 10000 # how many words are output vocabulary for language modeling
 
   limited_data_size: -1 # max number of samples read from a file (-1 is unlimited)
   limited_language: na
@@ -34,6 +33,8 @@ default: &default
   min_word_freq: 1
   min_char_freq: 100
   max_dataset_cache: 200000
+
+  # experiment specific settings
 
   # settings
   tasks: null
