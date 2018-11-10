@@ -14,8 +14,6 @@ class GeneralModel:
         self.name = datetime.now().strftime('%Y-%m-%d-%H%M%S')
         self.logger = self.initialize_logger()
 
-    type = tf.float32
-
     def add_train_op(self, loss, task_code):
         grads, vs = zip(*self.optimizer.compute_gradients(loss))
         if self.config.clip > 0:
@@ -37,11 +35,11 @@ class GeneralModel:
 
         def add_hyperparameters(self):
             self.learning_rate = tf.placeholder(
-                dtype=self.type, shape=[], name="lr"
+                dtype=tf.float32, shape=[], name="lr"
             )
 
             self.dropout = tf.placeholder(
-                dtype=self.type, shape=[], name="dropout"
+                dtype=tf.float32, shape=[], name="dropout"
             )
 
             # optimizer

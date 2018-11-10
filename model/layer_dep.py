@@ -15,12 +15,11 @@ class DEPLayer(Layer):
     def build_graph(self, cont_repr):
 
         with tf.variable_scope(self.task_code()):
-            max_sentence_length = tf.shape(cont_repr)[1]
             tag_count = len(self.model.dl.task_vocabs[self.task])
 
             self.desired_arcs = self.add_pair_labels(
                 name='desired_arcs',
-                depth=max_sentence_length+1)
+                depth=self.model.max_length+1)
             self.desired_labels = self.add_pair_labels(
                 name='desired_labels',
                 depth=tag_count)
@@ -32,7 +31,7 @@ class DEPLayer(Layer):
             # shape = (sentence_lengths_sum x max_sentence_length+1 x hidden)
             pairs_repr = self.add_pairs(cont_repr)
             predicted_arcs_ids, uas_loss = self.add_uas(pairs_repr)
-            las_loss = self.add_las(pairs_repr, predicted_arcs_ids, max_sentence_length, tag_count)
+            las_loss = self.add_las(pairs_repr, predicted_arcs_ids, tag_count)
             self.loss = (uas_loss + las_loss) / 2
 
         self.train_op = self.model.add_train_op(self.loss, self.task_code())
@@ -60,8 +59,6 @@ class DEPLayer(Layer):
         return self.PairLabel(placeholder, ids, one_hots)
 
     def add_pairs(self, cont_repr):
-        batch_size = tf.shape(cont_repr)[0]
-        max_sentence_length = tf.shape(cont_repr)[1]
 
         root = tf.get_variable(
             name="root_vector",
@@ -69,7 +66,7 @@ class DEPLayer(Layer):
             dtype=tf.float32)
         root = tf.tile(
             input=root,
-            multiples=[batch_size, 1, 1])
+            multiples=[self.model.batch_size, 1, 1])
 
         cont_repr_with_root = tf.concat(
             values=[root, cont_repr],
@@ -77,10 +74,10 @@ class DEPLayer(Layer):
 
         tile_a = tf.tile(
             input=tf.expand_dims(cont_repr, 2),
-            multiples=[1, 1, max_sentence_length + 1, 1])
+            multiples=[1, 1, self.model.max_length + 1, 1])
         tile_b = tf.tile(
             input=tf.expand_dims(cont_repr_with_root, 1),
-            multiples=[1, max_sentence_length, 1, 1])
+            multiples=[1, self.model.max_length, 1, 1])
 
         # shape = (batch_size, max_sentence_length, max_sentence_length+1, 4*word_lstm_size)
         pairs = tf.concat(
@@ -122,7 +119,7 @@ class DEPLayer(Layer):
 
         return predicted_arcs_ids, uas_loss
 
-    def add_las(self, pairs_repr, predicted_arcs_ids, max_sentence_length, tag_count):
+    def add_las(self, pairs_repr, predicted_arcs_ids, tag_count):
 
         selected_arcs_ids = tf.cond(
             pred=self.use_desired_arcs,
@@ -130,7 +127,7 @@ class DEPLayer(Layer):
             false_fn=lambda: predicted_arcs_ids)
         selected_arcs_mask = tf.one_hot(
             indices=selected_arcs_ids,
-            depth=max_sentence_length + 1,
+            depth=self.model.max_length + 1,
             on_value=True,
             off_value=False,
             dtype=tf.bool)

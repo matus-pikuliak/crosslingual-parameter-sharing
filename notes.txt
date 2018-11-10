@@ -15,9 +15,11 @@ Dlzka vety je maximalne 70, minimalne 2.
 - spanish - CoNLL'02 (PER, LOC, ORG, MISC)
 - german - germeval (PER, LOC, ORG, MISC)
 - czech - czech named entity corpus (p - PER, g - LOC, i+ms - ORG, oa+op - MISC)
-- only first level annotation (v Germeval mali aj second level, cize napr. v Univercity Jena bola Jena aj cast ORG, ale zaroven aj LOC)
+- only first level annotation (v Germeval mali aj second level, cize napr. v Univercity Jena bola Jena aj cast ORG, ale
+  zaroven aj LOC)
 - Xpart (cast je NER nazov) a Xderiv (odvodene slova) vyhodene
-- v anotovani su nezrovnalosti, nemecky napr. anotuju omnoho viac javov ako anglicky (vratane napr. nazvov mien, znaciek)
+- v anotovani su nezrovnalosti, nemecky napr. anotuju omnoho viac javov ako anglicky (vratane napr. nazvov mien,
+  znaciek)
 - vsetky konvertovat na BIO + PLOM
 - odstranene vety, kde viac ako 50% tvorili cisla
 
@@ -125,12 +127,6 @@ Co treba skusit:
 - treba sa pozriet preco je velky rozdiel medzi dev a test a ci by ich vymena zamavala poradim
 - MLMT ma problem fitnut training data, mozno pomoze lepsi task sampling
 
-# daj do prace
-
-pri sledovani metrik na train-dev je jasne, ze MLMT ma problem ich overfitnut, je tam privela signalu navyse, ktory to od optima odtrha. Opat to iste, ani po 30 epochach sa to nedostalo pri fitovani train dat na uroven SLST. - Je to poducene alebo v lokalnom?
-
-To ze je to horsie naucene badat aj pri analyze loss.
-
 LOSS 500
 Pri POS sa sprava ako sa ocakava - po prechode na fine tuning zacne rapidne stupat, pricom skore klesa
 Pri NER azcne stupat najme pri ML*, ale skore sa aj tak zlepsuje pri fine tuningu.
@@ -148,14 +144,21 @@ Pri prezreti slov, ktore sa nenasli v embeddingoch mi naslo vela slov, ktore
 - boli cislami (v MUSE je tag # - su to cisla?)
 - kusky textu s apostrofami ('s, 'll) - toto je v mUSE rozbite na <<'>> a <<ll>> napr.
 - taktiez slova s bodkami <<mr.>>, <<u.s.>>
-Bolo by fajn pozriet sa na to a zjednotit to, problem je, ze v POS tagoch napr. potom nie su tagy pre rozdelene slova a pod.
+- bolo by fajn pozriet sa na to a zjednotit to, problem je, ze v POS tagoch napr. potom nie su tagy pre rozdelene
+  slova a pod.
 
 # Co mozno skumat v MLMT nastaveni?
 - vyvoj loss / performance
-- aktivacie na word a sentence-level LSTM layeroch - pouzivajus a rovnomerne? ako s tym zamava adversarial learning? vizualizacie
+- aktivacie na word a sentence-level LSTM layeroch - pouzivajus a rovnomerne? ako s tym zamava adversarial learning?
+  vizualizacie
 - matice, ktore nasleduju za tymito layermi - pouzivaju neurony rovnomerne? nerozdeli si model parameter space pre
   jednotlive ulohy? ako sa budu modely chovat pri zvysovani kapacity (MLMT by z toho mal profitovat najviac)
-  - tato matica by sa mala dat do modelu pridat v configu, inak by tam nemusela byt (je zhorsenie casovej narocnosti pridania takejto matice badatelne?)
+  - tato matica by sa mala dat do modelu pridat v configu, inak by tam nemusela byt (je zhorsenie casovej narocnosti
+    pridania takejto matice badatelne?)
 - ake su techniky na analyzu takychto modelov? zakladne statistiky, SVCCA, co este?
+- mozeme sledovat, ako sa vyvija performance na nesuvisiacich taskoch. mozeme predpokladat ze pri ML sa to bude
+  zlepsovat, aj ked model dany jazyk nikdy nevidel?
+- ako reaguju rozlicne nastavenia na rozlicnu kapacitu word-level LSTM. mozeme predpokladat, ze pri viacerych taskoch
+  bude vediet model vacsiu kapacitu lepsie vyuzit
 
 

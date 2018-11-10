@@ -14,6 +14,7 @@ from constants import LOG_RESULT as RESULT
 from model.layer_ner import NERLayer
 from model.layer_pos import POSLayer
 from model.layer_dep import DEPLayer
+from model.layer_lmo import LMOLayer
 
 class Model(GeneralModel):
 
@@ -24,11 +25,11 @@ class Model(GeneralModel):
 
     def task_code(self, task, lang):
         if task == 'lmo':
-            return (task, lang)
+            return f'{task}-{lang}'
         if self.config.task_layer_sharing:
             return task
         else:
-            return (task, lang)
+            return f'{task}-{lang}'
 
     def _build_graph(self):
         self.add_inputs()
@@ -73,15 +74,23 @@ class Model(GeneralModel):
 
         word_emb_matrix = self.add_word_emb_matrices()
         self.word_embeddings = tf.nn.embedding_lookup(
-            params=word_emb_matrix, ids=self.word_ids, name="word_embeddings_lookup"
-        )
+            params=word_emb_matrix,
+            ids=self.word_ids,
+            name="word_embeddings_lookup")
 
         if self.config.char_level:
             char_embeddings = self.add_char_embeddings()
-            self.word_embeddings = tf.concat([self.word_embeddings, char_embeddings], axis=-1)
+            self.word_embeddings = tf.concat(
+                values=[self.word_embeddings, char_embeddings],
+                axis=-1)
 
-        self.word_embeddings = tf.nn.dropout(self.word_embeddings, self.dropout)
-        self.word_embeddings = tf.where(tf.is_nan(self.word_embeddings), tf.zeros_like(self.word_embeddings), self.word_embeddings)
+        self.word_embeddings = tf.nn.dropout(
+            x=self.word_embeddings,
+            keep_prob=self.dropout)
+        self.word_embeddings = tf.where(
+            condition=tf.is_nan(self.word_embeddings),
+            x=tf.zeros_like(self.word_embeddings),
+            y=self.word_embeddings)
         # FIXME: why do NaNs go into gradient? they should not go into word level lstm at all
         # TODO: Are zero length words time consuming?
         return self.word_embeddings
@@ -89,8 +98,8 @@ class Model(GeneralModel):
     def add_word_emb_matrices(self):
         emb_matrices = {
             lang: tf.get_variable(
-                dtype=self.type,
-                initializer=tf.cast(self.load_embeddings(lang), self.type),
+                dtype=tf.float32,
+                initializer=tf.cast(self.load_embeddings(lang), tf.float32),
                 trainable=self.config.train_emb,
                 name=f'word_embedding_matrix_{lang}')
             for lang in self.langs
@@ -100,11 +109,13 @@ class Model(GeneralModel):
             self.lang_flags[lang]: (lambda lang: lambda: emb_matrices[lang])(lang)
             for lang in self.langs
         }
-        return tf.case(pred_fn_pairs=pred_fn_pairs, exclusive=True)  # TODO: when all are false it will pick default?
+        return tf.case(
+            pred_fn_pairs=pred_fn_pairs,
+            exclusive=True)  # TODO: when all are false it will pick default? Add control_dependency?
 
     def add_char_embeddings(self):
         emb_matrix = tf.get_variable(
-            dtype=self.type,
+            dtype=tf.float32,
             shape=(len(self.dl.char_vocab), self.config.char_emb_size),
             name="char_embeddings")
 
@@ -116,8 +127,12 @@ class Model(GeneralModel):
         shape = tf.shape(char_embeddings)
         max_sentence, max_word = shape[1], shape[2]
 
-        char_embeddings = tf.reshape(char_embeddings, [-1, max_word, self.config.char_emb_size])
-        word_lengths = tf.reshape(self.word_lengths, [-1])
+        char_embeddings = tf.reshape(
+            tensor=char_embeddings,
+            shape=[-1, max_word, self.config.char_emb_size])
+        word_lengths = tf.reshape(
+            tensor=self.word_lengths,
+            shape=[-1])
         char_lstm_out = self.lstm(
             inputs=char_embeddings,
             sequence_lengths=word_lengths,
@@ -126,7 +141,9 @@ class Model(GeneralModel):
             avg_pool=True,
             dropout=False)
 
-        char_lstm_out = tf.reshape(char_lstm_out, [-1, max_sentence, 2 * self.config.char_lstm_size])
+        char_lstm_out = tf.reshape(
+            tensor=char_lstm_out,
+            shape=[-1, max_sentence, 2 * self.config.char_lstm_size])
         return char_lstm_out
 
     def add_sentence_processing(self, word_repr):
@@ -148,10 +165,10 @@ class Model(GeneralModel):
         '''
         Several useful nodes.
         '''
-
         self.sentence_lengths_mask = tf.sequence_mask(self.sentence_lengths)
-
         self.total_batch_length = tf.reduce_sum(self.sentence_lengths)
+        self.batch_size = tf.shape(self.word_ids)[0]
+        self.max_length = tf.shape(self.word_ids)[1]
 
     def run_experiment(self):
         start_time = datetime.datetime.now()
@@ -199,7 +216,9 @@ class Model(GeneralModel):
 
     def load_embeddings(self, lang):
         emb_path = os.path.join(self.config.emb_path, lang)
-        emb_matrix = np.zeros((len(self.dl.lang_vocabs[lang]), self.config.word_emb_size), dtype=np.float)
+        emb_matrix = np.zeros(
+            shape=(len(self.dl.lang_vocabs[lang]), self.config.word_emb_size),
+            dtype=np.float)
         with open(emb_path, 'r') as f:
             next(f)  # skip first line with dimensions
             for line in f:
@@ -220,18 +239,32 @@ class Model(GeneralModel):
             cell_fw = tf.contrib.cudnn_rnn.CudnnCompatibleLSTMCell(cell_size)
             cell_bw = tf.contrib.cudnn_rnn.CudnnCompatibleLSTMCell(cell_size)
             (out_fw, out_bw), _ = tf.nn.bidirectional_dynamic_rnn(
-                cell_fw, cell_bw, inputs, sequence_lengths, dtype=self.type)
+                cell_fw=cell_fw,
+                cell_bw=cell_bw,
+                inputs=inputs,
+                sequence_length=sequence_lengths,
+                dtype=tf.float32)
 
             # shape = (batch_size, max(sequence_lengths), 2*cell_size)
-            out = tf.concat([out_fw, out_bw], axis=-1)
+            out = tf.concat(
+                values=[out_fw, out_bw],
+                axis=-1)
 
             if avg_pool:
-                out = tf.reduce_sum(out, axis=1)
-                div_mask = tf.cast(sequence_lengths, tf.float32)
-                div_mask = tf.expand_dims(div_mask, axis=-1)  # Axis needed for broadcasting.
-                out = tf.divide(out, div_mask)
+                out = tf.reduce_sum(
+                    input_tensor=out,
+                    axis=1)
+                div_mask = tf.cast(
+                    x=sequence_lengths,
+                    dtype=tf.float32)
+                div_mask = tf.expand_dims(
+                    input=div_mask,
+                    axis=-1)  # Axis needed for broadcasting.
+                out = out / div_mask
 
             if dropout:
-                out = tf.nn.dropout(out, self.dropout)
+                out = tf.nn.dropout(
+                    x=out,
+                    keep_prob=self.dropout)
 
             return out

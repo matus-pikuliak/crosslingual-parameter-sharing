@@ -14,6 +14,7 @@ class SQTLayer(Layer):
         tag_count = len(self.model.dl.task_vocabs[self.task])
 
         with tf.variable_scope(self.task_code()):
+
             hidden = tf.layers.dense(
                 inputs=cont_repr,
                 units=200,

@@ -18,55 +18,92 @@ class LMOLayer(Layer):
 
             past = self.add_past(cont_repr)
             future = self.add_future(cont_repr)
-            context = tf.concat([past, future], axis=2)
-            predicted_word_ids = ...
+            # shape = (sentence_lengths_sum x 2*word_lstm_size)
+            context = tf.concat([past, future], axis=1)
+            # TODO: add weights matrix similar to other tasks (check if it is in other tasks)
+            # TODO: add some additional hidden layers?
+            predicted_word_logits = tf.layers.dense(
+                inputs=context,
+                units=len(self.model.dl.lang_vocabs[self.lang]))
 
             desired_word_ids = self.add_desired_word_ids()
 
-            # TODO: context operations? some hidden layers?
-
-            self.loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(
+            loss = tf.nn.sparse_softmax_cross_entropy_with_logits(
                 labels=desired_word_ids,
-                logits=predicted_word_ids,
-            ))
+                logits=predicted_word_logits)
+            self.perplexity = tf.exp(loss)
+            self.loss = tf.reduce_mean(loss)
 
         self.train_op = self.model.add_train_op(self.loss, self.task_code())
 
     def add_past(self, cont_repr):
-        start_vec = tf.get_variable('start_vec', shape=[self.config.word_lstm_size], dtype=self.type)
-        start_vec = tf.expand_dims(start_vec, 0)
-        start_vec = tf.tile(start_vec, [batch_size, 1])
-        start_vec = tf.expand_dims(start_vec, 1)
-        _fd, _ = tf.split(self.lstm_fw, [max_len - 1, 1], axis=1)
-        _fd = tf.concat([start_vec, _fd], 1)
+
+        start_tag = tf.get_variable(
+            name='start_tag',
+            shape=[1, 1, self.config.word_lstm_size],
+            dtype=tf.float32)
+        start_tag = tf.tile(
+            input=start_tag,
+            multiples=[self.model.batch_size, 1, 1])
+
+        fw_repr, _ = tf.split(
+            value=cont_repr,
+            num_or_size_splits=2,
+            axis=2)
+        fw_repr, _ = tf.split(
+            value=fw_repr,
+            num_or_size_splits=[-1, 1],
+            axis=1)
+        fw_repr = tf.concat(
+            values=[start_tag, fw_repr],
+            axis=1)
+        fw_repr = tf.boolean_mask(
+            tensor=fw_repr,
+            mask=self.model.sentence_lengths_mask)
+        return fw_repr
 
     def add_future(self, cont_repr):
-        end_vec = tf.get_variable('end_vec', shape=[self.config.word_lstm_size], dtype=self.type)
-        end_vec = tf.expand_dims(end_vec, 0)
-        end_vec = tf.tile(end_vec, [batch_size, 1])
-        end_vec = tf.expand_dims(end_vec, 1)
-        one_hot = tf.one_hot(self.sequence_lengths - 1, max_len)
-        one_hot = tf.expand_dims(one_hot, 2)
-        end_vec = tf.matmul(one_hot, end_vec)
+        end_tag = tf.get_variable(
+            name='end_tag',
+            shape=[1, 1, self.config.word_lstm_size],
+            dtype=tf.float32)
+        end_tag = tf.tile(
+            input=end_tag,
+            multiples=[self.model.batch_size, self.model.max_length, 1])
 
-        _, _bd = tf.split(self.lstm_fw, [1, max_len - 1], axis=1)
-        zeros = tf.zeros([batch_size, 1, self.config.word_lstm_size], dtype=self.type)
-        _bd = tf.concat([_bd, zeros], 1)
-        _bd = _bd + end_vec
+        _, bw_repr = tf.split(
+            value=cont_repr,
+            num_or_size_splits=2,
+            axis=2)
+        bw_repr = tf.manip.roll( # FIXME: manip is deprecated in 1.12 ??
+            input=bw_repr,
+            shift=-1,
+            axis=1)
+
+        mask = tf.sequence_mask(
+            lengths=self.model.sentence_lengths - 1,
+            maxlen=self.model.max_length)
+        mask = tf.expand_dims(
+            input=mask,
+            axis=-1)
+        mask = tf.tile(
+            input=mask,
+            multiples=[1, 1, self.config.word_lstm_size])
+        bw_repr = tf.where(
+            condition=mask,
+            x=bw_repr,
+            y=end_tag
+        )
+
+        bw_repr = tf.boolean_mask(
+            tensor=bw_repr,
+            mask=self.model.sentence_lengths_mask)
+        return bw_repr
 
     def add_desired_word_ids(self):
-        # TODO:  # vocab filtering, flatten word_ids
-        rp = tf.concat([_fd, _bd], axis=2)
-        rp = tf.reshape(rp, [-1, 2 * self.config.word_lstm_size])
-        seq_mask = tf.reshape(tf.sequence_mask(self.sequence_lengths, max_len), [-1])
-        rp = tf.boolean_mask(rp, seq_mask)
-        _ids = tf.boolean_mask(tf.reshape(self.word_ids, [-1]), seq_mask)
-        _ids = tf.where(
-            tf.less(_ids, vocab_size),
-            _ids,
-            tf.zeros(tf.shape(_ids), dtype=tf.int32)
-        )
-        # if id is more than vocab size, it is set to <unk> id = 0
+        return tf.boolean_mask(
+            tensor=self.model.word_ids,
+            mask=self.model.sentence_lengths_mask)
 
 
     def train(self, batch, dataset):
@@ -81,8 +118,6 @@ class LMOLayer(Layer):
                 fetches=[self.loss, self.perplexity, self.model.total_batch_length],
                 feed_dict=fd)
             results.append(batch_results)
-
-        # FIXME: unify how loss is calculated (per word? per sentence? per batch?)
 
         loss, perplexity, length = zip(*results)
         return {
