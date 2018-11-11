@@ -26,9 +26,10 @@ class LMOLayer(Layer):
 
             predicted_word_logits = tf.layers.dense(
                 inputs=hidden,
-                units=len(self.model.dl.lang_vocabs[self.lang]))
+                units=self.vocab_size())
 
-            desired_word_ids = self.add_desired_word_ids() # TODO: word filtering
+            desired_word_ids = self.add_desired_word_ids()
+            self.oink = desired_word_ids
 
             loss = tf.nn.sparse_softmax_cross_entropy_with_logits(
                 labels=desired_word_ids,
@@ -37,6 +38,12 @@ class LMOLayer(Layer):
             self.loss = tf.reduce_mean(loss)
 
         self.train_op = self.model.add_train_op(self.loss, self.task_code())
+
+    def vocab_size(self):
+        return min(
+            len(self.model.dl.lang_vocabs[self.lang]),
+            self.model.config.lmo_vocab_limit
+        )
 
     def add_past(self, cont_repr):
 
@@ -103,9 +110,16 @@ class LMOLayer(Layer):
         return bw_repr
 
     def add_desired_word_ids(self):
-        return tf.boolean_mask(
+        word_ids = tf.boolean_mask(
             tensor=self.model.word_ids,
             mask=self.model.sentence_lengths_mask)
+        word_ids = tf.where(  # adds zero id for <UNK> instead of out of LMO vocab words
+            condition=tf.less(word_ids, self.vocab_size()),
+            x=word_ids,
+            y=tf.zeros(
+                shape=tf.shape(word_ids),
+                dtype=tf.int32))
+        return word_ids
 
     def train(self, batch, dataset):
         fd = self.train_feed_dict(batch, dataset)

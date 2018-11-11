@@ -69,6 +69,7 @@ class DataLoader:
         for lang in self.langs():
             filename = os.path.join(self.config.emb_path, lang)
             with open(filename, 'r') as f:
+                next(f)  # Skip first line with dimensions
                 vocabs[lang] = {line.split()[0]: 0 for line in f}
         return vocabs
 
@@ -89,9 +90,8 @@ class DataLoader:
                 except KeyError:
                     pass
 
-        filter_size = self.config.min_word_freq
         return {
-            lang: LangVocab([word for word, count in self.emb_vocabs[lang].items() if count >= filter_size])
+            lang: LangVocab(self.emb_vocabs[lang], self.config.min_word_freq)
             for lang in self.langs()
         }
 

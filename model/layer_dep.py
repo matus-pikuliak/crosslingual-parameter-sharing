@@ -32,12 +32,14 @@ class DEPLayer(Layer):
                 inputs=cont_repr,
                 units=self.model.config.hidden_size,
                 activation=tf.nn.relu)
+
             # shape = (sentence_lengths_sum x max_sentence_length+1 x hidden)
             pairs_repr = self.add_pairs(hidden)
             pairs_hidden = tf.layers.dense(
                 inputs=pairs_repr,
                 units=self.model.config.hidden_size,
                 activation=tf.nn.relu)
+
             predicted_arcs_ids, uas_loss = self.add_uas(pairs_hidden)
             las_loss = self.add_las(pairs_hidden, predicted_arcs_ids, tag_count)
             self.loss = (uas_loss + las_loss) / 2
@@ -96,12 +98,7 @@ class DEPLayer(Layer):
             tensor=pairs,
             mask=self.model.sentence_lengths_mask)
 
-        valid_pairs_repr = tf.layers.dense(
-            inputs=valid_pairs,
-            units=300,  # FIXME: config?
-            activation=tf.nn.relu)
-
-        return valid_pairs_repr
+        return valid_pairs
 
     def add_uas(self, pairs_repr):
         predicted_arcs_logits = tf.layers.dense(

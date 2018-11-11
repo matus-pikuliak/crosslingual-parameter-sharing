@@ -8,11 +8,11 @@ from model.layer_sqt import SQTLayer
 class NERLayer(SQTLayer):
 
     def metrics_accumulator(self):
-        o_tag = self.model.dl.task_vocabs['ner'].t2id[constants.NER_O_TAG]
-        b_tags = [key for key in self.model.dl.task_vocabs['ner'].t2id.keys() if key.startswith('B-')]
+        o_tag = self.model.dl.task_vocabs['ner'].label_to_id(constants.NER_O_TAG)
+        b_tags = [key for key in self.model.dl.task_vocabs['ner'] if key.startswith('B-')]
         i_tags = [f'I-{b_tag[2:]}' for b_tag in b_tags]
-        b_tags = [self.model.dl.task_vocabs['ner'].t2id[tag] for tag in b_tags]
-        i_tags = [self.model.dl.task_vocabs['ner'].t2id[tag] for tag in i_tags]
+        b_tags = [self.model.dl.task_vocabs['ner'].label_to_id(tag) for tag in b_tags]
+        i_tags = [self.model.dl.task_vocabs['ner'].label_to_id(tag) for tag in i_tags]
 
         # for counting any tags
         correct = 0

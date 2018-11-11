@@ -16,11 +16,16 @@ class BidirVocab:
     def __contains__(self, token):
         return token in self.t2id
 
+    def __iter__(self):
+        return iter(self.t2id.keys())
+
 
 class LangVocab(BidirVocab):
 
-    def __init__(self, tokens):
-        tokens.append(constants.UNK_WORD)
+    def __init__(self, emb_hist, min_freq):
+        sorted_ = sorted(emb_hist.items(), key=lambda item: -item[1])
+        tokens = [word for word, count in sorted_ if count >= min_freq]
+        tokens.insert(0, constants.UNK_WORD)
         BidirVocab.__init__(self, tokens)
 
     def word_to_id(self, word):

@@ -227,7 +227,7 @@ class Model(GeneralModel):
                 except:
                     raise RuntimeError(f'Can not parse a line in embedding file: "{line}"')
                 if word in self.dl.lang_vocabs[lang]:
-                    id = self.dl.lang_vocabs[lang].t2id[word]
+                    id = self.dl.lang_vocabs[lang].word_to_id(word)
                     try:
                         emb_matrix[id] = [float(n) for n in rest.split()]
                     except ValueError:
