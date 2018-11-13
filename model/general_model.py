@@ -3,7 +3,7 @@ import os
 import tensorflow as tf
 from datetime import datetime
 
-from logs.logger_init import LoggerInit
+from logs.logger import Logger
 
 
 class GeneralModel:
@@ -14,50 +14,14 @@ class GeneralModel:
         self.name = datetime.now().strftime('%Y-%m-%d-%H%M%S')
         self.logger = self.initialize_logger()
 
-    def add_train_op(self, loss, task_code):
-        grads, vs = zip(*self.optimizer.compute_gradients(loss))
-        if self.config.clip > 0:
-            grads, _ = tf.clip_by_global_norm(grads, self.config.clip)
-        return self.optimizer.apply_gradients(zip(grads, vs))
-        # FIXME: gradient_notm?
-        # FIXME: task_code is redundant
-
-    def current_learning_rate(self):
-
-        if self.config.learning_rate_schedule == 'static':
-            return self.config.learning_rate
-        elif self.config.learning_rate_schedule == 'decay':
-            return self.config.learning_rate * pow(self.config.learning_rate_decay, self.epoch)
-        else:
-            raise AttributeError('lr_schedule must be set to static or decay')
-
     def build_graph(self):
 
-        def add_hyperparameters(self):
-            self.learning_rate = tf.placeholder(
-                dtype=tf.float32, shape=[], name="lr"
-            )
-
-            self.dropout = tf.placeholder(
-                dtype=tf.float32, shape=[], name="dropout"
-            )
-
-            # optimizer
-            available_optimizers = {
-                'rmsprop': tf.train.RMSPropOptimizer,
-                'adagrad': tf.train.AdagradOptimizer,
-                'adam': tf.train.AdamOptimizer,
-                'sgd': tf.train.GradientDescentOptimizer
-            }
-            selected_optimizer = available_optimizers[self.config.optimizer]
-            self.optimizer = selected_optimizer(self.learning_rate)
-
-        add_hyperparameters(self)
+        self.add_hyperparameters()
+        self.add_optimizer()
         self._build_graph()
 
         config = None if self.config.use_gpu else tf.ConfigProto(device_count={'GPU': 0, 'CPU': 1})
         self.sess = tf.Session(config=config)
-
         self.sess.run(tf.global_variables_initializer())
 
         if self.config.show_graph:
@@ -72,22 +36,59 @@ class GeneralModel:
             reset_op = tf.group([v.initializer for v in self.optimizer.variables()])
             self.sess.run(reset_op)
 
+    def _build_graph(self):
+        raise NotImplementedError
+
     def close(self):
-        # FIXME: Kill dataset threads (try to kill them even when Ctrl+C - or do they get killed with the shortcut as well?
         self.sess.close()
         tf.reset_default_graph()
+
+    def add_hyperparameters(self):
+        self.learning_rate = tf.placeholder(
+            dtype=tf.float32,
+            shape=[],
+            name="learning_rate")
+
+        self.dropout = tf.placeholder(
+            dtype=tf.float32,
+            shape=[],
+            name="dropout")
+
+    def add_optimizer(self):
+        available_optimizers = {
+            'rmsprop': tf.train.RMSPropOptimizer,
+            'adagrad': tf.train.AdagradOptimizer,
+            'adam': tf.train.AdamOptimizer,
+            'sgd': tf.train.GradientDescentOptimizer
+        }
+        selected_optimizer = available_optimizers[self.config.optimizer]
+        self.optimizer = selected_optimizer(self.learning_rate)
+
+    def add_train_op(self, loss):
+        grads, vs = zip(*self.optimizer.compute_gradients(loss))
+        if self.config.clip > 0:
+            grads, _ = tf.clip_by_global_norm(grads, self.config.clip)
+        return self.optimizer.apply_gradients(zip(grads, vs))
+        # FIXME: gradient_notm?
+
+    def current_learning_rate(self):
+        if self.config.learning_rate_schedule == 'static':
+            return self.config.learning_rate
+        elif self.config.learning_rate_schedule == 'decay':
+            return self.config.learning_rate * pow(self.config.learning_rate_decay, self.epoch)
+        else:
+            raise AttributeError('lr_schedule must be set to static or decay')
 
     def save(self):
         self.saver.save(self.sess, os.path.join(self.config.model_path, self.timestamp + ".model"))
 
     def log(self, message, level):
-        print(message)
-        ...
+        self.logger.log(message, level)
 
     def initialize_logger(self):
-        return LoggerInit(
-            self.config.setup,
+        return Logger.factory(
+            type=self.config.setup,
+            server_name=self.config.server_name,
             filename=os.path.join(self.config.log_path, self.name),
             slack_channel=self.config.slack_channel,
-            slack_token=self.config.slack_token
-        ).logger
+            slack_token=self.config.slack_token)

@@ -44,7 +44,7 @@ class DEPLayer(Layer):
             las_loss = self.add_las(pairs_hidden, predicted_arcs_ids, tag_count)
             self.loss = (uas_loss + las_loss) / 2
 
-        self.train_op = self.model.add_train_op(self.loss, self.task_code())
+        self.train_op = self.model.add_train_op(self.loss)
         # TODO: Check DEP problems - cycles, zero roots, more than one roots
 
     PairLabel = namedtuple('PairLabels', ('placeholder', 'ids', 'one_hots'))

@@ -37,7 +37,7 @@ class LMOLayer(Layer):
             self.perplexity = tf.reduce_sum(tf.exp(loss))
             self.loss = tf.reduce_mean(loss)
 
-        self.train_op = self.model.add_train_op(self.loss, self.task_code())
+        self.train_op = self.model.add_train_op(self.loss)
 
     def vocab_size(self):
         return min(
@@ -85,7 +85,7 @@ class LMOLayer(Layer):
             value=cont_repr,
             num_or_size_splits=2,
             axis=2)
-        bw_repr = tf.manip.roll(  # FIXME: manip is deprecated in 1.12 ??
+        bw_repr = tf.roll(
             input=bw_repr,
             shift=-1,
             axis=1)
@@ -129,14 +129,9 @@ class LMOLayer(Layer):
         results = []
         for batch in iterator:
             fd = self.test_feed_dict(batch, dataset)
-            # FIXME: this is avx ready version
-            # batch_results = self.model.sess.run(
-            #     fetches=[self.loss, self.perplexity, self.model.total_batch_length],
-            #     feed_dict=fd)
             batch_results = self.model.sess.run(
-                fetches=[self.loss, self.perplexity],
+                fetches=[self.loss, self.perplexity, self.model.total_batch_length],
                 feed_dict=fd)
-            batch_results.append(sum(fd[self.model.sentence_lengths]))
 
             results.append(batch_results)
 

@@ -39,7 +39,7 @@ class SQTLayer(Layer):
             self.loss = tf.reduce_mean(-log_likelihood)
 
         # Rremoving the train_op from the task variable scope makes the computational graph less weird.
-        self.train_op = self.model.add_train_op(self.loss, self.task_code())
+        self.train_op = self.model.add_train_op(self.loss)
 
     def train(self, batch, dataset):
         *_, desired = batch

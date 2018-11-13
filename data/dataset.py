@@ -22,8 +22,11 @@ class Dataset:
             return f'{task.upper()}Dataset'
 
         # loads relevant subclasses defined in tassk_models
-        dataset_classes = {task: __import__(module_name(task), fromlist=[subclass_name(task)])
-                    for task in constants.TASKS}
+        dataset_classes = {
+            task: __import__(module_name(task), fromlist=[subclass_name(task)])
+            for task
+            in constants.TASKS
+        }
 
         # overwrites subclasses' __new__ method
         def subclass_new(cls, *_, **__):
