@@ -7,9 +7,7 @@ from model.dataset_iterator import DatasetIterator
 from model.general_model import GeneralModel
 from model.layer import Layer
 
-from constants import LOG_CRITICAL as CRITICAL
-from constants import LOG_MESSAGE as MESSAGE
-from constants import LOG_RESULT as RESULT
+from constants import LOG_CRITICAL, LOG_MESSAGE, LOG_RESULT
 
 from model.layer_ner import NERLayer
 from model.layer_pos import POSLayer
@@ -170,10 +168,7 @@ class Model(GeneralModel):
         self.batch_size = tf.shape(self.word_ids)[0]
         self.max_length = tf.shape(self.word_ids)[1]
 
-    def run_experiment(self):
-        start_time = datetime.datetime.now()
-        self.log(f'Run started {start_time}', CRITICAL)
-        self.log(f'{self.config}', MESSAGE)
+    def _run_experiment(self, start_time):
 
         self.epoch = 1
 
@@ -181,13 +176,7 @@ class Model(GeneralModel):
             self.run_epoch()
             if i == 0:
                 epoch_time = datetime.datetime.now() - start_time
-                self.log(f'ETA {start_time + epoch_time * self.config.epochs}', CRITICAL)
-
-        if self.config.save_parameters:
-            self.save()
-
-        end_time = datetime.datetime.now()
-        self.log(f'Run done in {end_time - start_time}', CRITICAL)
+                self.log(f'ETA {start_time + epoch_time * self.config.epochs}', LOG_CRITICAL)
 
     def run_epoch(self):
 
@@ -200,7 +189,7 @@ class Model(GeneralModel):
             for st in train_sets:
                 st.layer.train(next(st.iterator), st.dataset)
 
-        self.log(f'Epoch {self.epoch} training done.', MESSAGE)
+        self.log(f'Epoch {self.epoch} training done.', LOG_MESSAGE)
 
         for st in eval_sets:
             results = st.layer.evaluate(st.iterator, st.dataset)
@@ -210,7 +199,7 @@ class Model(GeneralModel):
                 'role': st.dataset.role,
                 'epoch': self.epoch
             })
-            self.log(results, RESULT)
+            self.log(results, LOG_RESULT)
 
         self.epoch += 1
 

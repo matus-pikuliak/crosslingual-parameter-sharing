@@ -72,7 +72,7 @@ class DEPLayer(Layer):
 
         root = tf.get_variable(
             name="root_vector",
-            shape=[1, 1, 2 * self.config.word_lstm_size],
+            shape=[1, 1, self.model.config.hidden_size],
             dtype=tf.float32)
         root = tf.tile(
             input=root,

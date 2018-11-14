@@ -1,4 +1,6 @@
 import os
+import subprocess
+
 import numpy as np
 import datetime
 
@@ -45,3 +47,6 @@ def f1(p, r):
         return 2*p*r/(p+r)
     except ZeroDivisionError:
         return 0
+
+def git_revision_hash():
+    return subprocess.check_output(['git', 'rev-parse', 'HEAD'])

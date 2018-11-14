@@ -3,7 +3,9 @@ from data.word_normalization import word_normalization
 
 class BidirVocab:
 
-    def __init__(self, tokens):
+    def __init__(self, tokens, reorder=True):
+        if reorder:
+            tokens = sorted(tokens)
         self.t2id = {word: i for i, word in enumerate(tokens)}
         self.id2t = {i: word for i, word in enumerate(tokens)}
 
@@ -23,10 +25,10 @@ class BidirVocab:
 class LangVocab(BidirVocab):
 
     def __init__(self, emb_hist, min_freq):
-        sorted_ = sorted(emb_hist.items(), key=lambda item: -item[1])
+        sorted_ = sorted(emb_hist.items(), key=lambda item: (-item[1], item[0]))
         tokens = [word for word, count in sorted_ if count >= min_freq]
         tokens.insert(0, constants.UNK_WORD)
-        BidirVocab.__init__(self, tokens)
+        BidirVocab.__init__(self, tokens, reorder=False)
 
     def word_to_id(self, word):
         word = word_normalization(word)

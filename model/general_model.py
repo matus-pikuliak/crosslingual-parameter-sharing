@@ -1,9 +1,10 @@
 import os
 
 import tensorflow as tf
-from datetime import datetime
+import datetime
 
 from logs.logger import Logger
+from constants import LOG_CRITICAL, LOG_MESSAGE, LOG_RESULT
 
 
 class GeneralModel:
@@ -11,7 +12,7 @@ class GeneralModel:
     def __init__(self, data_loader, config):
         self.config = config
         self.dl = data_loader
-        self.name = datetime.now().strftime('%Y-%m-%d-%H%M%S')
+        self.name = datetime.datetime.now().strftime('%Y-%m-%d-%H%M%S')
         self.logger = self.initialize_logger()
 
     def build_graph(self):
@@ -78,6 +79,22 @@ class GeneralModel:
             return self.config.learning_rate * pow(self.config.learning_rate_decay, self.epoch)
         else:
             raise AttributeError('lr_schedule must be set to static or decay')
+
+    def run_experiment(self):
+        start_time = datetime.datetime.now()
+        self.log(f'Run started {start_time}', LOG_CRITICAL)
+        self.log(f'{self.config}', LOG_MESSAGE)
+
+        self._run_experiment(start_time)
+
+        if self.config.save_parameters:
+            self.save()
+
+        end_time = datetime.datetime.now()
+        self.log(f'Run done in {end_time - start_time}', LOG_CRITICAL)
+
+    def _run_experiment(self, start_time):
+        raise NotImplementedError
 
     def save(self):
         self.saver.save(self.sess, os.path.join(self.config.model_path, self.timestamp + ".model"))
