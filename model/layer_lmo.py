@@ -28,10 +28,11 @@ class LMOLayer(Layer):
                 inputs=hidden,
                 units=self.vocab_size())
 
-            desired_word_ids = self.add_desired_word_ids()
+            self.predicted_word_ids = tf.argmax(predicted_word_logits, axis=1)
+            self.desired_word_ids = self.add_desired_word_ids()
 
             loss = tf.nn.sparse_softmax_cross_entropy_with_logits(
-                labels=desired_word_ids,
+                labels=self.desired_word_ids,
                 logits=predicted_word_logits)
             self.perplexity = tf.reduce_sum(loss)
             self.loss = tf.reduce_mean(loss)
@@ -132,6 +133,10 @@ class LMOLayer(Layer):
                 fetches=[self.loss, self.perplexity, self.model.total_batch_length],
                 feed_dict=fd)
             results.append(batch_results)
+
+        des, pred = self.model.sess.run((self.predicted_word_ids, self.desired_word_ids), feed_dict=fd)
+        print([self.model.dl.lang_vocabs[self.lang].id2t[i] for i in des])
+        print([self.model.dl.lang_vocabs[self.lang].id2t[i] for i in pred])
 
         loss, perplexity, length = zip(*results)
         return {
