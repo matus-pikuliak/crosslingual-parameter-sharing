@@ -29,12 +29,11 @@ class LMOLayer(Layer):
                 units=self.vocab_size())
 
             desired_word_ids = self.add_desired_word_ids()
-            self.oink = desired_word_ids
 
             loss = tf.nn.sparse_softmax_cross_entropy_with_logits(
                 labels=desired_word_ids,
                 logits=predicted_word_logits)
-            self.perplexity = tf.reduce_sum(tf.exp(loss))
+            self.perplexity = tf.reduce_sum(loss)
             self.loss = tf.reduce_mean(loss)
 
         self.train_op = self.model.add_train_op(self.loss)
@@ -132,11 +131,10 @@ class LMOLayer(Layer):
             batch_results = self.model.sess.run(
                 fetches=[self.loss, self.perplexity, self.model.total_batch_length],
                 feed_dict=fd)
-
             results.append(batch_results)
 
         loss, perplexity, length = zip(*results)
         return {
             'loss': np.mean(loss),
-            'perplexity': sum(perplexity)/sum(length)
+            'perplexity': np.exp(sum(perplexity)/sum(length))
         }
