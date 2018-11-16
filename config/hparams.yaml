@@ -35,6 +35,8 @@ default: &default
   max_dataset_cache: 200000
 
   lmo_vocab_limit: 15000
+  lmo_loss_type: softmax # softmax / nce / sampled_softmax
+  lmo_sampling_size: 20
 
   # experiment specific settings
 
