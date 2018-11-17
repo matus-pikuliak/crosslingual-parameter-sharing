@@ -161,4 +161,8 @@ Pri prezreti slov, ktore sa nenasli v embeddingoch mi naslo vela slov, ktore
 - ako reaguju rozlicne nastavenia na rozlicnu kapacitu word-level LSTM. mozeme predpokladat, ze pri viacerych taskoch
   bude vediet model vacsiu kapacitu lepsie vyuzit
 
+# LMO Cost
+sparse softmax with cross entropy vyzera byt velmi dobre optimalizovany, NCE ani samples softmax s 10 samplovaniami
+nie su pri trenovani z nejakeho dovodu rychlejsie.
+
 

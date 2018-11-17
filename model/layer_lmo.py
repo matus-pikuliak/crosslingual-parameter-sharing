@@ -24,48 +24,16 @@ class LMOLayer(Layer):
                 units=self.model.config.hidden_size,
                 activation=tf.nn.relu)
 
-            word_logits_weights = tf.get_variable(
-                name='word_logits_weights',
-                shape=[self.model.config.hidden_size, self.vocab_size()],
-                dtype=tf.float32,)
-            word_logits_biases = tf.get_variable(
-                name='word_logits_biases',
-                shape=[self.vocab_size()],
-                dtype=tf.float32)
+            predicted_word_logits = tf.layers.dense(
+                inputs=hidden,
+                units=self.vocab_size())
 
             desired_word_ids = self.add_desired_word_ids()
 
-            logits = tf.nn.xw_plus_b(
-                x=hidden,
-                weights=word_logits_weights,
-                biases=word_logits_biases)
-            softmax_loss = tf.nn.sparse_softmax_cross_entropy_with_logits(
+            loss = tf.nn.sparse_softmax_cross_entropy_with_logits(
                 labels=desired_word_ids,
-                logits=logits)
-
-            loss_type = self.model.config.lmo_loss_type
-            if loss_type == 'softmax':
-                loss = softmax_loss
-            elif loss_type == 'nce':
-                loss = tf.nn.nce_loss(
-                    weights=tf.transpose(word_logits_weights),
-                    biases=word_logits_biases,
-                    labels=tf.expand_dims(desired_word_ids, axis=1),
-                    inputs=hidden,
-                    num_sampled=self.model.config.lmo_sampling_size,
-                    num_classes=self.vocab_size(),
-                    partition_strategy='div')  # needed so the loss is consistent with softmax loss
-            elif loss_type == 'sampled_softmax':
-                loss = tf.nn.sampled_softmax_loss(
-                    weights=tf.transpose(word_logits_weights),
-                    biases=word_logits_biases,
-                    labels=tf.expand_dims(desired_word_ids, axis=1),
-                    inputs=hidden,
-                    num_sampled=self.model.config.lmo_sampling_size,
-                    num_classes=self.vocab_size(),
-                    partition_strategy='div')  # needed so the loss is consistent with softmax loss
-
-            self.perplexity = tf.reduce_sum(softmax_loss)
+                logits=predicted_word_logits)
+            self.perplexity = tf.reduce_sum(loss)
             self.loss = tf.reduce_mean(loss)
 
         self.train_op = self.model.add_train_op(self.loss)
