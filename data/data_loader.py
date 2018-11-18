@@ -13,7 +13,7 @@ class DataLoader:
     def __init__(self, config):
         self.config = config
         tlrs = [(task, lang, role) for ((task, lang), role) in itertools.product(self.config.tasks, constants.ROLES)]
-        self.datasets = [Dataset(*tlr, config, self) for tlr in tlrs]
+        self.datasets = [Dataset.create(*tlr, config, self) for tlr in tlrs]
 
     def __str__(self):
         return 'Created:\n'+'\n'.join([str(dt) for dt in self.datasets])+'\n'

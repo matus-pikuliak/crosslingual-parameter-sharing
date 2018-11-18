@@ -3,8 +3,6 @@ import csv
 
 filename = '/media/fiit/5016BD1B16BD0350/Users/PC/FIIT Google Drive/data/cll-para-sharing/raw_data/ner/en/utf8.csv'
 
-tags = set()
-
 code = {
     'B-eve': 'B-MISC',
     'B-nat': 'B-MISC',
@@ -28,14 +26,14 @@ code = {
 sentences = []
 with codecs.open(filename, 'r', encoding='utf-8') as csvfile:
     reader = csv.reader(csvfile)
-    reader.next()
+    next(reader)
     buffer = []
     for line in reader:
-        tags.add(code[line[3]])
-        if line[0].startswith('S') and buffer:
+        if line[0] and buffer:
             sentences.append(''.join(buffer))
             buffer = []
-        buffer.append(line[1]+'\t'+code[line[3]]+'\n')
+        if line[1] and line[3]:
+            buffer.append(line[1]+'\t'+code[line[3]]+'\n')
 sentences.append(''.join(buffer))
 pocet = len(sentences)
 first = int(pocet*0.8)

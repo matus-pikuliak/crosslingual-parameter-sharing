@@ -7,13 +7,8 @@ import constants
 
 class Dataset:
 
-    def __new__(cls, task, *args):
-        '''
-        Dark magic that overwrites __new__ method for subclasses so they do not call this function by inheritance.
-        Subclasses must be listed here to avoid circular dependencies.
-        The whole point of this exercise is so we can create new datasets by calling Dataset(*args) and it will
-        automatically create suitable Dataset subclass.
-        '''
+    @staticmethod
+    def create(task, *args):
 
         def module_name(task):
             return f'data.dataset_{task}'
@@ -21,19 +16,12 @@ class Dataset:
         def subclass_name(task):
             return f'{task.upper()}Dataset'
 
-        # loads relevant subclasses defined in tassk_models
+        # loads relevant subclasses defined in task_models
         dataset_classes = {
             task: __import__(module_name(task), fromlist=[subclass_name(task)])
             for task
             in constants.TASKS
         }
-
-        # overwrites subclasses' __new__ method
-        def subclass_new(cls, *_, **__):
-            return object.__new__(cls)
-
-        for subclass in Dataset.__subclasses__():
-            subclass.__new__ = subclass_new
 
         # creates suitable Dataset subclass based on the task user specified
         try:
@@ -130,6 +118,11 @@ class Dataset:
         return hist[hist_type]
 
     def raw_samples(self):
+
+        def yield_lines(lines):
+            if self.config.min_sentence_length <= len(lines) <= self.config.max_sentence_length:
+                yield lines
+
         with open(self.filename, 'r') as f:
             lines = []
             for line in f:
@@ -137,9 +130,9 @@ class Dataset:
                 if line:
                     lines.append(line.split())
                 else:
-                    if self.config.min_sentence_length <= len(lines) <= self.config.max_sentence_length:
-                        yield lines
+                    yield_lines(lines)
                     lines = []
+            yield_lines(lines)  # no newline at the end of file
 
     def read_raw_samples(self):
         raw_samples = self.raw_samples()
@@ -210,7 +203,7 @@ class Dataset:
         sequence_size = max(len(seq) for seq in sequences)
         matrix = np.zeros((batch_size, sequence_size), dtype=np.int)
         for i, seq in enumerate(sequences):
-            matrix[i,:len(seq)] = seq
+            matrix[i, :len(seq)] = seq
         lens = np.array([len(seq) for seq in sequences])
         return matrix, lens
 

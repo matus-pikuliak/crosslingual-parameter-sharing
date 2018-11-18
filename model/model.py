@@ -180,8 +180,21 @@ class Model(GeneralModel):
 
     def run_epoch(self):
 
-        train_sets = [DatasetIterator(dt, self.config, self.task_code) for dt in self.dl.find(role='train')]
-        eval_sets = [DatasetIterator(dt, self.config, self.task_code, is_train=False) for dt in self.dl.datasets]
+        train_sets = [
+            DatasetIterator(
+                dataset=dt,
+                config=self.config,
+                task_code=self.task_code(dt.task, dt.lang))
+            for dt
+            in self.dl.find(role='train')]
+        eval_sets = [
+            DatasetIterator(
+                dataset=dt,
+                config=self.config,
+                task_code=self.task_code(dt.task, dt.lang),
+                is_train=False)
+            for dt
+            in self.dl.datasets]
 
         # FIXME: Dopln train_only funkcionalitu (je to len redukcia train_sets?)
 
