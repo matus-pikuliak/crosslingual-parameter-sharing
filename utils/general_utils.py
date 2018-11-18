@@ -48,5 +48,6 @@ def f1(p, r):
     except ZeroDivisionError:
         return 0
 
-def git_revision_hash():
-    return subprocess.check_output(['git', 'rev-parse', 'HEAD'])
+
+def git_hash():
+    return subprocess.check_output(['git', 'rev-parse', 'HEAD']).strip()

@@ -1,8 +1,9 @@
 import os
-
-import tensorflow as tf
 import datetime
 
+import tensorflow as tf
+
+import utils.general_utils as utils
 from logs.logger import Logger
 from constants import LOG_CRITICAL, LOG_MESSAGE, LOG_RESULT
 
@@ -84,6 +85,7 @@ class GeneralModel:
         start_time = datetime.datetime.now()
         self.log(f'Run started {start_time}', LOG_CRITICAL)
         self.log(f'{self.config}', LOG_MESSAGE)
+        self.log(f'git hash: {utils.git_hash()}', LOG_MESSAGE)
 
         self._run_experiment(start_time)
 
