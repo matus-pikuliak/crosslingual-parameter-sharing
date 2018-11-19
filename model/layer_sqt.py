@@ -61,7 +61,9 @@ class SQTLayer(Layer):
             for predicted, desired in predictor:
                 metrics = accumulator.send((predicted, desired))
 
-        metrics['loss'] = np.mean(losses)
+        normal_losses, adv_losses = zip(*losses)
+        metrics['loss'] = np.mean(normal_losses)
+        metrics['adv_loss'] = np.mean(adv_losses)
         return metrics
 
     def metrics_accumulator(self):
@@ -78,11 +80,11 @@ class SQTLayer(Layer):
             self.desired: desired
         })
 
-        logits, transition_params, loss = self.model.sess.run(
-            fetches=[self.logits, self.transition_params, self.loss],
+        logits, transition_params, loss, adv_loss = self.model.sess.run(
+            fetches=[self.logits, self.transition_params, self.loss, self.model.adversarial_loss],
             feed_dict=fd)
 
-        yield loss
+        yield loss, adv_loss
 
         for log, des, len in zip(logits, desired, sentence_lengths):
             predicted, _ = tf.contrib.crf.viterbi_decode(

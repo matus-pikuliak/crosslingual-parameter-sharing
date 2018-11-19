@@ -128,12 +128,13 @@ class LMOLayer(Layer):
         for batch in iterator:
             fd = self.test_feed_dict(batch, dataset)
             batch_results = self.model.sess.run(
-                fetches=[self.loss, self.perplexity, self.model.total_batch_length],
+                fetches=[self.loss, self.model.adversarial_loss, self.perplexity, self.model.total_batch_length],
                 feed_dict=fd)
             results.append(batch_results)
 
-        loss, perplexity, length = zip(*results)
+        loss, adv_loss, perplexity, length = zip(*results)
         return {
             'loss': np.mean(loss),
+            'adv_loss': np.mean(adv_loss),
             'perplexity': np.exp(sum(perplexity)/sum(length))
         }

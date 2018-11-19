@@ -184,13 +184,14 @@ class DEPLayer(Layer):
                 self.use_desired_arcs: False
             })
             batch_results = self.model.sess.run(
-                fetches=[self.loss, self.uas, self.las, self.model.total_batch_length],
+                fetches=[self.loss, self.model.adversarial_loss, self.uas, self.las, self.model.total_batch_length],
                 feed_dict=fd)
             results.append(batch_results)
 
-        loss, uas, las, length = zip(*results)
+        loss, adv_loss, uas, las, length = zip(*results)
         return {
             'loss': np.mean(loss),
+            'adv_loss': np.mean(adv_loss),
             'uas': sum(uas)/sum(length),
             'las': sum(las)/sum(length)
         }

@@ -99,7 +99,9 @@ class GeneralModel:
         raise NotImplementedError
 
     def save(self):
-        self.saver.save(self.sess, os.path.join(self.config.model_path, self.timestamp + ".model"))
+        self.saver.save(
+            sess=self.sess,
+            save_path=os.path.join(self.config.model_path, self.timestamp + ".model"))
 
     def log(self, message, level):
         self.logger.log(message, level)

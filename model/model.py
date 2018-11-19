@@ -200,14 +200,24 @@ class Model(GeneralModel):
             input=one_hot_lang,
             multiples=[tf.shape(cont_repr)[0], 1])
 
-        self.adversarial_loss = tf.nn.softmax_cross_entropy_with_logits_v2(
+        loss = tf.nn.softmax_cross_entropy_with_logits_v2(
             labels=one_hot_lang,
             logits=logits)
+        self.adversarial_loss = tf.reduce_mean(loss)
+
+    def add_train_op(self, loss):
+        if self.config.adversarial_training and len(self.langs) > 1:
+            use_adversarial = tf.less_equal(
+                tf.random.uniform(shape=[]),
+                1 / self.config.adversarial_freq)
+            use_adversarial = tf.cast(
+                x=use_adversarial,
+                dtype=tf.float32)
+            loss += self.adversarial_loss * use_adversarial
+        return GeneralModel.add_train_op(self, loss)
 
     def _run_experiment(self, start_time):
-
         self.epoch = 1
-
         for i in range(self.config.epochs):
             self.run_epoch()
             if i == 0:

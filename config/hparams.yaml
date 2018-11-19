@@ -34,6 +34,10 @@ default: &default
   min_char_freq: 100
   max_dataset_cache: 200000
 
+  adversarial_training: true
+  adversarial_lambda: 0.5
+  adversarial_freq: 1
+
   lmo_vocab_limit: 15000
   lmo_loss_type: softmax # softmax / nce / sampled_softmax
   lmo_sampling_size: 20
