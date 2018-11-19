@@ -23,7 +23,7 @@ class NLIModel:
             representation = tf.matmul(representation, W) + b
             representation = tf.matmul(tf.nn.tanh(representation), W2)
 
-            self.true_labels[task_code] = tf.placeholder(tf.int64, shape=[None],
+            self.true_labels[task_code] = tf.placeholder(tf.int32, shape=[None],
                                                   name="labels")
             true_labels_one_hot = tf.one_hot(self.true_labels[task_code], depth=len(self.dl.task_vocabs['nli']))
             self.loss[task_code] = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(

@@ -18,8 +18,8 @@ class Model(GeneralModel):
 
     def __init__(self, *args, **kwargs):
         GeneralModel.__init__(self, *args, **kwargs)
-        self.langs = self.dl.langs()
-        self.tasks = self.dl.tasks()
+        self.langs = self.dl.langs
+        self.tasks = self.dl.tasks
 
     def task_code(self, task, lang):
         if task == 'lmo':
@@ -34,6 +34,7 @@ class Model(GeneralModel):
         self.add_utils()
         word_repr = self.add_word_processing()
         cont_repr = self.add_sentence_processing(word_repr)
+        self.add_adversarial_loss(cont_repr)
         self.add_task_layers(cont_repr)
 
     def add_inputs(self):
@@ -57,15 +58,19 @@ class Model(GeneralModel):
 
         # shape = (batch_size, max_sentence_length)
         self.word_lengths = tf.placeholder(
-            dtype=tf.int32, shape=[None, None], name='word_lengths'
-        )
+            dtype=tf.int32,
+            shape=[None, None],
+            name='word_lengths')
+
+        self.lang_id = tf.placeholder(
+            dtype=tf.int32,
+            shape=[],
+            name='lang_id')
 
         self.lang_flags = {
-            lang: tf.placeholder_with_default(
-                input=False,
-                shape=[],
-                name=f'language_flag_{lang}')
-            for lang in self.langs
+            lang: tf.equal(self.lang_id, i)
+            for i, lang
+            in enumerate(self.langs)
         }
 
     def add_word_processing(self):
@@ -167,6 +172,37 @@ class Model(GeneralModel):
         self.total_batch_length = tf.reduce_sum(self.sentence_lengths)
         self.batch_size = tf.shape(self.word_ids)[0]
         self.max_length = tf.shape(self.word_ids)[1]
+
+    def add_adversarial_loss(self, cont_repr):
+        lambda_ = self.config.adversarial_lambda
+
+        cont_repr = tf.boolean_mask(
+            tensor=cont_repr,
+            mask=self.sentence_lengths_mask)
+
+        gradient_reversal = tf.stop_gradient((1+lambda_)*cont_repr) - lambda_*cont_repr
+
+        hidden = tf.layers.dense(
+            inputs=gradient_reversal,
+            units=self.config.hidden_size,
+            activation=tf.nn.relu)
+        logits = tf.layers.dense(
+            inputs=hidden,
+            units=len(self.dl.langs))
+
+        one_hot_lang = tf.one_hot(
+            indices=self.lang_id,
+            depth=len(self.langs))
+        one_hot_lang = tf.expand_dims(
+            input=one_hot_lang,
+            axis=0)
+        one_hot_lang = tf.tile(
+            input=one_hot_lang,
+            multiples=[tf.shape(cont_repr)[0], 1])
+
+        self.adversarial_loss = tf.nn.softmax_cross_entropy_with_logits_v2(
+            labels=one_hot_lang,
+            logits=logits)
 
     def _run_experiment(self, start_time):
 

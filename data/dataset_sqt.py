@@ -8,7 +8,8 @@ class SQTDataset(Dataset):
     def raw_sample_to_tuple(self, raw_sample):
         return zip(*(
             (self.word_to_id(line[0]), self.word_to_char_ids(line[0]), self.label_to_id(line[1]))
-            for line in raw_sample
+            for line
+            in raw_sample
         ))
 
     def _load(self):

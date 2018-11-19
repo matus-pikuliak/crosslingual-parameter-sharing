@@ -12,17 +12,13 @@ class DataLoader:
 
     def __init__(self, config):
         self.config = config
+        self.tasks = list({tl[0] for tl in self.config.tasks})
+        self.langs = list({tl[1] for tl in self.config.tasks})
         tlrs = [(task, lang, role) for ((task, lang), role) in itertools.product(self.config.tasks, constants.ROLES)]
         self.datasets = [Dataset.create(*tlr, config, self) for tlr in tlrs]
 
     def __str__(self):
         return 'Created:\n'+'\n'.join([str(dt) for dt in self.datasets])+'\n'
-
-    def tasks(self):
-        return {tl[0] for tl in self.config.tasks}
-
-    def langs(self):
-        return {tl[1] for tl in self.config.tasks}
 
     def find(self, task=None, lang=None, role=None):
         def cond(dt, task, lang, role):
@@ -49,8 +45,8 @@ class DataLoader:
         for dt in self.datasets:
             dt.load_hists()
 
-        lang_hists = {lang: self.combine_hists('lang', lang=lang) for lang in self.langs()}
-        task_hists = {task: self.combine_hists('task', task=task) for task in self.tasks()}
+        lang_hists = {lang: self.combine_hists('lang', lang=lang) for lang in self.langs}
+        task_hists = {task: self.combine_hists('task', task=task) for task in self.tasks}
         char_hist = self.combine_hists('char')
 
         return lang_hists, task_hists, char_hist
@@ -66,7 +62,7 @@ class DataLoader:
 
     def load_embedding_vocabs(self):
         vocabs = {}
-        for lang in self.langs():
+        for lang in self.langs:
             filename = os.path.join(self.config.emb_path, lang)
             with open(filename, 'r') as f:
                 next(f)  # Skip first line with dimensions
@@ -81,7 +77,7 @@ class DataLoader:
 
     def load_lang_vocabs(self):
 
-        for lang in self.langs():
+        for lang in self.langs:
             for word in self.lang_hists[lang]:
                 key = word_normalization(word)
                 amount = self.lang_hists[lang][word]
@@ -92,7 +88,8 @@ class DataLoader:
 
         return {
             lang: LangVocab(self.emb_vocabs[lang], self.config.min_word_freq)
-            for lang in self.langs()
+            for lang
+            in self.langs
         }
 
     def load_task_vocabs(self):

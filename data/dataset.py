@@ -53,9 +53,12 @@ class Dataset:
 
     def set_limit(self):
         if (
-                self.config.limited_language == self.lang or
-                self.config.limited_task == self.task or
-                (self.config.limited_task_language and self.config.limited_task_language.split('-') == [self.task, self.lang])
+            self.config.limited_language == self.lang or
+            self.config.limited_task == self.task or
+            (
+                self.config.limited_task_language and
+                self.config.limited_task_language.split('-') == [self.task, self.lang]
+            )
         ):
             assert(self.config.limited_data_size > -1)
             return self.config.limited_data_size
@@ -130,9 +133,9 @@ class Dataset:
                 if line:
                     lines.append(line.split())
                 else:
-                    yield_lines(lines)
+                    yield from yield_lines(lines)
                     lines = []
-            yield_lines(lines)  # no newline at the end of file
+            yield from yield_lines(lines)  # if there is anything in `lines` (no newline at the end of file)
 
     def read_raw_samples(self):
         raw_samples = self.raw_samples()

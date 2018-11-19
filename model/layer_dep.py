@@ -52,7 +52,7 @@ class DEPLayer(Layer):
     def add_pair_labels(self, name, depth):
         # shape = (batch_size x max_sentence_length)
         placeholder = tf.placeholder(
-            dtype=tf.int64,
+            dtype=tf.int32,
             shape=[None, None],
             name=name)
 
