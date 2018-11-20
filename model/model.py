@@ -34,6 +34,7 @@ class Model(GeneralModel):
         self.add_utils()
         word_repr = self.add_word_processing()
         cont_repr = self.add_sentence_processing(word_repr)
+        self.cont_repr = cont_repr
         self.add_adversarial_loss(cont_repr)
         self.add_task_layers(cont_repr)
 
@@ -316,3 +317,26 @@ class Model(GeneralModel):
                     keep_prob=self.dropout)
 
             return out
+
+    def export_representations(self):
+        train_sets = [
+            DatasetIterator(
+                dataset=dt,
+                config=self.config,
+                task_code=self.task_code(dt.task, dt.lang))
+            for dt
+            in self.dl.find(role='train')]
+
+        for set_ in train_sets:
+            name = f'{set_.dataset.task}-{set_.dataset.lang}'
+            content = []
+            for _ in range(1000):
+                fd = set_.layer.test_feedK_dict(next(set_.iterator), set_.dataset)
+                repr = self.sess.run(self.cont_repr, feed_dict=fd)
+                repr = np.reshape(repr, (-1, self.config.word_lstm_size * 2))
+                for rep in repr:
+                    if np.count_nonzero(rep):
+                        content.append(', '.join([f'{r:.8}' for r in rep]))
+            with open(f'{self.config.log_path}{self.name}-{name}', 'w') as f:
+                f.write('\n'.join(content))
+

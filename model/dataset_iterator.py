@@ -28,5 +28,9 @@ class DatasetIterator:
                 return self.dataset.train_cache_generator(batch_size)
 
         else:
-            limit = 1000 if self.dataset.role == 'train' else None
+            limit = None
+            if self.dataset.role == 'train':
+                limit = 1000
+            if self.config.eval_size_limit > 0:
+                limit = self.config.eval_size_limit
             return self.dataset.test_file_generator(batch_size, limit)
