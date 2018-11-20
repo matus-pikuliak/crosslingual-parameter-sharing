@@ -319,6 +319,7 @@ class Model(GeneralModel):
             return out
 
     def export_representations(self):
+        # FIXME: make this part of experiment optional, refactor
         train_sets = [
             DatasetIterator(
                 dataset=dt,
@@ -331,7 +332,7 @@ class Model(GeneralModel):
             name = f'{set_.dataset.task}-{set_.dataset.lang}'
             content = []
             for _ in range(1000):
-                fd = set_.layer.test_feedK_dict(next(set_.iterator), set_.dataset)
+                fd = set_.layer.test_feed_dict(next(set_.iterator), set_.dataset)
                 repr = self.sess.run(self.cont_repr, feed_dict=fd)
                 repr = np.reshape(repr, (-1, self.config.word_lstm_size * 2))
                 for rep in repr:
