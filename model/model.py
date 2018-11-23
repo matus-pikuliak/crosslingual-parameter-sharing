@@ -395,18 +395,18 @@ class Model(GeneralModel):
                 ps = np.hstack((ps, p))
                 ls = np.hstack((ls, l))
 
-                rest = ps.copy()
-                buf = []
-                for l in ls:
-                    l = int(l)
-                    buf.append(rest[:l])
-                    rest = rest[l:]
+            rest = ps.copy()
+            buf = []
+            for l in ls:
+                l = int(l)
+                buf.append(rest[:l])
+                rest = rest[l:]
 
-                for b in buf:
-                    stat += check_pred(b)
+            for b in buf:
+                stat += check_pred(b)
 
-                print(stat)
-                print(len(ls))
+            print(stat)
+            print(len(ls))
 
 
 
