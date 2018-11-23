@@ -345,7 +345,6 @@ class Model(GeneralModel):
                 f.write('\n'.join(content))
 
     def temp_dep_faults(self):
-        # TODO: Check DEP problems - cycles, zero roots, more than one roots, word having itself as heads, too outside of the sentence
 
         def check_pred(preds):
 
@@ -361,7 +360,7 @@ class Model(GeneralModel):
                     try:
                         node = preds[node - 1]
                     except IndexError:
-                        return True
+                        return True  # ends outside
 
             l = len(preds)
             a = not all([ends_in_root(node, preds) for node in range(l)])   # cycles
@@ -369,7 +368,8 @@ class Model(GeneralModel):
             c = np.count_nonzero(preds) < l - 1                             # more than one root
             d = np.sum(np.array(range(1, l + 1)) == preds) > 0              # points to itself
             e = np.sum(preds > l) > 0                                       # points outside
-            return np.array((a, b, c, d, e), dtype=np.int)
+            f = any((a, b, c, d, e))
+            return np.array((a, b, c, d, e, f), dtype=np.int)
 
         eval_sets = [
             DatasetIterator(
@@ -384,7 +384,7 @@ class Model(GeneralModel):
 
             ps = np.array(())
             ls = np.array(())
-            stat = np.array((0, 0, 0, 0, 0))
+            stat = np.array((0, 0, 0, 0, 0, 0))
 
             for batch in st.iterator:
                 fd = st.layer.test_feed_dict(batch, st.dataset)
