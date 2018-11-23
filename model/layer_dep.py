@@ -40,12 +40,11 @@ class DEPLayer(Layer):
                 units=self.model.config.hidden_size,
                 activation=tf.nn.relu)
 
-            predicted_arcs_ids, uas_loss = self.add_uas(pairs_hidden)
-            las_loss = self.add_las(pairs_hidden, predicted_arcs_ids, tag_count)
+            self.predicted_arcs_ids, uas_loss = self.add_uas(pairs_hidden)
+            las_loss = self.add_las(pairs_hidden, self.predicted_arcs_ids, tag_count)
             self.loss = (uas_loss + las_loss) / 2
 
         self.train_op = self.model.add_train_op(self.loss)
-        # TODO: Check DEP problems - cycles, zero roots, more than one roots
 
     PairLabel = namedtuple('PairLabels', ('placeholder', 'ids', 'one_hots'))
 
@@ -110,7 +109,8 @@ class DEPLayer(Layer):
             axis=-1)  # must be specified because we need static tensor shape for boolean mask later
         predicted_arcs_ids = tf.argmax(
             input=predicted_arcs_logits,
-            axis=-1)
+            axis=-1,
+            output_type=tf.int32)
         self.uas = tf.count_nonzero(
             tf.equal(
                 predicted_arcs_ids,
@@ -145,7 +145,8 @@ class DEPLayer(Layer):
             units=tag_count)
         predicted_labels_ids = tf.argmax(
             input=predicted_labels_logits,
-            axis=-1)
+            axis=-1,
+            output_type=tf.int32)
 
         self.las = tf.count_nonzero(
             tf.logical_and(

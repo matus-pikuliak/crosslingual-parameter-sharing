@@ -5,11 +5,11 @@ class DatasetIterator:
 
     train_iterators = {}
 
-    def __init__(self, dataset, config, task_code, is_train=True):
+    def __init__(self, dataset, config, layer, is_train=True):
         self.dataset = dataset
         self.config = config
         self.is_train = is_train
-        self.layer = Layer.layers[task_code]
+        self.layer = layer
 
         if is_train:
             if dataset not in self.train_iterators:

@@ -20,6 +20,7 @@ class Model(GeneralModel):
         GeneralModel.__init__(self, *args, **kwargs)
         self.langs = self.dl.langs
         self.tasks = self.dl.tasks
+        self.layers = {}
 
     def task_code(self, task, lang):
         if task == 'lmo':
@@ -33,10 +34,9 @@ class Model(GeneralModel):
         self.add_inputs()
         self.add_utils()
         word_repr = self.add_word_processing()
-        cont_repr = self.add_sentence_processing(word_repr)
-        self.cont_repr = cont_repr
-        self.add_adversarial_loss(cont_repr)
-        self.add_task_layers(cont_repr)
+        self.cont_repr = self.add_sentence_processing(word_repr)
+        self.add_adversarial_loss(self.cont_repr)
+        self.add_task_layers(self.cont_repr)
 
     def add_inputs(self):
         # shape = (batch size, max_sentence_length)
@@ -160,10 +160,10 @@ class Model(GeneralModel):
     def add_task_layers(self, cont_repr):
         for (task, lang) in self.config.tasks:
             task_code = self.task_code(task, lang)
-            if task_code not in Layer.layers:
+            if task_code not in self.layers:
                 layer_class = globals()[f'{task.upper()}Layer']
                 new_layer = layer_class(self, task, lang, cont_repr)
-                Layer.layers[task_code] = new_layer
+                self.layers[task_code] = new_layer
 
     def add_utils(self):
         '''
@@ -231,14 +231,14 @@ class Model(GeneralModel):
             DatasetIterator(
                 dataset=dt,
                 config=self.config,
-                task_code=self.task_code(dt.task, dt.lang))
+                layer=self.layers[self.task_code(dt.task, dt.lang)])
             for dt
             in self.dl.find(role='train')]
         eval_sets = [
             DatasetIterator(
                 dataset=dt,
                 config=self.config,
-                task_code=self.task_code(dt.task, dt.lang),
+                layer=self.layers[self.task_code(dt.task, dt.lang)],
                 is_train=False)
             for dt
             in self.dl.datasets]
@@ -318,21 +318,24 @@ class Model(GeneralModel):
 
             return out
 
-    def export_representations(self):
-        # FIXME: make this part of experiment optional, refactor
+    '''
+    temp_* methods are used for various experiments, but they are not essential for model itself.
+    '''
+
+    def temp_export_representations(self):
         train_sets = [
             DatasetIterator(
                 dataset=dt,
                 config=self.config,
-                task_code=self.task_code(dt.task, dt.lang))
+                layer=self.layers[self.task_code(dt.task, dt.lang)])
             for dt
             in self.dl.find(role='train')]
 
-        for set_ in train_sets:
-            name = f'{set_.dataset.task}-{set_.dataset.lang}'
+        for st in train_sets:
+            name = f'{st.dataset.task}-{st.dataset.lang}'
             content = []
             for _ in range(1000):
-                fd = set_.layer.test_feed_dict(next(set_.iterator), set_.dataset)
+                fd = st.layer.test_feed_dict(next(st.iterator), st.dataset)
                 repr = self.sess.run(self.cont_repr, feed_dict=fd)
                 repr = np.reshape(repr, (-1, self.config.word_lstm_size * 2))
                 for rep in repr:
@@ -340,4 +343,74 @@ class Model(GeneralModel):
                         content.append(', '.join([f'{r:.8}' for r in rep]))
             with open(f'{self.config.log_path}{self.name}-{name}', 'w') as f:
                 f.write('\n'.join(content))
+
+    def temp_dep_faults(self):
+        # TODO: Check DEP problems - cycles, zero roots, more than one roots, word having itself as heads, too outside of the sentence
+
+        def check_pred(preds):
+
+            def ends_in_root(node, preds):
+                visited = [node + 1]
+                node = preds[node]
+                while True:
+                    if node == 0:
+                        return True
+                    if node in visited:
+                        return False
+                    visited.append(node)
+                    try:
+                        node = preds[node - 1]
+                    except IndexError:
+                        return True
+
+            l = len(preds)
+            a = not all([ends_in_root(node, preds) for node in range(l)])   # cycles
+            b = np.count_nonzero(preds) == l                                # no root
+            c = np.count_nonzero(preds) < l - 1                             # more than one root
+            d = np.sum(np.array(range(1, l + 1)) == preds) > 0              # points to itself
+            e = np.sum(preds > l) > 0                                       # points outside
+            return np.array((a, b, c, d, e), dtype=np.int)
+
+        eval_sets = [
+            DatasetIterator(
+                dataset=dt,
+                config=self.config,
+                layer=self.layers[self.task_code(dt.task, dt.lang)],
+                is_train=False)
+            for dt
+            in self.dl.find(role='test')]
+
+        for st in eval_sets:
+
+            ps = np.array(())
+            ls = np.array(())
+            stat = np.array((0, 0, 0, 0, 0))
+
+            for batch in st.iterator:
+                fd = st.layer.test_feed_dict(batch, st.dataset)
+
+                p, l = self.sess.run(
+                    fetches=(st.layer.predicted_arcs_ids, self.sentence_lengths),
+                    feed_dict=fd)
+                ps = np.hstack((ps, p))
+                ls = np.hstack((ls, l))
+
+                rest = ps.copy()
+                buf = []
+                for l in ls:
+                    l = int(l)
+                    buf.append(rest[:l])
+                    rest = rest[l:]
+
+                for b in buf:
+                    stat += check_pred(b)
+
+                print(stat)
+                print(len(ls))
+
+
+
+
+
+
 

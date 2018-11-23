@@ -3,8 +3,6 @@ import tensorflow as tf
 
 class Layer:
 
-    layers = {}
-
     def __init__(self, model, task, lang, *args):
         self.model = model
         self.config = model.config
