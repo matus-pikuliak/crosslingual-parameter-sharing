@@ -268,6 +268,11 @@ class Model(GeneralModel):
         emb_matrix = np.zeros(
             shape=(len(self.dl.lang_vocabs[lang]), self.config.word_emb_size),
             dtype=np.float)
+
+        # used for word_emb_type 'mwe_projected'
+        order = np.random.permutation(self.config.word_emb_size)
+        weights = np.random.random(self.config.word_emb_size)
+
         with open(emb_path, 'r') as f:
             next(f)  # skip first line with dimensions
             for line in f:
@@ -278,9 +283,20 @@ class Model(GeneralModel):
                 if word in self.dl.lang_vocabs[lang]:
                     id = self.dl.lang_vocabs[lang].word_to_id(word)
                     try:
-                        emb_matrix[id] = [float(n) for n in rest.split()]
+                        if self.config.word_emb_type == 'mwe':
+                            emb_matrix[id] = [float(n) for n in rest.split()]
+                        if self.config.word_emb_type == 'random':
+                            vec = np.random.random(self.config.word_emb_size)
+                            norm = np.linalg.norm(vec)
+                            emb_matrix[id] = vec / norm
+                        if self.config.word_emb_type == 'mwe_projected':
+                            vec = np.array([float(n) for n in rest.split()])
+                            vec = vec[order]  # random reorder
+                            vec *= weights
+                            norm = np.linalg.norm(vec)
+                            emb_matrix[id] = vec / norm
                     except ValueError:
-                        pass # FIXME: sometimes there are two words in embeddings file, but I think it's better to clean the emb files instead
+                        pass  # FIXME: sometimes there are two words in embeddings file
         return emb_matrix
 
     def lstm(self, inputs, sequence_lengths, cell_size, name_scope, avg_pool=False, dropout=True):
@@ -382,9 +398,9 @@ class Model(GeneralModel):
 
         for st in eval_sets:
 
-            ps = np.array(())
-            ls = np.array(())
-            stat = np.array((0, 0, 0, 0, 0, 0))
+            ps = np.array((), dtype=np.int)
+            ls = np.array((), dtype=np.int)
+            stat = np.zeros(6, dtype=np.int)
 
             for batch in st.iterator:
                 fd = st.layer.test_feed_dict(batch, st.dataset)

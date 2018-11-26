@@ -1,6 +1,6 @@
 default: &default
 
-  word_emb_type: static
+  word_emb_type: mwe # mwe / random /
   word_emb_size: 300
   train_emb: false
   char_emb_size: 30
@@ -13,13 +13,13 @@ default: &default
 
   learning_rate: 0.003
   learning_rate_decay: 0.99
-  learning_rate_schedule: decay # static/decay
+  learning_rate_schedule: decay # static / decay
   batch_size: 32
   epoch_steps: 1024
   epochs: 30
   clip: 1
   dropout: 0.5
-  optimizer: adam # rmsprop/adam/adagrad/sgd
+  optimizer: adam # rmsprop / adam / adagrad / sgd
 
   limited_data_size: -1 # max number of samples read from a file (-1 is unlimited)
   limited_language: na
