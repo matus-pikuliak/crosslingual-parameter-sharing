@@ -141,6 +141,8 @@ class DEPLayer(Layer):
             Tout=tf.int32)
         predicted_arcs_ids.set_shape(self.desired_arcs.ids.get_shape())
 
+        self.predicted_arcs_ids = predicted_arcs_ids  # FIXME: erase
+
         self.uas = tf.count_nonzero(
             tf.equal(
                 predicted_arcs_ids,
@@ -220,7 +222,6 @@ class DEPLayer(Layer):
 
     @staticmethod
     def edmonds_prediction(logits, sentence_lengths):
-        print(5)
         result = []
         for length in sentence_lengths:
             sentence = logits[:length]
@@ -230,15 +231,15 @@ class DEPLayer(Layer):
             graph = {i: {} for i in range(length + 1)}
             for i in range(length):
                 for j in range(length + 1):
-                    graph[j][i+1] = -sentence[i][j]
+                    if j != i+1:
+                        graph[j][i+1] = -sentence[i][j]
 
             # output format = {head_id: {dep_id: score, dep2_id: score}, ...}
-            mst = edmonds.mst(root=0, G=graph)
+            mst = edmonds.mst(graph)
 
             prediction = [0 for _ in range(length)]
-            for head, dependents in mst.items():
-                for dep in dependents.keys():
-                    prediction[dep-1] = head
+            for arc in mst.values():
+                    prediction[arc.tail-1] = arc.head
             result.extend(prediction)
 
         return np.array(result, dtype=np.int32)

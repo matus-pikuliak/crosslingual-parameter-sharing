@@ -385,6 +385,8 @@ class Model(GeneralModel):
             d = np.sum(np.array(range(1, l + 1)) == preds) > 0              # points to itself
             e = np.sum(preds > l) > 0                                       # points outside
             f = any((a, b, c, d, e))
+            if f:
+                print(preds)
             return np.array((a, b, c, d, e, f), dtype=np.int)
 
         eval_sets = [
