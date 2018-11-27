@@ -24,10 +24,6 @@ class DEPLayer(Layer):
             self.desired_labels = self.add_pair_labels(
                 name='desired_labels',
                 depth=tag_count)
-            self.use_desired_arcs = tf.placeholder(
-                dtype=tf.bool,
-                shape=[],
-                name='use_desired_arcs_flag')
 
             hidden = tf.layers.dense(
                 inputs=cont_repr,
@@ -131,12 +127,6 @@ class DEPLayer(Layer):
     def add_eval_metrics(self, predicted_arcs_logits, pairs_repr):
 
         predicted_arcs_logits = tf.nn.softmax(predicted_arcs_logits)
-
-        naive_predicted_arcs_ids = tf.argmax(
-            input=predicted_arcs_logits,
-            axis=-1,
-            output_type=tf.int32)
-
         predicted_arcs_ids = tf.py_func(
             func=self.edmonds_prediction,
             inp=[predicted_arcs_logits, self.model.sentence_lengths],
@@ -146,12 +136,6 @@ class DEPLayer(Layer):
         self.uas = tf.count_nonzero(
             tf.equal(
                 predicted_arcs_ids,
-                self.desired_arcs.ids
-            ))
-
-        self.naive_uas = tf.count_nonzero(
-            tf.equal(
-                naive_predicted_arcs_ids,
                 self.desired_arcs.ids
             ))
 
@@ -182,6 +166,7 @@ class DEPLayer(Layer):
         selected_pairs_repr = tf.boolean_mask(
             tensor=pairs_repr,
             mask=selected_arcs_mask)
+
         predicted_labels_logits = tf.layers.dense(
             inputs=selected_pairs_repr,
             units=tag_count,
@@ -196,8 +181,7 @@ class DEPLayer(Layer):
         fd = self.train_feed_dict(batch, dataset)
         fd.update({
             self.desired_arcs.placeholder: desired_arcs,
-            self.desired_labels.placeholder: desired_labels,
-            self.use_desired_arcs: True
+            self.desired_labels.placeholder: desired_labels
         })
         self.model.sess.run(self.train_op, feed_dict=fd)
 
@@ -210,20 +194,18 @@ class DEPLayer(Layer):
             fd = self.test_feed_dict(batch, dataset)
             fd.update({
                 self.desired_arcs.placeholder: desired_arcs,
-                self.desired_labels.placeholder: desired_labels,
-                self.use_desired_arcs: False
+                self.desired_labels.placeholder: desired_labels
             })
             batch_results = self.model.sess.run(
-                fetches=[self.loss, self.model.adversarial_loss, self.uas, self.naive_uas, self.las, self.model.total_batch_length],
+                fetches=[self.loss, self.model.adversarial_loss, self.uas, self.las, self.model.total_batch_length],
                 feed_dict=fd)
             results.append(batch_results)
 
-        loss, adv_loss, uas, naive_uas, las, length = zip(*results)
+        loss, adv_loss, uas, las, length = zip(*results)
         return {
             'loss': np.mean(loss),
             'adv_loss': np.mean(adv_loss),
             'uas': sum(uas)/sum(length),
-            'naive_uas': sum(naive_uas)/sum(length),
             'las': sum(las)/sum(length)
         }
 

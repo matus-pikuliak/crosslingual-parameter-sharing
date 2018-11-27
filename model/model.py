@@ -5,7 +5,6 @@ import os
 
 from model.dataset_iterator import DatasetIterator
 from model.general_model import GeneralModel
-from model.layer import Layer
 
 from constants import LOG_CRITICAL, LOG_MESSAGE, LOG_RESULT
 
@@ -166,9 +165,9 @@ class Model(GeneralModel):
                 self.layers[task_code] = new_layer
 
     def add_utils(self):
-        '''
+        """
         Several useful nodes.
-        '''
+        """
         self.sentence_lengths_mask = tf.sequence_mask(self.sentence_lengths)
         self.total_batch_length = tf.reduce_sum(self.sentence_lengths)
         self.batch_size = tf.shape(self.word_ids)[0]
@@ -334,9 +333,9 @@ class Model(GeneralModel):
 
             return out
 
-    '''
+    """
     temp_* methods are used for various experiments, but they are not essential for model itself.
-    '''
+    """
 
     def temp_export_representations(self):
         train_sets = [
