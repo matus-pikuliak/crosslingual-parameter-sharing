@@ -1,3 +1,8 @@
+'''
+Code by David Eisenstat
+See: https://stackoverflow.com/questions/23988236/chu-liu-edmonds-algorithm-for-minimum-spanning-tree-on-directed-graphs
+'''
+
 from collections import defaultdict, namedtuple
 
 
@@ -28,7 +33,11 @@ def min_spanning_arborescence(arcs, sink):
         good_arcs.extend(min_arc_by_tail_rep[cycle_rep] for cycle_rep in cycle_reps)
         cycle_rep_set = set(cycle_reps)
         cycle_rep = cycle_rep_set.pop()
-        quotient_map = {node: cycle_rep if node_rep in cycle_rep_set else node_rep for node, node_rep in quotient_map.items()}
+        quotient_map = {
+            node: cycle_rep if node_rep in cycle_rep_set else node_rep
+            for node, node_rep
+            in quotient_map.items()
+        }
 
 
 def find_cycle(successor, sink):
@@ -66,4 +75,5 @@ def mst(graph):
     for head in graph:
         for tail in graph[head]:
             arcs.append(Arc(tail, graph[head][tail], head))
-    return min_spanning_arborescence(arcs, 0)
+    mst = min_spanning_arborescence(arcs, 0)
+    return [(arc.head, arc.tail) for arc in mst.values()]

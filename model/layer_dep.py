@@ -130,10 +130,10 @@ class DEPLayer(Layer):
 
     def add_eval_metrics(self, predicted_arcs_logits, pairs_repr):
 
-        # predicted_arcs_ids = tf.argmax(
-        #     input=predicted_arcs_logits,
-        #     axis=-1,
-        #     output_type=tf.int32)
+        naive_predicted_arcs_ids = tf.argmax(
+            input=predicted_arcs_logits,
+            axis=-1,
+            output_type=tf.int32)
 
         predicted_arcs_ids = tf.py_func(
             func=self.edmonds_prediction,
@@ -141,11 +141,15 @@ class DEPLayer(Layer):
             Tout=tf.int32)
         predicted_arcs_ids.set_shape(self.desired_arcs.ids.get_shape())
 
-        self.predicted_arcs_ids = predicted_arcs_ids  # FIXME: erase
-
         self.uas = tf.count_nonzero(
             tf.equal(
                 predicted_arcs_ids,
+                self.desired_arcs.ids
+            ))
+
+        self.naive_uas = tf.count_nonzero(
+            tf.equal(
+                naive_predicted_arcs_ids,
                 self.desired_arcs.ids
             ))
 
@@ -208,15 +212,16 @@ class DEPLayer(Layer):
                 self.use_desired_arcs: False
             })
             batch_results = self.model.sess.run(
-                fetches=[self.loss, self.model.adversarial_loss, self.uas, self.las, self.model.total_batch_length],
+                fetches=[self.loss, self.model.adversarial_loss, self.uas, self.naive_uas, self.las, self.model.total_batch_length],
                 feed_dict=fd)
             results.append(batch_results)
 
-        loss, adv_loss, uas, las, length = zip(*results)
+        loss, adv_loss, uas, naive_uas, las, length = zip(*results)
         return {
             'loss': np.mean(loss),
             'adv_loss': np.mean(adv_loss),
             'uas': sum(uas)/sum(length),
+            'naive_uas': sum(naive_uas)/sum(length),
             'las': sum(las)/sum(length)
         }
 
@@ -229,17 +234,19 @@ class DEPLayer(Layer):
             sentence = sentence[:, :length+1]
 
             graph = {i: {} for i in range(length + 1)}
+            root_index = np.argmax(sentence[:, 0])
+            graph[0][root_index+1] = -sentence[root_index][0]
             for i in range(length):
-                for j in range(length + 1):
-                    if j != i+1:
-                        graph[j][i+1] = -sentence[i][j]
+                for j in range(length):
+                    if j != i:
+                        graph[i+1][j+1] = -sentence[j][i+1]
 
-            # output format = {head_id: {dep_id: score, dep2_id: score}, ...}
+            # output format = [(head, tail), (head, tail)]
             mst = edmonds.mst(graph)
 
             prediction = [0 for _ in range(length)]
-            for arc in mst.values():
-                    prediction[arc.tail-1] = arc.head
+            for head, tail in mst:
+                    prediction[tail-1] = head
             result.extend(prediction)
 
         return np.array(result, dtype=np.int32)
