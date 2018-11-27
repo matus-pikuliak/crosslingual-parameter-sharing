@@ -4,6 +4,7 @@ import numpy as np
 import tensorflow as tf
 
 from model.layer import Layer
+from utils import edmonds
 
 
 class DEPLayer(Layer):
@@ -35,14 +36,16 @@ class DEPLayer(Layer):
 
             # shape = (sentence_lengths_sum x max_sentence_length+1 x hidden)
             pairs_repr = self.add_pairs(hidden)
-            pairs_hidden = tf.layers.dense(
+            pairs_repr = tf.layers.dense(
                 inputs=pairs_repr,
                 units=self.model.config.hidden_size,
                 activation=tf.nn.relu)
 
-            self.predicted_arcs_ids, uas_loss = self.add_uas(pairs_hidden)
-            las_loss = self.add_las(pairs_hidden, self.predicted_arcs_ids, tag_count)
+            uas_loss, predicted_arcs_logits = self.add_uas_loss(pairs_repr)
+            las_loss = self.add_las_loss(pairs_repr)
             self.loss = (uas_loss + las_loss) / 2
+
+            self.add_eval_metrics(predicted_arcs_logits, pairs_repr)
 
         self.train_op = self.model.add_train_op(self.loss)
 
@@ -99,50 +102,55 @@ class DEPLayer(Layer):
 
         return valid_pairs
 
-    def add_uas(self, pairs_repr):
+    def add_uas_loss(self, pairs_repr):
         predicted_arcs_logits = tf.layers.dense(
             inputs=pairs_repr,
             units=1)
-        # FIXME: add -1000 for impossible predictions? out of range words and pairs of same words
         predicted_arcs_logits = tf.squeeze(
             input=predicted_arcs_logits,
-            axis=-1)  # must be specified because we need static tensor shape for boolean mask later
-        predicted_arcs_ids = tf.argmax(
-            input=predicted_arcs_logits,
-            axis=-1,
-            output_type=tf.int32)
-        self.uas = tf.count_nonzero(
-            tf.equal(
-                predicted_arcs_ids,
-                self.desired_arcs.ids
-            ))
+            axis=-1)  # must be specified because we need a static tensor shape for the boolean mask later
 
         uas_loss = tf.nn.softmax_cross_entropy_with_logits_v2(
             labels=self.desired_arcs.one_hots,
             logits=predicted_arcs_logits)
         uas_loss = tf.reduce_mean(uas_loss)
 
-        return predicted_arcs_ids, uas_loss
+        return uas_loss, predicted_arcs_logits
 
-    def add_las(self, pairs_repr, predicted_arcs_ids, tag_count):
+    def add_las_loss(self, pairs_repr):
+        predicted_labels_logits = self.arc_ids_to_label_logits(
+            arcs_ids=self.desired_arcs.ids,
+            pairs_repr=pairs_repr)
+        las_loss = tf.nn.softmax_cross_entropy_with_logits_v2(
+            labels=self.desired_labels.one_hots,
+            logits=predicted_labels_logits)
+        las_loss = tf.reduce_mean(las_loss)
 
-        selected_arcs_ids = tf.cond(
-            pred=self.use_desired_arcs,
-            true_fn=lambda: self.desired_arcs.ids,
-            false_fn=lambda: predicted_arcs_ids)
-        selected_arcs_mask = tf.one_hot(
-            indices=selected_arcs_ids,
-            depth=self.model.max_length + 1,
-            on_value=True,
-            off_value=False,
-            dtype=tf.bool)
-        selected_pairs_repr = tf.boolean_mask(
-            tensor=pairs_repr,
-            mask=selected_arcs_mask)
+        return las_loss
 
-        predicted_labels_logits = tf.layers.dense(
-            inputs=selected_pairs_repr,
-            units=tag_count)
+    def add_eval_metrics(self, predicted_arcs_logits, pairs_repr):
+
+        # predicted_arcs_ids = tf.argmax(
+        #     input=predicted_arcs_logits,
+        #     axis=-1,
+        #     output_type=tf.int32)
+
+        predicted_arcs_ids = tf.py_func(
+            func=self.edmonds_prediction,
+            inp=[predicted_arcs_logits, self.model.sentence_lengths],
+            Tout=tf.int32)
+        predicted_arcs_ids.set_shape(self.desired_arcs.ids.get_shape())
+
+        self.uas = tf.count_nonzero(
+            tf.equal(
+                predicted_arcs_ids,
+                self.desired_arcs.ids
+            ))
+
+        predicted_labels_logits = self.arc_ids_to_label_logits(
+            arcs_ids=predicted_arcs_ids,
+            pairs_repr=pairs_repr,
+            reuse=True)
         predicted_labels_ids = tf.argmax(
             input=predicted_labels_logits,
             axis=-1,
@@ -154,12 +162,25 @@ class DEPLayer(Layer):
                 tf.equal(predicted_arcs_ids, self.desired_arcs.ids)
             ))
 
-        las_loss = tf.nn.softmax_cross_entropy_with_logits_v2(
-            labels=self.desired_labels.one_hots,
-            logits=predicted_labels_logits)
-        las_loss = tf.reduce_mean(las_loss)
+    def arc_ids_to_label_logits(self, arcs_ids, pairs_repr, reuse=False):
+        tag_count = len(self.model.dl.task_vocabs[self.task])
 
-        return las_loss
+        selected_arcs_mask = tf.one_hot(
+            indices=arcs_ids,
+            depth=self.model.max_length + 1,
+            on_value=True,
+            off_value=False,
+            dtype=tf.bool)
+        selected_pairs_repr = tf.boolean_mask(
+            tensor=pairs_repr,
+            mask=selected_arcs_mask)
+        predicted_labels_logits = tf.layers.dense(
+            inputs=selected_pairs_repr,
+            units=tag_count,
+            name=f'label_logits',
+            reuse=reuse)
+
+        return predicted_labels_logits
 
     def train(self, batch, dataset):
         *_, desired_labels, desired_arcs = batch
@@ -196,3 +217,29 @@ class DEPLayer(Layer):
             'uas': sum(uas)/sum(length),
             'las': sum(las)/sum(length)
         }
+
+    @staticmethod
+    def edmonds_prediction(logits, sentence_lengths):
+        print(5)
+        result = []
+        for length in sentence_lengths:
+            sentence = logits[:length]
+            logits = logits[length:]
+            sentence = sentence[:, :length+1]
+
+            graph = {i: {} for i in range(length + 1)}
+            for i in range(length):
+                for j in range(length + 1):
+                    graph[j][i+1] = -sentence[i][j]
+
+            # output format = {head_id: {dep_id: score, dep2_id: score}, ...}
+            mst = edmonds.mst(root=0, G=graph)
+
+            prediction = [0 for _ in range(length)]
+            for head, dependents in mst.items():
+                for dep in dependents.keys():
+                    prediction[dep-1] = head
+            result.extend(prediction)
+
+        return np.array(result, dtype=np.int32)
+
