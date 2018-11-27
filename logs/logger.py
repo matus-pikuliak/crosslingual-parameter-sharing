@@ -3,6 +3,7 @@ import os
 
 from constants import LOG_CRITICAL, LOG_RESULT, LOG_MESSAGE
 
+
 class Logger(object):
 
     def __init__(self, server_name=None, filename=None, slack_channel=None, slack_token=None):

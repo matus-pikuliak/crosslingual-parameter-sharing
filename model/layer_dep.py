@@ -130,6 +130,8 @@ class DEPLayer(Layer):
 
     def add_eval_metrics(self, predicted_arcs_logits, pairs_repr):
 
+        predicted_arcs_logits = tf.nn.softmax(predicted_arcs_logits)
+
         naive_predicted_arcs_ids = tf.argmax(
             input=predicted_arcs_logits,
             axis=-1,

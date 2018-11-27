@@ -15,7 +15,7 @@ default: &default
   learning_rate_decay: 0.99
   learning_rate_schedule: decay # static / decay
   batch_size: 32
-  epoch_steps: 1024
+  epoch_steps: 2048
   epochs: 30
   clip: 1
   dropout: 0.5
