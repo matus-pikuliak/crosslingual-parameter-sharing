@@ -1,8 +1,8 @@
 def word_normalization(word):
-    '''
+    """
     This is a function that processes the words from datasets into format compatible with embeddings
     files. It should be edited to fit the embeddings we use for various languages.
-    '''
+    """
 
     if word[0].isnumeric():
         return '#'

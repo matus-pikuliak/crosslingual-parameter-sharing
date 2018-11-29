@@ -70,10 +70,10 @@ class SQTLayer(Layer):
         raise NotImplementedError
 
     def predict_crf_batch(self, batch, dataset):
-        '''
+        """
         First yields loss and then iterate over samples in batch.
         Returned sequences are not padded anymore.
-        '''
+        """
         _, sentence_lengths, _, _, desired = batch
         fd = self.test_feed_dict(batch, dataset)
         fd.update({

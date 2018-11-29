@@ -4,7 +4,7 @@ import yaml
 
 
 class Config:
-    '''
+    """
     Config stores all the hyperparameters for the model. The procedure is as follows:
 
     1. Load default parameters from hparams and private.yaml files.
@@ -19,7 +19,7 @@ class Config:
     are interpreted as True if the value is string "true" in any casing, otherwise they are
     interpreted as False. String parameters that are supposed to be None are set as "na" in the
     yaml files. All the specified parameters must already be in yaml files.
-    '''
+    """
 
     def __init__(self, *args):
         dir = os.path.dirname(__file__)

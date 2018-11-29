@@ -154,10 +154,10 @@ class Dataset:
         return self.prepare_samples(*samples)
 
 
-    '''
+    """
     train iterators are endless, test iterators iterate over dataset once.
     cache iterators work with data loaded into memory, file iterators create samples dynamically from files.
-    '''
+    """
 
     @multithreading
     def train_cache_generator(self, batch_size):

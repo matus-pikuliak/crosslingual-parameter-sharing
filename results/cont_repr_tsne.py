@@ -6,7 +6,7 @@ from sklearn.decomposition import PCA
 num_samples = 1000
 tsne = True
 pca = False
-adv = False
+adv = True
 file = '2018-11-20-105207' if adv else '2018-11-20-133729'
 
 X = np.zeros((2*num_samples, 400))

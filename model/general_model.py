@@ -27,9 +27,7 @@ class GeneralModel:
         self.sess.run(tf.global_variables_initializer())
 
         if self.config.show_graph:
-            tf.summary.FileWriter(self.config.model_path, self.sess.graph)
-            for variable in tf.global_variables():
-                print(variable)
+            self.show_graph()
 
         self.saver = tf.train.Saver()
 
@@ -71,7 +69,6 @@ class GeneralModel:
         if self.config.clip > 0:
             grads, _ = tf.clip_by_global_norm(grads, self.config.clip)
         return self.optimizer.apply_gradients(zip(grads, vs))
-        # FIXME: gradient_notm?
 
     def current_learning_rate(self):
         if self.config.learning_rate_schedule == 'static':
@@ -97,6 +94,11 @@ class GeneralModel:
 
     def _run_experiment(self, start_time):
         raise NotImplementedError
+
+    def show_graph(self):
+        tf.summary.FileWriter(self.config.model_path, self.sess.graph)
+        for variable in tf.global_variables():
+            print(variable)
 
     def save(self):
         self.saver.save(

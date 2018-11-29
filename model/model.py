@@ -114,7 +114,7 @@ class Model(GeneralModel):
         }
         return tf.case(
             pred_fn_pairs=pred_fn_pairs,
-            exclusive=True)  # TODO: when all are false it will pick default? Add control_dependency?
+            exclusive=True)
 
     def add_char_embeddings(self):
         emb_matrix = tf.get_variable(
@@ -282,20 +282,22 @@ class Model(GeneralModel):
                 if word in self.dl.lang_vocabs[lang]:
                     id = self.dl.lang_vocabs[lang].word_to_id(word)
                     try:
+                        vec = np.array([float(n) for n in rest.split()])
+                    except ValueError:
+                        pass  # FIXME: sometimes there are two words in embeddings file (push embedding loading elsewhere)
+
                         if self.config.word_emb_type == 'mwe':
-                            emb_matrix[id] = [float(n) for n in rest.split()]
+                            emb_matrix[id] = vec
                         if self.config.word_emb_type == 'random':
                             vec = np.random.random(self.config.word_emb_size)
                             norm = np.linalg.norm(vec)
                             emb_matrix[id] = vec / norm
                         if self.config.word_emb_type == 'mwe_projected':
-                            vec = np.array([float(n) for n in rest.split()])
                             vec = vec[order]  # random reorder
                             vec *= weights
                             norm = np.linalg.norm(vec)
                             emb_matrix[id] = vec / norm
-                    except ValueError:
-                        pass  # FIXME: sometimes there are two words in embeddings file
+
         return emb_matrix
 
     def lstm(self, inputs, sequence_lengths, cell_size, name_scope, avg_pool=False, dropout=True):
