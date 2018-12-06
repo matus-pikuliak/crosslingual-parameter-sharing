@@ -1,4 +1,5 @@
 """
+Chi-Liu Edmond's algorithm
 Code by David Eisenstat
 See: https://stackoverflow.com/questions/23988236/chu-liu-edmonds-algorithm-for-minimum-spanning-tree-on-directed-graphs
 """
