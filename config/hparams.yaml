@@ -13,20 +13,20 @@ default: &default
 
   learning_rate: 0.003
   learning_rate_decay: 0.99
-  learning_rate_schedule: decay # static / decay
+  learning_rate_schedule: decay  # static / decay
   batch_size: 32
   epoch_steps: 2048
   epochs: 30
   clip: 1
   dropout: 0.5
-  optimizer: adam # rmsprop / adam / adagrad / sgd
+  optimizer: adam  # rmsprop / adam / adagrad / sgd
 
-  limited_data_size: -1 # max number of samples read from a file (-1 is unlimited)
+  limited_data_size: -1  # max number of samples read from a file (-1 is unlimited)
   limited_language: na
   limited_task_language: na
   limited_task: na
   train_only: na
-  eval_size_limit: -1 # mainly for debugging
+  eval_size_limit: -1  # mainly for debugging
 
   max_sentence_length: 70
   min_sentence_length: 2
@@ -48,8 +48,8 @@ default: &default
   setup: default
   use_gpu: true
   show_graph: false
-  save_parameters: false
-  saved_model: na
+  save_model: no  # no / epoch / run
+  load_model: na
 
 debug:
   <<: *default

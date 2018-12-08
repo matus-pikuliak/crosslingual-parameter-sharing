@@ -29,12 +29,10 @@ class GeneralModel:
         if self.config.show_graph:
             self.show_graph()
 
-        self.saver = tf.train.Saver()
+        self.saver = tf.train.Saver(tf.trainable_variables())
 
-        if self.config.saved_model:
-            self.saver.restore(self.sess, os.path.join(self.config.model_path, self.config.saved_model+".model"))
-            reset_op = tf.group([v.initializer for v in self.optimizer.variables()])
-            self.sess.run(reset_op)
+        if self.config.load_model:
+            self.load()
 
     def _build_graph(self):
         raise NotImplementedError
@@ -84,13 +82,23 @@ class GeneralModel:
         self.log(f'{self.config}', LOG_MESSAGE)
         self.log(f'git hash: {utils.git_hash()}', LOG_MESSAGE)
 
-        self._run_experiment(start_time)
-
-        if self.config.save_parameters:
+        self.epoch = 1
+        for i in range(self.config.epochs):
+            self.run_epoch()
+            if i == 0:
+                epoch_time = datetime.datetime.now() - start_time
+                self.log(f'ETA {start_time + epoch_time * self.config.epochs}', LOG_CRITICAL)
+            if self.config.save_model == 'epoch':
+                self.save(self.epoch)
+            self.epoch += 1
+        if self.config.save_model == 'run':
             self.save()
 
         end_time = datetime.datetime.now()
         self.log(f'Run done in {end_time - start_time}', LOG_CRITICAL)
+
+    def run_epoch(self):
+        raise NotImplementedError
 
     def _run_experiment(self, start_time):
         raise NotImplementedError
@@ -100,10 +108,20 @@ class GeneralModel:
         for variable in tf.global_variables():
             print(variable)
 
-    def save(self):
+    def save(self, global_step=None):
         self.saver.save(
             sess=self.sess,
-            save_path=os.path.join(self.config.model_path, self.timestamp + ".model"))
+            save_path=os.path.join(self.config.model_path, self.name),
+            global_step=global_step)
+        self.log(f'Model saved as {self.name}.', LOG_MESSAGE)
+
+    def load(self):
+        self.saver.restore(
+            sess=self.sess,
+            save_path=os.path.join(self.config.model_path, self.config.load_model))
+        reset_op = tf.group([v.initializer for v in self.optimizer.variables()])
+        self.sess.run(reset_op)
+        self.log(f'Model restored from {self.config.load_model}.', LOG_MESSAGE)
 
     def log(self, message, level):
         self.logger.log(message, level)

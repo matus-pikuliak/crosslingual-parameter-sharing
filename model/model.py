@@ -216,14 +216,6 @@ class Model(GeneralModel):
             loss += self.adversarial_loss * use_adversarial
         return GeneralModel.add_train_op(self, loss)
 
-    def _run_experiment(self, start_time):
-        self.epoch = 1
-        for i in range(self.config.epochs):
-            self.run_epoch()
-            if i == 0:
-                epoch_time = datetime.datetime.now() - start_time
-                self.log(f'ETA {start_time + epoch_time * self.config.epochs}', LOG_CRITICAL)
-
     def run_epoch(self):
 
         train_sets = [
@@ -259,8 +251,6 @@ class Model(GeneralModel):
                 'epoch': self.epoch
             })
             self.log(results, LOG_RESULT)
-
-        self.epoch += 1
 
     def load_embeddings(self, lang):
         emb_path = os.path.join(self.config.emb_path, lang)
