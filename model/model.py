@@ -1,7 +1,9 @@
-import tensorflow as tf
-import numpy as np
+import random
 import datetime
 import os
+
+import tensorflow as tf
+import numpy as np
 
 from model.dataset_iterator import DatasetIterator
 from model.general_model import GeneralModel
@@ -236,9 +238,9 @@ class Model(GeneralModel):
 
         # FIXME: Dopln train_only funkcionalitu (je to len redukcia train_sets?)
 
-        for _ in range(self.config.epoch_steps):
-            for st in train_sets:
-                st.layer.train(next(st.iterator), st.dataset)
+        for _ in range(self.config.epoch_steps * len(train_sets)):
+            st = random.choice(train_sets)
+            st.layer.train(next(st.iterator), st.dataset)
 
         self.log(f'Epoch {self.epoch} training done.', LOG_MESSAGE)
 
