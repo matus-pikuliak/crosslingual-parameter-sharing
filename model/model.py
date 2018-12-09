@@ -278,17 +278,17 @@ class Model(GeneralModel):
                     except ValueError:
                         pass  # FIXME: sometimes there are two words in embeddings file (push embedding loading elsewhere)
 
-                        if self.config.word_emb_type == 'mwe':
-                            emb_matrix[id] = vec
-                        if self.config.word_emb_type == 'random':
-                            vec = np.random.random(self.config.word_emb_size)
-                            norm = np.linalg.norm(vec)
-                            emb_matrix[id] = vec / norm
-                        if self.config.word_emb_type == 'mwe_projected':
-                            vec = vec[order]  # random reorder
-                            vec *= weights
-                            norm = np.linalg.norm(vec)
-                            emb_matrix[id] = vec / norm
+                    if self.config.word_emb_type == 'mwe':
+                        emb_matrix[id] = vec
+                    if self.config.word_emb_type == 'random':
+                        vec = np.random.random(self.config.word_emb_size)
+                        norm = np.linalg.norm(vec)
+                        emb_matrix[id] = vec / norm
+                    if self.config.word_emb_type == 'mwe_projected':
+                        vec = vec[order]  # random reorder
+                        vec *= weights
+                        norm = np.linalg.norm(vec)
+                        emb_matrix[id] = vec / norm
 
         return emb_matrix
 

@@ -85,12 +85,16 @@ class GeneralModel:
         self.epoch = 1
         for i in range(self.config.epochs):
             self.run_epoch()
+
             if i == 0:
                 epoch_time = datetime.datetime.now() - start_time
                 self.log(f'ETA {start_time + epoch_time * self.config.epochs}', LOG_CRITICAL)
+
             if self.config.save_model == 'epoch':
                 self.save(self.epoch)
+
             self.epoch += 1
+
         if self.config.save_model == 'run':
             self.save()
 
@@ -98,9 +102,6 @@ class GeneralModel:
         self.log(f'Run done in {end_time - start_time}', LOG_CRITICAL)
 
     def run_epoch(self):
-        raise NotImplementedError
-
-    def _run_experiment(self, start_time):
         raise NotImplementedError
 
     def show_graph(self):
