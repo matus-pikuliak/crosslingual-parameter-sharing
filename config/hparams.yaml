@@ -62,3 +62,4 @@ debug:
 
 production:
   <<: *default
+  save_model: epoch
