@@ -1,4 +1,3 @@
-from model.layer import Layer
 
 
 class DatasetIterator:

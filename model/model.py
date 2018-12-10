@@ -79,27 +79,22 @@ class Model(GeneralModel):
     def add_word_processing(self):
 
         word_emb_matrix = self.add_word_emb_matrices()
-        self.word_embeddings = tf.nn.embedding_lookup(
+        word_embeddings = tf.nn.embedding_lookup(
             params=word_emb_matrix,
             ids=self.word_ids,
             name="word_embeddings_lookup")
 
         if self.config.char_level:
             char_embeddings = self.add_char_embeddings()
-            self.word_embeddings = tf.concat(
-                values=[self.word_embeddings, char_embeddings],
+            word_embeddings = tf.concat(
+                values=[word_embeddings, char_embeddings],
                 axis=-1)
 
-        self.word_embeddings = tf.nn.dropout(
-            x=self.word_embeddings,
+        word_embeddings = tf.nn.dropout(
+            x=word_embeddings,
             keep_prob=self.dropout)
-        self.word_embeddings = tf.where(
-            condition=tf.is_nan(self.word_embeddings),
-            x=tf.zeros_like(self.word_embeddings),
-            y=self.word_embeddings)
-        # FIXME: why do NaNs go into gradient? they should not go into word level lstm at all
-        # TODO: Are zero length words time consuming?
-        return self.word_embeddings
+
+        return word_embeddings
 
     def add_word_emb_matrices(self):
         emb_matrices = {
@@ -118,6 +113,10 @@ class Model(GeneralModel):
         return tf.case(
             pred_fn_pairs=pred_fn_pairs,
             exclusive=True)
+
+    def load_embeddings(self, lang):
+        emb = Embeddings(lang, self.config)
+        return emb.matrix(self.dl.lang_vocabs[lang])
 
     def add_char_embeddings(self):
         emb_matrix = tf.get_variable(
@@ -150,6 +149,11 @@ class Model(GeneralModel):
         char_lstm_out = tf.reshape(
             tensor=char_lstm_out,
             shape=[-1, max_sentence, 2 * self.config.char_lstm_size])
+        char_lstm_out = tf.where(
+            condition=tf.is_nan(char_lstm_out),
+            x=tf.zeros_like(char_lstm_out),
+            y=char_lstm_out)
+
         return char_lstm_out
 
     def add_sentence_processing(self, word_repr):
@@ -221,23 +225,13 @@ class Model(GeneralModel):
 
     def run_epoch(self):
 
-        train_sets = [
-            DatasetIterator(
-                dataset=dt,
-                config=self.config,
-                layer=self.layers[self.task_code(dt.task, dt.lang)])
-            for dt
-            in self.dl.find(role='train')]
-        eval_sets = [
-            DatasetIterator(
-                dataset=dt,
-                config=self.config,
-                layer=self.layers[self.task_code(dt.task, dt.lang)],
-                is_train=False)
-            for dt
-            in self.dl.datasets]
-
-        # FIXME: Dopln train_only funkcionalitu (je to len redukcia train_sets?)
+        if self.config.train_only is None:
+            train_sets = self.create_sets(role='train')
+            eval_sets = self.create_sets()
+        else:
+            task, lang = self.config.train_only.split('-')
+            train_sets = self.create_sets(role='train', task=task, lang=lang)
+            eval_sets = self.create_sets(task=task, lang=lang)
 
         for _ in range(self.config.epoch_steps * len(train_sets)):
             st = random.choice(train_sets)
@@ -255,9 +249,14 @@ class Model(GeneralModel):
             })
             self.log(results, LOG_RESULT)
 
-    def load_embeddings(self, lang):
-        emb = Embeddings(lang, self.config)
-        return emb.matrix(self.dl.lang_vocabs[lang])
+    def create_sets(self, **kwargs):
+        return [
+            DatasetIterator(
+                dataset=dt,
+                config=self.config,
+                layer=self.layers[self.task_code(dt.task, dt.lang)])
+            for dt
+            in self.dl.find(**kwargs)]
 
     def lstm(self, inputs, sequence_lengths, cell_size, name_scope, avg_pool=False, dropout=True):
         with tf.variable_scope(name_scope):
