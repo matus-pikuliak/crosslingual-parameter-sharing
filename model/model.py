@@ -5,6 +5,7 @@ import os
 import tensorflow as tf
 import numpy as np
 
+from data.embedding import Embeddings
 from model.dataset_iterator import DatasetIterator
 from model.general_model import GeneralModel
 
@@ -255,42 +256,8 @@ class Model(GeneralModel):
             self.log(results, LOG_RESULT)
 
     def load_embeddings(self, lang):
-        emb_path = os.path.join(self.config.emb_path, lang)
-        emb_matrix = np.zeros(
-            shape=(len(self.dl.lang_vocabs[lang]), self.config.word_emb_size),
-            dtype=np.float)
-
-        # used for word_emb_type 'mwe_projected'
-        order = np.random.permutation(self.config.word_emb_size)
-        weights = np.random.random(self.config.word_emb_size)
-
-        with open(emb_path, 'r') as f:
-            next(f)  # skip first line with dimensions
-            for line in f:
-                try:
-                    word, rest = line.split(maxsplit=1)
-                except:
-                    raise RuntimeError(f'Can not parse a line in embedding file: "{line}"')
-                if word in self.dl.lang_vocabs[lang]:
-                    id = self.dl.lang_vocabs[lang].word_to_id(word)
-                    try:
-                        vec = np.array([float(n) for n in rest.split()])
-                    except ValueError:
-                        pass  # FIXME: sometimes there are two words in embeddings file (push embedding loading elsewhere)
-
-                    if self.config.word_emb_type == 'mwe':
-                        emb_matrix[id] = vec
-                    if self.config.word_emb_type == 'random':
-                        vec = np.random.random(self.config.word_emb_size)
-                        norm = np.linalg.norm(vec)
-                        emb_matrix[id] = vec / norm
-                    if self.config.word_emb_type == 'mwe_projected':
-                        vec = vec[order]  # random reorder
-                        vec *= weights
-                        norm = np.linalg.norm(vec)
-                        emb_matrix[id] = vec / norm
-
-        return emb_matrix
+        emb = Embeddings(lang, self.config)
+        return emb.matrix(self.dl.lang_vocabs[lang])
 
     def lstm(self, inputs, sequence_lengths, cell_size, name_scope, avg_pool=False, dropout=True):
         with tf.variable_scope(name_scope):

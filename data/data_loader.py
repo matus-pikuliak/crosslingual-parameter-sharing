@@ -5,6 +5,7 @@ import utils.general_utils as utils
 import constants as constants
 from data.dataset import Dataset
 from data.bidir_vocab import LangVocab, TaskVocab, CharVocab
+from data.embedding import Embeddings
 from data.word_normalization import word_normalization
 
 
@@ -61,13 +62,11 @@ class DataLoader:
         del self.emb_vocabs
 
     def load_embedding_vocabs(self):
-        vocabs = {}
-        for lang in self.langs:
-            filename = os.path.join(self.config.emb_path, lang)
-            with open(filename, 'r') as f:
-                next(f)  # Skip first line with dimensions
-                vocabs[lang] = {line.split()[0]: 0 for line in f}
-        return vocabs
+        return {
+            lang: Embeddings(lang, self.config).vocab()
+            for lang
+            in self.langs
+        }
 
     def load_vocabs(self):
         lang_vocabs = self.load_lang_vocabs()
@@ -81,10 +80,9 @@ class DataLoader:
             for word in self.lang_hists[lang]:
                 key = word_normalization(word)
                 amount = self.lang_hists[lang][word]
-                try:
+
+                if key in self.emb_vocabs[lang]:
                     self.emb_vocabs[lang][key] += amount
-                except KeyError:
-                    pass
 
         return {
             lang: LangVocab(self.emb_vocabs[lang], self.config.min_word_freq)

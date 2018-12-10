@@ -1,4 +1,5 @@
 import os
+import re
 import subprocess
 
 import numpy as np
@@ -51,3 +52,7 @@ def f1(p, r):
 
 def git_hash():
     return subprocess.check_output(['git', 'rev-parse', 'HEAD']).strip()
+
+
+def split_iter(string):
+    return (x.group(0) for x in re.finditer(r"\S+", string))
