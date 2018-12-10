@@ -227,11 +227,11 @@ class Model(GeneralModel):
 
         if self.config.train_only is None:
             train_sets = self.create_sets(role='train')
-            eval_sets = self.create_sets()
+            eval_sets = self.create_sets(is_train=False)
         else:
             task, lang = self.config.train_only.split('-')
             train_sets = self.create_sets(role='train', task=task, lang=lang)
-            eval_sets = self.create_sets(task=task, lang=lang)
+            eval_sets = self.create_sets(is_train=False, task=task, lang=lang)
 
         for _ in range(self.config.epoch_steps * len(train_sets)):
             st = random.choice(train_sets)
@@ -249,12 +249,13 @@ class Model(GeneralModel):
             })
             self.log(results, LOG_RESULT)
 
-    def create_sets(self, **kwargs):
+    def create_sets(self, is_train=True, **kwargs):
         return [
             DatasetIterator(
                 dataset=dt,
                 config=self.config,
-                layer=self.layers[self.task_code(dt.task, dt.lang)])
+                layer=self.layers[self.task_code(dt.task, dt.lang)],
+                is_train=is_train)
             for dt
             in self.dl.find(**kwargs)]
 
