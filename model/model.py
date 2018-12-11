@@ -35,8 +35,8 @@ class Model(GeneralModel):
     def _build_graph(self):
         self.add_inputs()
         self.add_utils()
-        word_repr = self.add_word_processing()
-        self.cont_repr = self.add_sentence_processing(word_repr)
+        self.word_repr = self.add_word_processing()
+        self.cont_repr = self.add_sentence_processing(self.word_repr)
         self.add_adversarial_loss(self.cont_repr)
         self.add_task_layers(self.cont_repr)
 

@@ -114,7 +114,8 @@ class GeneralModel:
         self.saver.save(
             sess=self.sess,
             save_path=os.path.join(self.config.model_path, self.name),
-            global_step=global_step)
+            global_step=global_step,
+            write_meta_graph=False)
         self.log(f'Model saved as {self.name}.', LOG_MESSAGE)
 
     def load(self):
