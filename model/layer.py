@@ -1,4 +1,3 @@
-import tensorflow as tf
 
 
 class Layer:
@@ -37,6 +36,7 @@ class Layer:
             self.model.dropout: 1
         })
         return fd
+
 
 
 

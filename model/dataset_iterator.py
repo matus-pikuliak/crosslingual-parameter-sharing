@@ -18,7 +18,7 @@ class DatasetIterator:
             self.iterator = self.new_iterator()
 
     def new_iterator(self):
-        batch_size = self.config.batch_size if self.dataset.role == 'train' else 32  # TODO: dynamic size for eval datasets
+        batch_size = self.config.batch_size if self.dataset.role == 'train' else 32
 
         if self.is_train:
             if self.dataset.size > self.config.max_dataset_cache:

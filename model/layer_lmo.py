@@ -2,6 +2,7 @@ import numpy as np
 import tensorflow as tf
 
 from model.layer import Layer
+import utils.tf_utils as tfu
 
 
 class LMOLayer(Layer):
@@ -19,7 +20,7 @@ class LMOLayer(Layer):
             # shape = (sentence_lengths_sum x 2*word_lstm_size)
             context = tf.concat([past, future], axis=1)
 
-            hidden = tf.layers.dense(
+            hidden, self.cont_repr_weights = tfu.dense_with_weights(
                 inputs=context,
                 units=self.model.config.hidden_size,
                 activation=tf.nn.relu)

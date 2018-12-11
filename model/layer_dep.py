@@ -5,6 +5,7 @@ import tensorflow as tf
 
 from model.layer import Layer
 from utils import edmonds
+import utils.tf_utils as tfu
 
 
 class DEPLayer(Layer):
@@ -25,7 +26,7 @@ class DEPLayer(Layer):
                 name='desired_labels',
                 depth=tag_count)
 
-            hidden = tf.layers.dense(
+            hidden, self.cont_repr_weights = tfu.dense_with_weights(
                 inputs=cont_repr,
                 units=self.model.config.hidden_size,
                 activation=tf.nn.relu)

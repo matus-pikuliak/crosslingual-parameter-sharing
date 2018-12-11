@@ -108,6 +108,7 @@ class GeneralModel:
         tf.summary.FileWriter(self.config.model_path, self.sess.graph)
         for variable in tf.global_variables():
             print(variable)
+        exit()
 
     def save(self, global_step=None):
         self.saver.save(

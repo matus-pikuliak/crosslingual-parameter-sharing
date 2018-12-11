@@ -164,6 +164,7 @@ class Model(GeneralModel):
             name_scope='word_bilstm')
 
     def add_task_layers(self, cont_repr):
+
         for (task, lang) in self.config.tasks:
             task_code = self.task_code(task, lang)
             if task_code not in self.layers:

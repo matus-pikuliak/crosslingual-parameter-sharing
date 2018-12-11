@@ -12,7 +12,7 @@ dl.load()
 # for each epoch
     # check logs
     # load model
-    # run stats
+    # run stats (layer.cont_repr_weights)
 
 model = Model(dl, config)
 model.build_graph()

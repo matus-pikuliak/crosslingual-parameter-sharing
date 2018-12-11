@@ -28,7 +28,7 @@ class Experiment:
 
     def results(self, filters, metric):
 
-        maxs = list()
+        maxs = []
         dev_filters = dict(filters)
         dev_filters.update({'role': 'dev'})
 

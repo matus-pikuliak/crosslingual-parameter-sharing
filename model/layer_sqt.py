@@ -2,6 +2,7 @@ import numpy as np
 import tensorflow as tf
 
 from model.layer import Layer
+import utils.tf_utils as tfu
 
 
 class SQTLayer(Layer):
@@ -15,7 +16,7 @@ class SQTLayer(Layer):
 
         with tf.variable_scope(self.task_code()):
 
-            hidden = tf.layers.dense(
+            hidden, self.cont_repr_weights = tfu.dense_with_weights(
                 inputs=cont_repr,
                 units=self.model.config.hidden_size,
                 activation=tf.nn.relu)
