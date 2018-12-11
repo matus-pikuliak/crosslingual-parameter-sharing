@@ -170,3 +170,5 @@ nie su pri trenovani z nejakeho dovodu rychlejsie.
 mierne vylepsenie vysledkov, ale najma naozaj vraciame parse tree a nie nejaky pseudo-parse
 
 
+# CURRENT EXPERIMENTS
+11.12.2018 martak: vanilla - stsl, ml, mt, mtml
