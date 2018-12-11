@@ -48,7 +48,7 @@ default: &default
   setup: default
   use_gpu: true
   show_graph: false
-  save_model: no  # no / epoch / run
+  save_model: never  # never / epoch / run
   load_model: na
 
 debug:

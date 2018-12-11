@@ -29,7 +29,9 @@ class GeneralModel:
         if self.config.show_graph:
             self.show_graph()
 
-        self.saver = tf.train.Saver(tf.trainable_variables())
+        self.saver = tf.train.Saver(
+            var_list=tf.trainable_variables(),
+            max_to_keep=None)
 
         if self.config.load_model:
             self.load()
@@ -97,6 +99,7 @@ class GeneralModel:
 
         if self.config.save_model == 'run':
             self.save()
+
 
         end_time = datetime.datetime.now()
         self.log(f'Run done in {end_time - start_time}', LOG_CRITICAL)
