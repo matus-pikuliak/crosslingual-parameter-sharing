@@ -172,3 +172,26 @@ mierne vylepsenie vysledkov, ale najma naozaj vraciame parse tree a nie nejaky p
 
 # CURRENT EXPERIMENTS
 11.12.2018 martak: vanilla - stsl, ml, mt, mtml
+13.12.2018 gcp - ml w/o adversarial
+
+# GCP notes
+added drivers repo
+sudo apt install nvidia-driver-415
+reboot
+check nvidia-smi
+apt install python3-pip python3-dev
+pip3 -V
+install cuda per tf guide
+install tf
+
+check tf install:
+from tensorflow.python.client import device_lib
+device_lib.list_local_devices()
+
+#gsutil je predinstalovany
+gsutil cp -r gs://cll ~ (100MB/s speed)
+bucket cez browser (centy za hodinu)
+
+sudo nvidia-smi -pm 1
+
+sudo poweroff

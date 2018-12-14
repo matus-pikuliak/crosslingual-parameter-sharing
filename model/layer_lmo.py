@@ -20,7 +20,7 @@ class LMOLayer(Layer):
             # shape = (sentence_lengths_sum x 2*word_lstm_size)
             context = tf.concat([past, future], axis=1)
 
-            hidden, self.cont_repr_weights = tfu.dense_with_weights(
+            hidden, cont_repr_weights = tfu.dense_with_weights(
                 inputs=context,
                 units=self.model.config.hidden_size,
                 activation=tf.nn.relu)
@@ -37,7 +37,8 @@ class LMOLayer(Layer):
             self.perplexity = tf.reduce_sum(loss)
             self.loss = tf.reduce_mean(loss)
 
-        self.train_op = self.model.add_train_op(self.loss)
+        self.train_op, grads = self.model.add_train_op(self.loss)
+        self.add_eval_stats(grads, vars=cont_repr_weights)
 
     def vocab_size(self):
         return min(

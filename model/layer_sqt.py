@@ -16,7 +16,7 @@ class SQTLayer(Layer):
 
         with tf.variable_scope(self.task_code()):
 
-            hidden, self.cont_repr_weights = tfu.dense_with_weights(
+            hidden, cont_repr_weights = tfu.dense_with_weights(
                 inputs=cont_repr,
                 units=self.model.config.hidden_size,
                 activation=tf.nn.relu)
@@ -40,7 +40,8 @@ class SQTLayer(Layer):
             self.loss = tf.reduce_mean(-log_likelihood)
 
         # Rremoving the train_op from the task variable scope makes the computational graph less weird.
-        self.train_op = self.model.add_train_op(self.loss)
+        self.train_op, grads = self.model.add_train_op(self.loss)
+        self.add_eval_stats(grads, vars=cont_repr_weights)
 
     def train(self, batch, dataset):
         *_, desired = batch

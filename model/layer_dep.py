@@ -26,7 +26,7 @@ class DEPLayer(Layer):
                 name='desired_labels',
                 depth=tag_count)
 
-            hidden, self.cont_repr_weights = tfu.dense_with_weights(
+            hidden, cont_repr_weights = tfu.dense_with_weights(
                 inputs=cont_repr,
                 units=self.model.config.hidden_size,
                 activation=tf.nn.relu)
@@ -44,7 +44,8 @@ class DEPLayer(Layer):
 
             self.add_eval_metrics(predicted_arcs_logits, pairs_repr)
 
-        self.train_op = self.model.add_train_op(self.loss)
+        self.train_op, grads = self.model.add_train_op(self.loss)
+        self.add_eval_stats(grads, vars=cont_repr_weights)
 
     PairLabel = namedtuple('PairLabels', ('placeholder', 'ids', 'one_hots'))
 
@@ -197,6 +198,7 @@ class DEPLayer(Layer):
                 self.desired_arcs.placeholder: desired_arcs,
                 self.desired_labels.placeholder: desired_labels
             })
+
             batch_results = self.model.sess.run(
                 fetches=[self.loss, self.model.adversarial_loss, self.uas, self.las, self.model.total_batch_length],
                 feed_dict=fd)

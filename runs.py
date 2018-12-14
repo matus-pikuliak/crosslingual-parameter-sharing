@@ -1,9 +1,19 @@
+ls = ['cs', 'de', 'en', 'es']
+ts = ['dep', 'lmo', 'ner', 'pos']
+
+'''
+13.12.2018 gcp run
+'''
+
+for t in ts:
+    print(f'bash train.sh adversarial_training false tasks ', end='')
+    for l in ls:
+        print(f'{t}-{l} ', end='')
+    print('&& ', end='')
+print('; sudo poweroff')
 '''
 11.12.2018 martak run
 '''
-
-ls = ['cs', 'de', 'en', 'es']
-ts = ['dep', 'lmo', 'ner', 'pos']
 
 for t in ts:
     for l in ls:

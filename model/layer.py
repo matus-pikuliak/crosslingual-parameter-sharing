@@ -1,3 +1,4 @@
+import tensorflow as tf
 
 
 class Layer:
@@ -37,8 +38,11 @@ class Layer:
         })
         return fd
 
-
-
-
-
-
+    def add_eval_stats(self, grads, vars):
+        try:
+            iter(vars)
+        except TypeError:
+            vars = [vars]
+        grads = {var: grad for grad, var in grads}
+        self.global_norm = tf.global_norm([grad for grad in grads.values()])
+        self.vars_with_grads = {var: grads[var] for var in vars}
