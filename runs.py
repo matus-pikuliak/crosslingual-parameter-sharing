@@ -1,5 +1,35 @@
 ls = ['cs', 'de', 'en', 'es']
 ts = ['dep', 'lmo', 'ner', 'pos']
+'''
+17.12.2018 martak run
+'''
+
+print(f'bash train.sh adversarial_training false tasks ', end='')
+for l in ls:
+    for t in ts:
+        print(f'{t}-{l} ', end='')
+print('&& ', end='')
+
+print(f'bash train.sh task_layer_sharing false tasks ', end='')
+for l in ls:
+    for t in ts:
+        print(f'{t}-{l} ', end='')
+print('; sudo poweroff', end='')
+
+
+exit()
+
+'''
+17.12.2018 gcp run
+'''
+
+for t in ts:
+    print(f'bash train.sh task_layer_sharing false tasks ', end='')
+    for l in ls:
+        print(f'{t}-{l} ', end='')
+    print('&& ', end='')
+print('; sudo poweroff')
+exit()
 
 '''
 13.12.2018 gcp run
@@ -11,6 +41,8 @@ for t in ts:
         print(f'{t}-{l} ', end='')
     print('&& ', end='')
 print('; sudo poweroff')
+exit()
+
 '''
 11.12.2018 martak run
 '''
