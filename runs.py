@@ -1,5 +1,91 @@
 ls = ['cs', 'de', 'en', 'es']
 ts = ['dep', 'lmo', 'ner', 'pos']
+
+'''
+27.12.2018 gcp run
+'''
+
+for t in ts:
+    for l in ls:
+        print(f'bash train.sh word_lstm_size 300 tasks {t}-{l} && ', end='')
+
+for t in ts:
+    print(f'bash train.sh word_lstm_size 300 tasks ', end='')
+    for l in ls:
+        print(f'{t}-{l} ', end='')
+    print('&& ', end='')
+
+for l in ls:
+    print(f'bash train.sh word_lstm_size 300 tasks ', end='')
+    for t in ts:
+        print(f'{t}-{l} ', end='')
+    print('&& ', end='')
+
+print(f'bash train.sh word_lstm_size 300 tasks ', end='')
+for l in ls:
+    for t in ts:
+        print(f'{t}-{l} ', end='')
+print('; sudo poweroff', end='')
+exit()
+
+'''
+27.12.2018 gcp run
+'''
+
+for t in ts:
+    for l in ls:
+        print(f'bash train.sh word_lstm_size 400 tasks {t}-{l} && ', end='')
+
+for t in ts:
+    print(f'bash train.sh word_lstm_size 400 tasks ', end='')
+    for l in ls:
+        print(f'{t}-{l} ', end='')
+    print('&& ', end='')
+
+for l in ls:
+    print(f'bash train.sh word_lstm_size 400 tasks ', end='')
+    for t in ts:
+        print(f'{t}-{l} ', end='')
+    print('&& ', end='')
+
+print(f'bash train.sh word_lstm_size 400 tasks ', end='')
+for l in ls:
+    for t in ts:
+        print(f'{t}-{l} ', end='')
+print('&', end='')
+exit()
+
+'''
+21.12.2018 gcp run
+'''
+for t in ts:
+    print(f'bash train.sh adversarial_training false word_emb_type mwe_projected tasks ', end='')
+    for l in ls:
+        print(f'{t}-{l} ', end='')
+    print('&& ', end='')
+print(f'bash train.sh adversarial_training false word_emb_type mwe_projected tasks ', end='')
+for l in ls:
+    for t in ts:
+        print(f'{t}-{l} ', end='')
+print('; sudo poweroff', end='')
+exit()
+
+
+'''
+21.12.2018 martak run
+'''
+for t in ts:
+    print(f'bash train.sh word_emb_type mwe_projected tasks ', end='')
+    for l in ls:
+        print(f'{t}-{l} ', end='')
+    print('&& ', end='')
+print(f'bash train.sh word_emb_type mwe_projected tasks ', end='')
+for l in ls:
+    for t in ts:
+        print(f'{t}-{l} ', end='')
+print('; sudo poweroff', end='')
+exit()
+
 '''
 17.12.2018 martak run
 '''

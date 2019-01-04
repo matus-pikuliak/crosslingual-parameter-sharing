@@ -1,6 +1,6 @@
 default: &default
 
-  word_emb_type: mwe # mwe / random /
+  word_emb_type: mwe # mwe / random / mwe_projected
   word_emb_size: 300
   train_emb: false
   char_emb_size: 30

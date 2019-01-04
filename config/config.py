@@ -11,9 +11,7 @@ class Config:
     2. If the first user argument is 'setup', overwrite values by setup-specific parameters from both
        hparams and private.
     3. Overwrite loaded parameter values with those specified in args in "key value" format.
-    (Not supported yet) X. If load_model is specified and load_settings is set to true, load config
-                           values from log file.
-    5. The last optional user argument is tasks followed by "task-language" arguments.
+    4. The last optional user argument is tasks followed by "task-language" arguments.
 
     Each parameter value is type checked against the types specified in yaml files. Boolean values
     are interpreted as True if the value is string "true" in any casing, otherwise they are
@@ -67,3 +65,10 @@ class Config:
 
     def __repr__(self):
         return str(self.values)
+
+    def load_from_logfile(self, dct):
+        self.values.update(dct)
+
+        dir = os.path.dirname(__file__)
+        settings = yaml.safe_load(open(os.path.join(dir, 'private.yaml')))
+        self.values.update(settings['default'])
