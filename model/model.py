@@ -301,7 +301,7 @@ class Model(GeneralModel):
     temp_* methods are used for various experiments, but they are not essential for model itself.
     """
 
-    def temp_export_representations(self, task, lang, role, sample_size):
+    def temp_export_representations(self, task, lang, role):
 
         dt = self.dl.find_one(task=task, lang=lang, role=role)
         ite = DatasetIterator(
@@ -319,6 +319,8 @@ class Model(GeneralModel):
 
         for batch in ite.iterator:
             batch_count += 1
+            if batch_count == 3:
+                break
 
             *_, desired_labels, desired_arcs = batch
             fd = ite.layer.test_feed_dict(batch, dt)

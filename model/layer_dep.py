@@ -41,12 +41,11 @@ class DEPLayer(Layer):
             uas_loss, predicted_arcs_logits = self.add_uas_loss(pairs_repr)
             las_loss = self.add_las_loss(pairs_repr)
             self.loss = (uas_loss + las_loss) / 2
-            self.cont_repr_grad = self.add_cont_repr_grad(cont_repr)
 
             self.add_eval_metrics(predicted_arcs_logits, pairs_repr)
 
         self.train_op, grads = self.model.add_train_op(self.loss)
-        self.add_grad_stats(grads)
+        self.add_grad_stats(grads, cont_repr)
 
     PairLabel = namedtuple('PairLabels', ('placeholder', 'ids', 'one_hots'))
 

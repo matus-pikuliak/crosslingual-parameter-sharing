@@ -5,6 +5,7 @@ tensorflow saver file. Both are identified by the run id.
 
 import ast
 import glob
+import h5py
 import itertools
 import os
 import sys
@@ -14,8 +15,7 @@ from config.config import Config
 from data.data_loader import DataLoader
 from model.model import Model
 
-# for logfile_path in glob.glob(f'{Config().log_path}gcp/*'):
-for logfile_path in glob.glob(f'{Config().log_path}gcp/2018-12-13-151057'):
+for logfile_path in glob.glob(f'{Config().log_path}gcp/*'):
 
     if not os.path.isfile(logfile_path):
         continue
@@ -39,8 +39,6 @@ for logfile_path in glob.glob(f'{Config().log_path}gcp/2018-12-13-151057'):
 
         for modelfile_path in glob.glob(f'{Config().model_path}{timestamp}*.index'):
 
-            print(modelfile_path)
-
             model_id = os.path.split(modelfile_path)[-1]
             model_id = model_id.split('.index')[0]
             config.values['load_model'] = model_id
@@ -49,6 +47,11 @@ for logfile_path in glob.glob(f'{Config().log_path}gcp/2018-12-13-151057'):
             model.build_graph()
 
             for (task, lang), role in itertools.product(config.tasks, ('test', 'train')):
-                model.temp_export_representations(task, lang, role, sample_size=500)
+                output = model.temp_export_representations(task, lang, role)
+                output_file_path = f'{modelfile_path}-{task}-{lang}-{role}.h5'
+                with h5py.File(output_file_path, 'w') as f:
+                    for k, v in output.items():
+                        f.create_dataset(name=k, data=v)
+                print(f'{output_file_path} was created')
 
             model.close()
