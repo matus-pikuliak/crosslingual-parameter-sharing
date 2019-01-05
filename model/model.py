@@ -35,10 +35,12 @@ class Model(GeneralModel):
     def _build_graph(self):
         self.add_inputs()
         self.add_utils()
-        self.word_repr = self.add_word_processing()
-        self.cont_repr = self.add_sentence_processing(self.word_repr)
-        self.add_adversarial_loss(self.cont_repr)
-        self.add_task_layers(self.cont_repr)
+        word_repr = self.add_word_processing()
+        cont_repr = self.add_sentence_processing(word_repr)
+        self.cont_repr_with_mask = tf.boolean_mask(cont_repr, self.sentence_lengths_mask)
+        self.add_adversarial_loss(cont_repr)
+        self.add_task_layers(cont_repr)
+
 
     def add_inputs(self):
         # shape = (batch size, max_sentence_length)
@@ -299,24 +301,56 @@ class Model(GeneralModel):
     temp_* methods are used for various experiments, but they are not essential for model itself.
     """
 
-    def temp_export_representations(self):
-        train_sets = [
-            DatasetIterator(
-                dataset=dt,
-                config=self.config,
-                layer=self.layers[self.task_code(dt.task, dt.lang)])
-            for dt
-            in self.dl.find(role='train')]
+    def temp_export_representations(self, task, lang, role, sample_size):
 
-        for st in train_sets:
-            name = f'{st.dataset.task}-{st.dataset.lang}'
-            content = []
-            for _ in range(1000):
-                fd = st.layer.test_feed_dict(next(st.iterator), st.dataset)
-                repr = self.sess.run(self.cont_repr, feed_dict=fd)
-                repr = np.reshape(repr, (-1, self.config.word_lstm_size * 2))
-                for rep in repr:
-                    if np.count_nonzero(rep):
-                        content.append(', '.join([f'{r:.8}' for r in rep]))
-            with open(f'{self.config.log_path}{self.name}-{name}', 'w') as f:
-                f.write('\n'.join(content))
+        dt = self.dl.find_one(task=task, lang=lang, role=role)
+        ite = DatasetIterator(
+            dataset=dt,
+            config=self.config,
+            layer=self.layers[self.task_code(dt.task, dt.lang)],
+            is_train=False)
+
+
+        cont_repr = None
+        cont_repr_grad = None
+        cont_repr_weights_grad = None
+        global_norm = 0
+        batch_count = 0
+
+        for batch in ite.iterator:
+            batch_count += 1
+
+            *_, desired_labels, desired_arcs = batch
+            fd = ite.layer.test_feed_dict(batch, dt)
+            fd.update({
+                ite.layer.desired_arcs.placeholder: desired_arcs,
+                ite.layer.desired_labels.placeholder: desired_labels
+            })
+            fetches = self.sess.run(
+                fetches=[
+                    self.cont_repr_with_mask,
+                    ite.layer.cont_repr_grad,
+                    ite.layer.global_norm,
+                    ite.layer.grads[ite.layer.cont_repr_weights]
+                ],
+                feed_dict=fd)
+
+            global_norm += fetches[2]
+
+            if cont_repr is None:
+                cont_repr_weights_grad = fetches[3]
+                cont_repr = fetches[0]
+                cont_repr_grad = fetches[1]
+            else:
+                cont_repr_weights_grad += fetches[3]
+                if cont_repr.shape[0] < 50_000:
+                    cont_repr = np.vstack((cont_repr, fetches[0]))
+                    cont_repr_grad = np.vstack((cont_repr_grad, fetches[1]))
+
+        return {
+            'cont_repr': cont_repr,
+            'cont_repr_grad': cont_repr_grad,
+            'gradient_norm': global_norm / batch_count,
+            'cont_repr_weights_grad': cont_repr_weights_grad / batch_count,
+            'cont_repr_weights': self.sess.run(ite.layer.cont_repr_weights)
+        }

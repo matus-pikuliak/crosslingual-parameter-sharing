@@ -148,8 +148,8 @@ Pri prezreti slov, ktore sa nenasli v embeddingoch mi naslo vela slov, ktore
   slova a pod.
 
 # Co mozno skumat v MLMT nastaveni?
-- vyvoj loss / performance
-- aktivacie na word a sentence-level LSTM layeroch - pouzivajus a rovnomerne? ako s tym zamava adversarial learning?
++ vyvoj loss / performance
++ aktivacie na word a sentence-level LSTM layeroch - pouzivajus a rovnomerne? ako s tym zamava adversarial learning?
   vizualizacie
 - matice, ktore nasleduju za tymito layermi - pouzivaju neurony rovnomerne? nerozdeli si model parameter space pre
   jednotlive ulohy? ako sa budu modely chovat pri zvysovani kapacity (MLMT by z toho mal profitovat najviac)
@@ -160,7 +160,7 @@ Pri prezreti slov, ktore sa nenasli v embeddingoch mi naslo vela slov, ktore
   zlepsovat, aj ked model dany jazyk nikdy nevidel?
 - ako reaguju rozlicne nastavenia na rozlicnu kapacitu word-level LSTM. mozeme predpokladat, ze pri viacerych taskoch
   bude vediet model vacsiu kapacitu lepsie vyuzit
-- gradient norms
++ gradient norms
 
 # LMO Cost
 sparse softmax with cross entropy vyzera byt velmi dobre optimalizovany, NCE ani samples softmax s 10 samplovaniami
@@ -180,3 +180,6 @@ mierne vylepsenie vysledkov, ale najma naozaj vraciame parse tree a nie nejaky p
 27.12.2018 martak: vanilla 400 word lstm size
 27.12.2018 gcp: vanilla 300 word lstm size
 
+# PO EXPERIMENTOCH
+1. Odstran cont_repr a vsetko co s tym suvisi, co sa dostalo do layerov a modelu
+2. Pridaj gradient global norm do vypisu ako standard

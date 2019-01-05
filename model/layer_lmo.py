@@ -38,7 +38,7 @@ class LMOLayer(Layer):
             self.loss = tf.reduce_mean(loss)
 
         self.train_op, grads = self.model.add_train_op(self.loss)
-        self.add_eval_stats(grads, vars=cont_repr_weights)
+        self.add_grad_stats(grads)
 
     def vocab_size(self):
         return min(

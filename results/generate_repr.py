@@ -14,7 +14,8 @@ from config.config import Config
 from data.data_loader import DataLoader
 from model.model import Model
 
-for logfile_path in glob.glob(f'{Config().log_path}*'):
+# for logfile_path in glob.glob(f'{Config().log_path}gcp/*'):
+for logfile_path in glob.glob(f'{Config().log_path}gcp/2018-12-13-151057'):
 
     if not os.path.isfile(logfile_path):
         continue
@@ -35,10 +36,10 @@ for logfile_path in glob.glob(f'{Config().log_path}*'):
         dl.load()
 
         timestamp = os.path.split(logfile_path)[-1]
-        print(config.tasks)
-        exit()
 
         for modelfile_path in glob.glob(f'{Config().model_path}{timestamp}*.index'):
+
+            print(modelfile_path)
 
             model_id = os.path.split(modelfile_path)[-1]
             model_id = model_id.split('.index')[0]
@@ -48,7 +49,6 @@ for logfile_path in glob.glob(f'{Config().log_path}*'):
             model.build_graph()
 
             for (task, lang), role in itertools.product(config.tasks, ('test', 'train')):
-                repr = model.representations(task, lang, role, samples=500)
-                emb.save_as_h5()
+                model.temp_export_representations(task, lang, role, sample_size=500)
 
             model.close()

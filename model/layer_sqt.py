@@ -41,7 +41,7 @@ class SQTLayer(Layer):
 
         # Rremoving the train_op from the task variable scope makes the computational graph less weird.
         self.train_op, grads = self.model.add_train_op(self.loss)
-        self.add_eval_stats(grads, vars=cont_repr_weights)
+        self.add_grad_stats(grads)
 
     def train(self, batch, dataset):
         *_, desired = batch

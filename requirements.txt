@@ -2,3 +2,4 @@ slackclient
 tensorflow
 tensorflow-gpu
 pyyaml
+h5py
