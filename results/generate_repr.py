@@ -15,12 +15,13 @@ from config.config import Config
 from data.data_loader import DataLoader
 from model.model import Model
 
-for logfile_path in glob.glob(f'{Config().log_path}gcp/*'):
+for logfile_path in glob.glob(f'{Config().log_path}{sys.argv[1]}/*'):
 
     if not os.path.isfile(logfile_path):
         continue
 
     with open(logfile_path) as logfile:
+        print(f'Wprking on {logfile_path}')
         for line in logfile:
             if 'optimizer' in line:
                 break
@@ -49,9 +50,12 @@ for logfile_path in glob.glob(f'{Config().log_path}gcp/*'):
             for (task, lang), role in itertools.product(config.tasks, ('test', 'train')):
                 output = model.temp_export_representations(task, lang, role)
                 output_file_path = f'{modelfile_path}-{task}-{lang}-{role}.h5'
-                with h5py.File(output_file_path, 'w') as f:
-                    for k, v in output.items():
-                        f.create_dataset(name=k, data=v)
-                print(f'{output_file_path} was created')
+                if not os.path.isfile(output_file_path):
+                    with h5py.File(output_file_path, 'w') as f:
+                        for k, v in output.items():
+                            f.create_dataset(name=k, data=v)
+                    print(f'{output_file_path} was created')
+                else:
+                    print(f'{output_file_path} found. Skipped')
 
             model.close()

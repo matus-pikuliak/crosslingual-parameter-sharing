@@ -310,7 +310,6 @@ class Model(GeneralModel):
             layer=self.layers[self.task_code(dt.task, dt.lang)],
             is_train=False)
 
-
         cont_repr = None
         cont_repr_grad = None
         cont_repr_weights_grad = None
@@ -319,8 +318,6 @@ class Model(GeneralModel):
 
         for batch in ite.iterator:
             batch_count += 1
-            if batch_count == 3:
-                break
 
             *_, desired_labels, desired_arcs = batch
             fd = ite.layer.test_feed_dict(batch, dt)
@@ -345,7 +342,7 @@ class Model(GeneralModel):
                 cont_repr_grad = fetches[1]
             else:
                 cont_repr_weights_grad += fetches[3]
-                if cont_repr.shape[0] < 50_000:
+                if cont_repr.shape[0] < 25_000:
                     cont_repr = np.vstack((cont_repr, fetches[0]))
                     cont_repr_grad = np.vstack((cont_repr_grad, fetches[1]))
 
