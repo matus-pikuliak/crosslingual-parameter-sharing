@@ -319,12 +319,18 @@ class Model(GeneralModel):
         for batch in ite.iterator:
             batch_count += 1
 
-            *_, desired_labels, desired_arcs = batch
             fd = ite.layer.test_feed_dict(batch, dt)
-            fd.update({
-                ite.layer.desired_arcs.placeholder: desired_arcs,
-                ite.layer.desired_labels.placeholder: desired_labels
-            })
+            if task == 'dep':
+                *_, desired_labels, desired_arcs = batch
+                fd.update({
+                    ite.layer.desired_arcs.placeholder: desired_arcs,
+                    ite.layer.desired_labels.placeholder: desired_labels
+                })
+            if task == 'ner' or task == 'pos':
+                *_, desired = batch
+                fd.update({
+                    ite.layer.desired: desired
+                })
             fetches = self.sess.run(
                 fetches=[
                     self.cont_repr_with_mask,

@@ -54,9 +54,9 @@ for logfile_path in glob.glob(f'{Config().log_path}{subdir}*'):
             model.build_graph()
 
             for (task, lang), role in itertools.product(config.tasks, ('test', 'train')):
-                output = model.temp_export_representations(task, lang, role)
                 output_file_path = os.path.join(Config().model_path, f'{model_id}-{task}-{lang}-{role}.h5')
                 if not os.path.isfile(output_file_path):
+                    output = model.temp_export_representations(task, lang, role)
                     with h5py.File(output_file_path, 'w') as f:
                         for k, v in output.items():
                             f.create_dataset(name=k, data=v)
