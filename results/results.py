@@ -85,6 +85,7 @@ class Run:
         data = sorted(data, key=lambda d: d[metric])
         result = data[-1] if max_ else data[0]
         return result[metric], result['epoch']
+
     def metric_eval(self, metric, max_=True, **filters):
         assert('role' not in filters)
         _, epoch = self.best(metric, max_, role='dev', **filters)
