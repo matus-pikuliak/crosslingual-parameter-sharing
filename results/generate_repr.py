@@ -15,7 +15,13 @@ from config.config import Config
 from data.data_loader import DataLoader
 from model.model import Model
 
-for logfile_path in glob.glob(f'{Config().log_path}{sys.argv[1]}/*'):
+subdir = ''
+try:
+    subdir = sys.argv[1]
+except IndexError:
+    pass
+
+for logfile_path in glob.glob(f'{Config().log_path}{subdir}*'):
 
     if not os.path.isfile(logfile_path):
         continue
@@ -49,7 +55,7 @@ for logfile_path in glob.glob(f'{Config().log_path}{sys.argv[1]}/*'):
 
             for (task, lang), role in itertools.product(config.tasks, ('test', 'train')):
                 output = model.temp_export_representations(task, lang, role)
-                output_file_path = f'{modelfile_path}-{task}-{lang}-{role}.h5'
+                output_file_path = os.path.join(Config().model_path, f'{model_id}-{task}-{lang}-{role}.h5')
                 if not os.path.isfile(output_file_path):
                     with h5py.File(output_file_path, 'w') as f:
                         for k, v in output.items():
