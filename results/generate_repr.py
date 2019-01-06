@@ -49,6 +49,7 @@ for logfile_path in glob.glob(f'{Config().log_path}{subdir}*'):
             model_id = os.path.split(modelfile_path)[-1]
             model_id = model_id.split('.index')[0]
             config.values['load_model'] = model_id
+            config.values['setup'] = 'default'
 
             model = Model(dl, config)
             model.build_graph()
