@@ -16,7 +16,7 @@ class SQTLayer(Layer):
 
         with tf.variable_scope(self.task_code()):
 
-            hidden, cont_repr_weights = tfu.dense_with_weights(
+            hidden, self.cont_repr_weights = tfu.dense_with_weights(
                 inputs=cont_repr,
                 units=self.model.config.hidden_size,
                 activation=tf.nn.relu)
