@@ -5,7 +5,6 @@ class DefaultLogger(Logger):
 
     def log_message(self, msg):
         self.stdout(msg)
-        self.file(f'# {msg}')
 
     def log_result(self, msg):
         self.stdout(msg)
