@@ -75,4 +75,7 @@ for logfile_path in glob.glob(f'{Config().log_path}{subdir}*'):
                 else:
                     print(f'{output_file_path} found. Skipped')
 
-            model.close()
+            try:
+                model.close()
+            except NameError:
+                pass
