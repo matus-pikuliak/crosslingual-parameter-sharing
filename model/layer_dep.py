@@ -198,7 +198,6 @@ class DEPLayer(Layer):
                 self.desired_arcs.placeholder: desired_arcs,
                 self.desired_labels.placeholder: desired_labels
             })
-
             batch_results = self.model.sess.run(
                 fetches=[self.loss, self.model.adversarial_loss, self.uas, self.las, self.model.total_batch_length],
                 feed_dict=fd)
