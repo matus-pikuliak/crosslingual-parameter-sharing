@@ -29,7 +29,7 @@ for logfile_path in glob.glob(f'{log_path}*'):
         continue
 
     with open(logfile_path) as logfile:
-        print(f'Wprking on {logfile_path}')
+        print(f'Working on {logfile_path}')
         for line in logfile:
             if 'optimizer' in line:
                 break
@@ -52,6 +52,7 @@ for logfile_path in glob.glob(f'{log_path}*'):
             model_id = model_id.split('.index')[0]
             config.values['load_model'] = model_id
             config.values['setup'] = 'default'
+            config.values['model_path'] = model_path
 
             for (task, lang), role in itertools.product(config.tasks, ('test', 'train')):
                 output_file_path = os.path.join(model_path, f'{model_id}-{task}-{lang}-{role}.h5')
