@@ -15,13 +15,15 @@ from config.config import Config
 from data.data_loader import DataLoader
 from model.model import Model
 
-subdir = ''
+log_path = Config().log_path
+model_path = Config().model_path
 try:
-    subdir = sys.argv[1]
-except IndexError:
+    log_path = sys.argv[1]
+    model_path = sys.argv[2]
+except:
     pass
 
-for logfile_path in glob.glob(f'{Config().log_path}{subdir}*'):
+for logfile_path in glob.glob(f'{log_path}*'):
 
     if not os.path.isfile(logfile_path):
         continue
@@ -41,10 +43,9 @@ for logfile_path in glob.glob(f'{Config().log_path}{subdir}*'):
         config = Config()
         config.load_from_logfile(config_values)
 
-
         timestamp = os.path.split(logfile_path)[-1]
 
-        for modelfile_path in glob.glob(f'{Config().model_path}{timestamp}*.index'):
+        for modelfile_path in glob.glob(f'{model_path}{timestamp}*.index'):
             model_loaded = False
 
             model_id = os.path.split(modelfile_path)[-1]
@@ -52,9 +53,8 @@ for logfile_path in glob.glob(f'{Config().log_path}{subdir}*'):
             config.values['load_model'] = model_id
             config.values['setup'] = 'default'
 
-
             for (task, lang), role in itertools.product(config.tasks, ('test', 'train')):
-                output_file_path = os.path.join(Config().model_path, f'{model_id}-{task}-{lang}-{role}.h5')
+                output_file_path = os.path.join(model_path, f'{model_id}-{task}-{lang}-{role}.h5')
                 if not os.path.isfile(output_file_path):
 
                     if not data_loaded:

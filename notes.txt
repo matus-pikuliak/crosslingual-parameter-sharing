@@ -171,14 +171,15 @@ mierne vylepsenie vysledkov, ale najma naozaj vraciame parse tree a nie nejaky p
 
 
 # CURRENT EXPERIMENTS
-11.12.2018 martak: vanilla - stsl, ml, mt, mtml
-13.12.2018 gcp - ml w/o adversarial
-17.12.2018 gcp - ml w/o task sharing
+11.12.2018 martak - vanilla - stsl, ml, mt, mtml
 17.12.2018 martak - mtml w/o adversarial + mtml w/o task sharing
 21.12.2018 martak - ml, mtml mwe_projected
+27.12.2018 martak - vanilla 400 word lstm size
+
+13.12.2018 gcp - ml w/o adversarial
+17.12.2018 gcp - ml w/o task sharing
 21.12.2018 gcp - ml, mtml mwe_projected w/o adversarial
-27.12.2018 martak: vanilla 400 word lstm size
-27.12.2018 gcp: vanilla 300 word lstm size
+27.12.2018 gcp - vanilla 300 word lstm size
 
 # PO EXPERIMENTOCH
 1. Odstran cont_repr a vsetko co s tym suvisi, co sa dostalo do layerov a modelu
