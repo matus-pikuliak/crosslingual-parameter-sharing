@@ -58,7 +58,10 @@ for log_file in log_files:
                 data['hparams'] = ast.literal_eval(line[2:])
             if not line.startswith('#'):
                 datum = ast.literal_eval(line)
-                datum.update(additional_stats(os.path.split(log_file)[-1], datum))
+                try:
+                    datum.update(additional_stats(os.path.split(log_file)[-1], datum))
+                except:
+                    print(f'{log_file} had problems with additional stats')
                 data['results'].append(datum)
         with open(os.path.join(output_folder, os.path.split(log_file)[-1]), 'w') as f:
             f.write(str(data))
