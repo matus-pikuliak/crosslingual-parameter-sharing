@@ -39,56 +39,45 @@ class SQTLayer(Layer):
                 sequence_lengths=self.model.sentence_lengths)
             self.loss = tf.reduce_mean(-log_likelihood)
 
+            self.metrics = self.add_metrics()
+
         # Rremoving the train_op from the task variable scope makes the computational graph less weird.
         self.train_op, grads = self.model.add_train_op(self.loss)
         self.add_grad_stats(grads, cont_repr)
 
-    def train(self, batch, dataset):
+    def add_metrics(self):
+        metric_names = self.metric_names()
+
+        metrics = tf.py_func(
+            func=self.metrics_from_batch,
+            inp=[
+                self.logits,
+                self.desired,
+                self.model.sentence_lengths,
+                self.transition_params
+            ],
+            Tout=[tf.int64 for _ in range(len(metric_names))]
+        )
+
+        return dict(zip(
+            metric_names,
+            metrics
+        ))
+
+    def basic_feed_dict(self, batch, dataset):
+        fd = Layer.basic_feed_dict(self, batch, dataset)
         *_, desired = batch
-        fd = self.train_feed_dict(batch, dataset)
         fd.update({
             self.desired: desired,
         })
-        self.model.sess.run(self.train_op, feed_dict=fd)
-
-    def evaluate(self, iterator, dataset):
-
-        losses = []
-        accumulator = self.metrics_accumulator()
-        next(accumulator)
-
-        for batch in iterator:
-            predictor = self.predict_crf_batch(batch, dataset)
-            losses.append(next(predictor))
-            for predicted, desired in predictor:
-                metrics = accumulator.send((predicted, desired))
-
-        normal_losses, adv_losses = zip(*losses)
-        metrics['loss'] = np.mean(normal_losses)
-        metrics['adv_loss'] = np.mean(adv_losses)
-        return metrics
+        return fd
 
     def metrics_accumulator(self):
         raise NotImplementedError
 
-    def predict_crf_batch(self, batch, dataset):
-        """
-        First yields loss and then iterate over samples in batch.
-        Returned sequences are not padded anymore.
-        """
-        _, sentence_lengths, _, _, desired = batch
-        fd = self.test_feed_dict(batch, dataset)
-        fd.update({
-            self.desired: desired
-        })
+    def crf_predict(self, logits, desired, lengths, transition_params):
 
-        logits, transition_params, loss, adv_loss = self.model.sess.run(
-            fetches=[self.logits, self.transition_params, self.loss, self.model.adversarial_loss],
-            feed_dict=fd)
-
-        yield loss, adv_loss
-
-        for log, des, len in zip(logits, desired, sentence_lengths):
+        for log, des, len in zip(logits, desired, lengths):
             predicted, _ = tf.contrib.crf.viterbi_decode(
                 score=log[:len],
                 transition_params=transition_params

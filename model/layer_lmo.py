@@ -121,22 +121,16 @@ class LMOLayer(Layer):
                 dtype=tf.int32))
         return word_ids
 
-    def train(self, batch, dataset):
-        fd = self.train_feed_dict(batch, dataset)
-        self.model.sess.run(self.train_op, feed_dict=fd)
-
     def evaluate(self, iterator, dataset):
-        results = []
-        for batch in iterator:
-            fd = self.test_feed_dict(batch, dataset)
-            batch_results = self.model.sess.run(
-                fetches=[self.loss, self.model.adversarial_loss, self.perplexity, self.model.total_batch_length],
-                feed_dict=fd)
-            results.append(batch_results)
+        fetches = self.basic_fetches()
+        fetches.update({
+            'perplexity': self.perplexity
+        })
 
-        loss, adv_loss, perplexity, length = zip(*results)
+        results = self.evaluate_batches(iterator, dataset, fetches)
+
         return {
-            'loss': np.mean(loss),
-            'adv_loss': np.mean(adv_loss),
-            'perplexity': np.exp(sum(perplexity)/sum(length))
+            'loss': np.mean(results['loss']),
+            'adv_loss': np.mean(results['adv_loss']),
+            'perplexity': np.exp(sum(results['perplexity'])/sum(results['length']))
         }

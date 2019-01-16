@@ -38,6 +38,32 @@ class Layer:
         })
         return fd
 
+    def train(self, batch, dataset):
+        fd = self.train_feed_dict(batch, dataset)
+        self.model.sess.run(self.train_op, feed_dict=fd)
+
+    def evaluate_batches(self, iterator, dataset, fetches):
+        results = (
+            self.model.sess.run(
+                fetches=list(fetches.values()),
+                feed_dict=self.test_feed_dict(batch, dataset)
+            )
+            for batch
+            in iterator)
+
+        return dict(zip(
+            fetches.keys(),
+            zip(*results)
+        ))
+
+    def basic_fetches(self):
+        return {
+            'loss': self.loss,
+            'adv_loss': self.model.adversarial_loss,
+            'global_norm': self.global_norm,
+            'length': self.model.total_batch_length
+        }
+
     def add_grad_stats(self, grads, cont_repr):
         self.grads = {var: grad for grad, var in grads}
         self.global_norm = tf.global_norm(list(self.grads.values()))

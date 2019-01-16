@@ -5,15 +5,26 @@ from model.layer_sqt import SQTLayer
 
 class POSLayer(SQTLayer):
 
-    def metrics_accumulator(self):
-        total = 1
-        correct = 0
+    def metric_names(self):
+        return ['correct_tags']
 
-        def output():
-            return {'acc': 100*correct/total}
+    def metrics_from_batch(self, logits, desired, lengths, transition_params):
+        return sum(
+            np.sum(predicted == desired)
+            for predicted, desired
+            in self.crf_predict(logits, desired, lengths, transition_params)
+        )
 
-        while True:
-            predicted, desired = (yield output())
-            assert (len(predicted) == len(desired))
-            total += len(predicted)
-            correct += np.sum(predicted == desired)
+    def evaluate(self, iterator, dataset):
+
+        fetches = self.basic_fetches()
+        fetches.update(self.metrics)
+        results = self.evaluate_batches(iterator, dataset, fetches)
+
+        output = {
+            'loss': np.mean(results['loss']),
+            'adv_loss': np.mean(results['adv_loss']),
+            'acc': 100 * sum(results['correct_tags']) / sum(results['length'])
+        }
+
+        return output

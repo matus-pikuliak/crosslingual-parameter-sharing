@@ -7,68 +7,96 @@ from model.layer_sqt import SQTLayer
 
 class NERLayer(SQTLayer):
 
-    def metrics_accumulator(self):
-        o_tag = self.model.dl.task_vocabs['ner'].label_to_id(constants.NER_O_TAG)
+    def __init__(self, model, task, lang, cont_repr):
+        SQTLayer.__init__(self, model, task, lang, cont_repr)
+
+        self.o_tag = self.model.dl.task_vocabs['ner'].label_to_id(constants.NER_O_TAG)
+
         b_tags = [key for key in self.model.dl.task_vocabs['ner'] if key.startswith('B-')]
+        self.b_tags = [self.model.dl.task_vocabs['ner'].label_to_id(tag) for tag in b_tags]
+
         i_tags = [f'I-{b_tag[2:]}' for b_tag in b_tags]
-        b_tags = [self.model.dl.task_vocabs['ner'].label_to_id(tag) for tag in b_tags]
-        i_tags = [self.model.dl.task_vocabs['ner'].label_to_id(tag) for tag in i_tags]
+        self.i_tags = [self.model.dl.task_vocabs['ner'].label_to_id(tag) for tag in i_tags]
+
+    def metric_names(self):
+        return [
+            'correct_tags',
+            'correct_ner', 'desired_ner', 'predicted_ner',
+            'correct_chunk_count', 'desired_chunk_count', 'predicted_chunk_count'
+        ]
+
+    def metrics_from_batch(self, logits, desired, lengths, transition_params):
 
         # for counting any tags
-        correct = 0
-        total = 1
+        correct_tags = 0
 
         # for counting ner tags
         correct_ner = 0
-        desired_ner = 1
-        predicted_ner = 1
+        desired_ner = 0
+        predicted_ner = 0
 
         # for counting ner chunks
         correct_chunks = 0
-        desired_chunk_count = 1
-        predicted_chunk_count = 1
+        desired_chunk_count = 0
+        predicted_chunk_count = 0
 
-        def output():
-            out = {
-                'acc': 100*correct/total,
-                'tag_precision': correct_ner / predicted_ner,
-                'tag_recall': correct_ner / desired_ner,
-                'chunk_precision': correct_chunks / predicted_chunk_count,
-                'chunk_recall': correct_chunks / desired_chunk_count
-            }
-            out['tag_f1'] = utils.f1(out['tag_precision'], out['tag_recall'])
-            out['chunk_f1'] = utils.f1(out['chunk_precision'], out['chunk_recall'])
-            return out
-
-        while True:
-            predicted, desired = (yield output())
-            assert (len(predicted) == len(desired))
+        for predicted, desired in self.crf_predict(logits, desired, lengths, transition_params):
 
             # any tags
-            total += len(predicted)
-            correct += np.sum(predicted == desired)
+            correct_tags += np.sum(predicted == desired)
 
             # ner tags
             correct_ner += np.sum(
                              np.logical_and(
                                (predicted == desired),
-                               (predicted != o_tag)))
-            desired_ner += np.sum(desired != o_tag)
-            predicted_ner += np.sum(predicted != o_tag)
+                               (predicted != self.o_tag)))
+            desired_ner += np.sum(desired != self.o_tag)
+            predicted_ner += np.sum(predicted != self.o_tag)
 
             # ner chunks
-            predicted_chunks = self.chunks(predicted, b_tags, i_tags)
-            desired_chunks = self.chunks(desired, b_tags, i_tags)
+            predicted_chunks = self.chunks(predicted)
+            desired_chunks = self.chunks(desired)
             desired_chunk_count += len(desired_chunks)
             predicted_chunk_count += len(predicted_chunks)
             correct_chunks += len(desired_chunks.intersection(predicted_chunks))
 
-    @staticmethod
-    def chunks(sequence, b_tags, i_tags):
+        return [
+            correct_tags,
+            correct_ner, desired_ner, predicted_ner,
+            correct_chunks, desired_chunk_count, predicted_chunk_count
+        ]
+
+    def evaluate(self, iterator, dataset):
+
+        fetches = self.basic_fetches()
+        fetches.update(self.metrics)
+        results = self.evaluate_batches(iterator, dataset, fetches)
+
+        for metric in self.metric_names():
+            results[metric] = sum(results[metric])
+
+        output = {
+            'loss': np.mean(results['loss']),
+            'adv_loss': np.mean(results['adv_loss']),
+            'acc': 100 * results['correct_tags'] / sum(results['length']),
+            'tag_precision': results['correct_ner'] / results['predicted_ner'],
+            'tag_recall': results['correct_ner'] / results['desired_ner'],
+            'chunk_precision': results['correct_chunk_count'] / results['predicted_chunk_count'],
+            'chunk_recall': results['correct_chunk_count'] / results['desired_chunk_count']
+        }
+
+        output.update({
+            'tag_f1': utils.f1(output['tag_precision'], output['tag_recall']),
+            'chunk_f1': utils.f1(output['chunk_precision'], output['chunk_recall'])
+        })
+
+        return output
+
+    def chunks(self, sequence):
         chunks = set()
         for i, id in enumerate(sequence):
-            if id in b_tags:
-                i_tag = i_tags[b_tags.index(id)]
+            if id in self.b_tags:
+                i_tag = self.i_tags[self.b_tags.index(id)]
                 pointer = i + 1
                 try:
                     while sequence[pointer] == i_tag:

@@ -177,38 +177,30 @@ class DEPLayer(Layer):
 
         return predicted_labels_logits
 
-    def train(self, batch, dataset):
+    def basic_feed_dict(self, batch, dataset):
+        fd = Layer.basic_feed_dict(self, batch, dataset)
         *_, desired_labels, desired_arcs = batch
-
-        fd = self.train_feed_dict(batch, dataset)
         fd.update({
             self.desired_arcs.placeholder: desired_arcs,
             self.desired_labels.placeholder: desired_labels
         })
-        self.model.sess.run(self.train_op, feed_dict=fd)
+        return fd
 
     def evaluate(self, iterator, dataset):
 
-        results = []
+        fetches = self.basic_fetches()
+        fetches.update({
+            'uas': self.uas,
+            'las': self.las
+        })
 
-        for batch in iterator:
-            *_, desired_labels, desired_arcs = batch
-            fd = self.test_feed_dict(batch, dataset)
-            fd.update({
-                self.desired_arcs.placeholder: desired_arcs,
-                self.desired_labels.placeholder: desired_labels
-            })
-            batch_results = self.model.sess.run(
-                fetches=[self.loss, self.model.adversarial_loss, self.uas, self.las, self.model.total_batch_length],
-                feed_dict=fd)
-            results.append(batch_results)
+        results = self.evaluate_batches(iterator, dataset, fetches)
 
-        loss, adv_loss, uas, las, length = zip(*results)
         return {
-            'loss': np.mean(loss),
-            'adv_loss': np.mean(adv_loss),
-            'uas': sum(uas)/sum(length),
-            'las': sum(las)/sum(length)
+            'loss': np.mean(results['loss']),
+            'adv_loss': np.mean(results['adv_loss']),
+            'uas': sum(results['uas'])/sum(results['length']),
+            'las': sum(results['las'])/sum(results['length'])
         }
 
     @staticmethod
@@ -232,7 +224,7 @@ class DEPLayer(Layer):
 
             prediction = [0 for _ in range(length)]
             for head, tail in mst:
-                    prediction[tail-1] = head
+                prediction[tail-1] = head
             result.extend(prediction)
 
         return np.array(result, dtype=np.int32)
