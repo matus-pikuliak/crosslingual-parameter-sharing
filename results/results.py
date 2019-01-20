@@ -1,30 +1,23 @@
 import ast
 import glob
-import h5py
 import os
 import sys
 
 import numpy as np
 
 sys.path.append(os.path.abspath('..'))
-from config.config import Config
+
 
 
 class Run:
 
-    def __init__(self, path, config):
+    def __init__(self, path):
         self.path = path
-        self.name = os.path.split(self.path)[-1]
-        self.config = config
-        self.load()
-
-    def load(self):
+        rest, self.name = os.path.split(self.path)
+        rest, self.type = os.path.split(rest)
+        _, self.code = os.path.split(rest)
         with open(self.path) as f:
-            self.data = []
-            for line in f:
-                if not line.startswith('#'):
-                    datum = ast.literal_eval(line)
-                    self.data.append(datum)
+            self.data = ast.literal_eval(f.read())['results']
 
     def match(self, datum, **filters):
         return all(
@@ -66,16 +59,8 @@ class Run:
             return False
         return True
 
-
-config = Config(*sys.argv[1:])
-
-for f in glob.glob(os.path.join(config.log_path, '*', '2_ml*', '*')):
-    r = Run(f, config)
-    _task = 'dep'
-    _lang = 'en'
-    _metr = 'gradient_norm'
-    if r.contains(_task, _lang):
-        print(f, r.history(_metr, task=_task, language=_lang, role="train"))
+if __name__ == '__main__':
+    print(5)
 
 # r = Run('august_grid/2018-08-09-222952', config)
 # print(list(r.history('acc', role='test')))

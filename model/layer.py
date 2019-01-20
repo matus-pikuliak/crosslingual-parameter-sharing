@@ -12,6 +12,11 @@ class Layer:
     def task_code(self):
         return self.model.task_code(self.task, self.lang)
 
+    def build_graph(self, code_repr):
+        self.code_repr = code_repr
+        self._build_graph()
+        self.add_output_nodes()
+
     def basic_feed_dict(self, batch, dataset):
         word_ids, sentence_lengths, char_ids, word_lengths, *_ = batch
 
@@ -64,13 +69,14 @@ class Layer:
             'length': self.model.total_batch_length
         }
 
-    def add_grad_stats(self, grads, cont_repr):
-        self.grads = {var: grad for grad, var in grads}
+    def add_output_nodes(self):
+        self.train_op, grads_vs = self.model.add_train_op(self.loss)
+        self.grads = {var: grad for grad, var in grads_vs}
         self.global_norm = tf.global_norm(list(self.grads.values()))
 
         grads = tf.gradients(
             ys=self.loss,
-            xs=cont_repr)[0]
+            xs=self.cont_repr)[0]
         self.cont_repr_grad = tf.boolean_mask(
             tensor=grads,
             mask=self.model.sentence_lengths_mask)

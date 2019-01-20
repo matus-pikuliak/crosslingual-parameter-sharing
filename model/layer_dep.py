@@ -14,7 +14,7 @@ class DEPLayer(Layer):
         Layer.__init__(self, model, task, lang, cont_repr)
         self.build_graph(cont_repr)
 
-    def build_graph(self, cont_repr):
+    def _build_graph(self):
 
         with tf.variable_scope(self.task_code()):
             tag_count = len(self.model.dl.task_vocabs[self.task])
@@ -27,7 +27,7 @@ class DEPLayer(Layer):
                 depth=tag_count)
 
             hidden, self.cont_repr_weights = tfu.dense_with_weights(
-                inputs=cont_repr,
+                inputs=self.cont_repr,
                 units=self.model.config.hidden_size,
                 activation=tf.nn.relu)
 
@@ -43,9 +43,6 @@ class DEPLayer(Layer):
             self.loss = (uas_loss + las_loss) / 2
 
             self.add_eval_metrics(predicted_arcs_logits, pairs_repr)
-
-        self.train_op, grads = self.model.add_train_op(self.loss)
-        self.add_grad_stats(grads, cont_repr)
 
     PairLabel = namedtuple('PairLabels', ('placeholder', 'ids', 'one_hots'))
 

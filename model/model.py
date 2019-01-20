@@ -303,12 +303,6 @@ class Model(GeneralModel):
 
     def temp_export_representations(self, task, lang, role):
 
-        dt = self.dl.find_one(task=task, lang=lang, role=role)
-        ite = DatasetIterator(
-            dataset=dt,
-            config=self.config,
-            layer=self.layers[self.task_code(dt.task, dt.lang)],
-            is_train=False)
 
         cont_repr = None
         cont_repr_grad = None
@@ -316,41 +310,21 @@ class Model(GeneralModel):
         global_norm = 0
         batch_count = 0
 
-        for batch in ite.iterator:
-            batch_count += 1
+        fetches = [,
+        ite.layer.cont_repr_grad,
+        ite.layer.grads[ite.layer.cont_repr_weights]]
 
-            fd = ite.layer.test_feed_dict(batch, dt)
-            if task == 'dep':
-                *_, desired_labels, desired_arcs = batch
-                fd.update({
-                    ite.layer.desired_arcs.placeholder: desired_arcs,
-                    ite.layer.desired_labels.placeholder: desired_labels
-                })
-            if task == 'ner' or task == 'pos':
-                *_, desired = batch
-                fd.update({
-                    ite.layer.desired: desired
-                })
-            fetches = self.sess.run(
-                fetches=[
-                    self.cont_repr_with_mask,
-                    ite.layer.cont_repr_grad,
-                    ite.layer.global_norm,
-                    ite.layer.grads[ite.layer.cont_repr_weights]
-                ],
-                feed_dict=fd)
+        global_norm += fetches[2]
 
-            global_norm += fetches[2]
-
-            if cont_repr is None:
-                cont_repr_weights_grad = fetches[3]
-                cont_repr = fetches[0]
-                cont_repr_grad = fetches[1]
-            else:
-                cont_repr_weights_grad += fetches[3]
-                if cont_repr.shape[0] < 25_000:
-                    cont_repr = np.vstack((cont_repr, fetches[0]))
-                    cont_repr_grad = np.vstack((cont_repr_grad, fetches[1]))
+        if cont_repr is None:
+            cont_repr_weights_grad = fetches[3]
+            cont_repr = fetches[0]
+            cont_repr_grad = fetches[1]
+        else:
+            cont_repr_weights_grad += fetches[3]
+            if cont_repr.shape[0] < 25_000:
+                cont_repr = np.vstack((cont_repr, fetches[0]))
+                cont_repr_grad = np.vstack((cont_repr_grad, fetches[1]))
 
         return {
             'cont_repr': cont_repr,

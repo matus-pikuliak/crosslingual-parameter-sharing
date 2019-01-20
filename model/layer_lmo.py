@@ -11,12 +11,12 @@ class LMOLayer(Layer):
         Layer.__init__(self, model, task, lang, cont_repr)
         self.build_graph(cont_repr)
 
-    def build_graph(self, cont_repr):
+    def _build_graph(self):
 
         with tf.variable_scope(self.task_code()):
 
-            past = self.add_past(cont_repr)
-            future = self.add_future(cont_repr)
+            past = self.add_past(self.cont_repr)
+            future = self.add_future(self.cont_repr)
             # shape = (sentence_lengths_sum x 2*word_lstm_size)
             context = tf.concat([past, future], axis=1)
 
@@ -36,9 +36,6 @@ class LMOLayer(Layer):
                 logits=predicted_word_logits)
             self.perplexity = tf.reduce_sum(loss)
             self.loss = tf.reduce_mean(loss)
-
-        self.train_op, grads = self.model.add_train_op(self.loss)
-        self.add_grad_stats(grads, cont_repr)
 
     def vocab_size(self):
         return min(

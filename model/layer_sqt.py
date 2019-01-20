@@ -11,13 +11,13 @@ class SQTLayer(Layer):
         Layer.__init__(self, model, task, lang, cont_repr)
         self.build_graph(cont_repr)
 
-    def build_graph(self, cont_repr):
+    def _build_graph(self):
         tag_count = len(self.model.dl.task_vocabs[self.task])
 
         with tf.variable_scope(self.task_code()):
 
             hidden, self.cont_repr_weights = tfu.dense_with_weights(
-                inputs=cont_repr,
+                inputs=self.cont_repr,
                 units=self.model.config.hidden_size,
                 activation=tf.nn.relu)
 
@@ -40,10 +40,6 @@ class SQTLayer(Layer):
             self.loss = tf.reduce_mean(-log_likelihood)
 
             self.metrics = self.add_metrics()
-
-        # Rremoving the train_op from the task variable scope makes the computational graph less weird.
-        self.train_op, grads = self.model.add_train_op(self.loss)
-        self.add_grad_stats(grads, cont_repr)
 
     def add_metrics(self):
         metric_names = self.metric_names()
