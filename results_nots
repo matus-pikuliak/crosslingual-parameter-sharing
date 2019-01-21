@@ -1,0 +1,41 @@
+adv - worse results - lambda tuning?
+mwe - not so critical
+task sharing - worse results - private parts?
+MT w/o LMO
+focused training:
+	fine tuning
+	focused MTML - only tasks with relevant task or language are involved
+	focused training - task are not selected uniformly during training
+	zero-shot - unseen language
+
+train loss:
+STSL > MT > ML > MTML (s vynimkou LM)
+vacsia siet - mensia loss
+no adv - mensia loss
+no mwe - vacsia loss - pri ML DEP vybuch
+no taskshare - mensia loss
+
+test loss:
+normalne sa chova pri LM, inak pri STSL stupa, niekedy aj pri MT
+ML spravidla menej ako MTML
+no_adv - okrem NER-ES vyzera lepsie
+no_task_sharing - detto
+
+train metric:
+STSL > MT > ML > MTML (s vynimkou ML) - to iste ako train loss
+no_adv, no_task_sharing - presvedcivo lepsie
+
+test metric:
+MT je velmi kvalitna, MTML meh
+pri DEP a LMO je vytaz STSL
+pri POS MT, pri NER je to MT/STSL, aj ked vysledky skacu
+no_adv, no_task_sharing - presvedcivo lepsie
+
+gradient_norm:
+castokrat stupa s trenovanim - normalne chovanie (norma vah tiez stupa - aspon pri cont_repr matici)
+ML a MTML ho maju omnoho vacsi (na jednu loss vplyva viacero vplyvov)
+no_task_sharing - mensia
+no_adv - mensia a omnoho stabilnejsia
+
+contextualzied representations weights
+- with no task sharing the matrix norm is smaller (what does it mean?)
