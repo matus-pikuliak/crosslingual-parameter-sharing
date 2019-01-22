@@ -74,9 +74,12 @@ class Layer:
         self.grads = {var: grad for grad, var in grads_vs}
         self.global_norm = tf.global_norm(list(self.grads.values()))
 
-        grads = tf.gradients(
+        grads, = tf.gradients(
             ys=self.loss,
-            xs=self.cont_repr)[0]
+            xs=self.cont_repr)
         self.cont_repr_grad = tf.boolean_mask(
             tensor=grads,
             mask=self.model.sentence_lengths_mask)
+
+        self.co_re_norm = tf.norm(self.cont_repr_weights)
+

@@ -101,6 +101,7 @@ class GeneralModel:
         if self.config.save_model == 'run':
             self.save()
 
+        # TODO: log results
 
         end_time = datetime.datetime.now()
         self.log(f'Run done in {end_time - start_time}', LOG_CRITICAL)

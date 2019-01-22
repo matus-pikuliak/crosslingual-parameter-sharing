@@ -1,3 +1,15 @@
+exportuj weight input/output statistiky zohladnujuce normu matice
+namiesto priemenrj normy reprezentacie exportu priemernu reprezentaciu - pre kazdu zlozku priemer a std
+
+cont_repr_weights
+	> norm
+	> avg/std of column/row from normalized matrix
+
+to iste pre cont_repr_weights_grad
+
+cont_repr a cont_repr_grad
+> per units avg/std
+
 adv - worse results - lambda tuning?
 mwe - not so critical
 task sharing - worse results - private parts?
@@ -39,3 +51,7 @@ no_adv - mensia a omnoho stabilnejsia
 
 contextualzied representations weights
 - with no task sharing the matrix norm is smaller (what does it mean?)
+- analyza tejto matice potvrdila predosle kroky - MTML ma najvacsi gradient - aj v tejto matici
+- vahy neustale rastu - porovnanie rozlicnych noriem preto nie je jednoduche
+- ratanie tych input / output normov je nezmyselne - zavisia od celkovej normy matice vah / matice gradientov - treba ich normalizovat?
+- analyza priemernej normy cont reprezentacii je tiez narocna - viac ma zmysel robit analyzu po zlozkach, co teraz nerobim

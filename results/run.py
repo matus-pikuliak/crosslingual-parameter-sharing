@@ -58,12 +58,3 @@ class Run:
         except StopIteration:
             return False
         return True
-
-if __name__ == '__main__':
-    print(5)
-
-# r = Run('august_grid/2018-08-09-222952', config)
-# print(list(r.history('acc', role='test')))
-# print(list(r.best('acc', role='test')))
-# print(list(r.best('acc', max_=False, role='test')))
-# print(list(r.metric_eval('acc')))
