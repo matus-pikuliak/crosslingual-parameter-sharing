@@ -1,14 +1,5 @@
-exportuj weight input/output statistiky zohladnujuce normu matice
-namiesto priemenrj normy reprezentacie exportu priemernu reprezentaciu - pre kazdu zlozku priemer a std
-
-cont_repr_weights
-	> norm
-	> avg/std of column/row from normalized matrix
-
-to iste pre cont_repr_weights_grad
-
-cont_repr a cont_repr_grad
-> per units avg/std
+pre kazdu zlozku cont_repr - norm(zlozka * prisluchajuci riadok cont_repr_weights matice)
+- pre kazdu zlozku treba vyratat priemer / std
 
 adv - worse results - lambda tuning?
 mwe - not so critical

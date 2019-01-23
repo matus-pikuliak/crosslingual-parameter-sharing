@@ -1,6 +1,7 @@
 import os
 import re
 import subprocess
+from collections import Iterable
 
 import numpy as np
 import datetime
@@ -56,3 +57,27 @@ def git_hash():
 
 def split_iter(string):
     return (x.group(0) for x in re.finditer(r"\S+", string))
+
+
+class RunningVariance:
+    """
+    Welford's Online algorithm for calculating variance.
+    """
+
+    def __init__(self):
+        self.n = 0
+        self.mean = 0
+        self.m2 = 0
+
+    def add(self, value):
+        if isinstance(value, Iterable):
+            for val in value:
+                self.add(val)
+        else:
+            self.n += 1
+            delta = value - self.mean
+            self.mean += delta / self.n
+            self.m2 += delta * (value - self.mean)
+
+    def __call__(self):
+        return self.m2 / self.n

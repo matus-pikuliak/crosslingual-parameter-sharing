@@ -12,8 +12,8 @@ class Layer:
     def task_code(self):
         return self.model.task_code(self.task, self.lang)
 
-    def build_graph(self, code_repr):
-        self.code_repr = code_repr
+    def build_graph(self, cont_repr):
+        self.cont_repr = cont_repr
         self._build_graph()
         self.add_output_nodes()
 
@@ -70,16 +70,38 @@ class Layer:
         }
 
     def add_output_nodes(self):
-        self.train_op, grads_vs = self.model.add_train_op(self.loss)
-        self.grads = {var: grad for grad, var in grads_vs}
-        self.global_norm = tf.global_norm(list(self.grads.values()))
+        self.train_op, grads = self.model.add_train_op(self.loss)
+        self.global_norm = tf.global_norm(grads)
+        self.cont_repr_activations = cont_repr * weights
 
-        grads, = tf.gradients(
-            ys=self.loss,
-            xs=self.cont_repr)
-        self.cont_repr_grad = tf.boolean_mask(
-            tensor=grads,
-            mask=self.model.sentence_lengths_mask)
+        # zvacsi cont-repr cez tf.tile
+        # multiply with weights
+        # norm by certain axis
 
-        self.co_re_norm = tf.norm(self.cont_repr_weights)
+        matrices = tf.expand_dims(
+            input=matrix,
+            axis=0)
+        matrices = tf.tile(
+            input=matrices,
+            multiples=[
+                tf.shape(repr)[0],
+                1,
+                1
+            ])
+
+        repr = tf.expand_dims(
+            input=repr,
+            axis=-1)
+
+        result = tf.multiply(matrices, repr)
+        result = tf.norm(
+            tensor=result,
+            ord=2,
+            axis=2
+        )
+
+        norms = tf.reduce_sum(result, axis=1, keepdims=True)
+
+        result = tf.divide(result, norms)
+
 

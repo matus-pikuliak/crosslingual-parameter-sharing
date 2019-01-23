@@ -1,9 +1,6 @@
 import random
-import datetime
-import os
 
 import tensorflow as tf
-import numpy as np
 
 from data.embedding import Embeddings
 from model.dataset_iterator import DatasetIterator
