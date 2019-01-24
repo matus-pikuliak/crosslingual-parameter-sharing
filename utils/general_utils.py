@@ -1,9 +1,10 @@
+import math
 import os
 import re
 import subprocess
+import sys
 from collections import Iterable
 
-import numpy as np
 import datetime
 
 def dirs(path):
@@ -59,7 +60,26 @@ def split_iter(string):
     return (x.group(0) for x in re.finditer(r"\S+", string))
 
 
-class RunningVariance:
+def uneven_zip(*args):
+
+    def try_next(ite):
+        try:
+            return next(ite)
+        except StopIteration:
+            return None
+
+    args = [iter(arg) for arg in args]
+
+    while True:
+        output = [try_next(arg) for arg in args]
+        output = list(filter(lambda x: x is not None, output))
+        if output:
+            yield output
+        else:
+            raise StopIteration
+
+
+class RunningStd:
     """
     Welford's Online algorithm for calculating variance.
     """
@@ -79,5 +99,5 @@ class RunningVariance:
             self.mean += delta / self.n
             self.m2 += delta * (value - self.mean)
 
-    def __call__(self):
-        return self.m2 / self.n
+    def std(self):
+        return math.sqrt(self.m2 / self.n)

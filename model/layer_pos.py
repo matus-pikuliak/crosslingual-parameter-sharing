@@ -24,7 +24,8 @@ class POSLayer(SQTLayer):
         output = {
             'loss': np.mean(results['loss']),
             'adv_loss': np.mean(results['adv_loss']),
-            'acc': 100 * sum(results['correct_tags']) / sum(results['length'])
-        }
+            'acc': 100 * sum(results['correct_tags']) / sum(results['length']),
+            'oi': sum(results['unit_to_unit_influence'])
+        } # TODO: proper metrics for each task (share most computation in layer.method)
 
         return output
