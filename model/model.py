@@ -34,7 +34,6 @@ class Model(GeneralModel):
         self.add_utils()
         word_repr = self.add_word_processing()
         cont_repr = self.add_sentence_processing(word_repr)
-        self.cont_repr_with_mask = tf.boolean_mask(cont_repr, self.sentence_lengths_mask)
         self.add_adversarial_loss(cont_repr)
         self.add_task_layers(cont_repr)
 
