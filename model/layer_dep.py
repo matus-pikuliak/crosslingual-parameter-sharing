@@ -153,6 +153,12 @@ class DEPLayer(Layer):
                 tf.equal(predicted_arcs_ids, self.desired_arcs.ids)
             ))
 
+    def add_metrics(self):
+        return {
+            'uas': self.uas,
+            'las': self.las
+        }
+
     def arc_ids_to_label_logits(self, arcs_ids, pairs_repr, reuse=False):
         tag_count = len(self.model.dl.task_vocabs[self.task])
 
@@ -183,19 +189,8 @@ class DEPLayer(Layer):
         })
         return fd
 
-    def evaluate(self, iterator, dataset):
-
-        fetches = self.basic_fetches()
-        fetches.update({
-            'uas': self.uas,
-            'las': self.las
-        })
-
-        results = self.evaluate_batches(iterator, dataset, fetches)
-
+    def evaluate_task(self, results):
         return {
-            'loss': np.mean(results['loss']),
-            'adv_loss': np.mean(results['adv_loss']),
             'uas': sum(results['uas'])/sum(results['length']),
             'las': sum(results['las'])/sum(results['length'])
         }

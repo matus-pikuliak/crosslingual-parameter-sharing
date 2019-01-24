@@ -1,3 +1,4 @@
+import numpy as np
 import tensorflow as tf
 
 from utils.general_utils import uneven_zip
@@ -18,6 +19,40 @@ class Layer:
         self.cont_repr = cont_repr
         self._build_graph()
         self.add_output_nodes()
+        self.metrics = self.add_metrics()
+
+    def add_output_nodes(self):
+        self.train_op, grads = self.model.add_train_op(self.loss)
+        self.global_norm = tf.global_norm(grads)
+
+        matrices = tf.expand_dims(
+            input=self.cont_repr_weights,
+            axis=0)
+        matrices = tf.tile(
+            input=matrices,
+            multiples=[self.model.total_batch_length, 1, 1])
+
+        repr = tf.expand_dims(
+            input=self.model.cont_repr_with_mask,
+            axis=-1)
+
+        activations = tf.multiply(matrices, repr)
+        activations = tf.abs(activations)
+
+        norms = tf.reduce_sum(
+            input_tensor=activations,
+            axis=1,
+            keepdims=True)
+
+        unit_strength = tf.reduce_sum(
+            input_tensor=tf.divide(activations, norms),
+            axis=[0, 2])
+        self.unit_strength = tf.divide(
+            x=unit_strength,
+            y=tf.cast(
+                x=tf.shape(activations)[0] * tf.shape(activations)[2],
+                dtype=tf.float32
+            ))
 
     def basic_feed_dict(self, batch, dataset):
         word_ids, sentence_lengths, char_ids, word_lengths, *_ = batch
@@ -49,30 +84,44 @@ class Layer:
         fd = self.train_feed_dict(batch, dataset)
         self.model.sess.run(self.train_op, feed_dict=fd)
 
+    def evaluate(self, iterator, dataset):
+
+        fetches = self.basic_fetches()
+        fetches.update(self.metrics)
+        results = self.evaluate_batches(iterator, dataset, fetches)
+
+        output = self.basic_results(results)
+        output.update(self.evaluate_task(results))
+
+        return output
+
     def evaluate_batches_iterator(self, iterator, dataset, fetches):
 
         fetches = list(fetches.values())
-        fetches += [self.unit_to_unit_influence, self.activation_norms]
-
+        flag = True
         word_count = 0
-        flag = False
+
+        if dataset.role in ['train', 'test']:
+            fetches += [self.unit_strength]
+            flag = False
 
         for batch in iterator:
             result = self.model.sess.run(
                 fetches=fetches,
                 feed_dict=self.test_feed_dict(batch, dataset)
             )
+
             word_count += result[fetches.index(self.model.total_batch_length)]
             if not flag and word_count > 10_000:
                 flag = True
-                fetches = fetches[:-2]
+                fetches = fetches[:-1]
             yield result
 
     def evaluate_batches(self, iterator, dataset, fetches):
 
         results = self.evaluate_batches_iterator(iterator, dataset, fetches)
 
-        keys = list(fetches.keys()) + ['unit_to_unit_influence', 'activation_norms']
+        keys = list(fetches.keys()) + ['unit_strength']
         return dict(zip(
             keys,
             uneven_zip(*results)
@@ -86,45 +135,16 @@ class Layer:
             'length': self.model.total_batch_length,
         }
 
-    def add_output_nodes(self):
-        self.train_op, grads = self.model.add_train_op(self.loss)
-        self.global_norm = tf.global_norm(grads)
+    def basic_results(self, results):
+        output = {
+            'loss': np.mean(results['loss']),
+            'adv_loss': np.mean(results['adv_loss']),
+        }
+        try:
+            output.update({
+                'unit_strength': np.std(np.mean(results['unit_strength'], axis=0))
+            })
+        except KeyError:
+            pass
 
-        matrices = tf.expand_dims(
-            input=self.cont_repr_weights,
-            axis=0)
-        matrices = tf.tile(
-            input=matrices,
-            multiples=[self.model.total_batch_length, 1, 1])
-
-        repr = tf.expand_dims(
-            input=self.model.cont_repr_with_mask,
-            axis=-1)
-
-        activations = tf.multiply(matrices, repr)
-
-        norms = tf.reduce_sum(
-            input_tensor=activations,
-            axis=1,
-            keepdims=True)
-
-        self.unit_to_unit_influence = tf.reduce_sum(
-            input_tensor=tf.divide(activations, norms),
-            axis=0)
-
-        activation_norms = tf.norm(
-            tensor=activations,
-            ord=2,
-            axis=2)
-
-        activation_norms = tf.divide(
-            activation_norms,
-            tf.reduce_sum(
-                input_tensor=activation_norms,
-                axis=1,
-                keepdims=True
-            ))
-
-        self.activation_norms = tf.reduce_sum(
-            input_tensor=activation_norms,
-            axis=0)
+        return output

@@ -39,8 +39,6 @@ class SQTLayer(Layer):
                 sequence_lengths=self.model.sentence_lengths)
             self.loss = tf.reduce_mean(-log_likelihood)
 
-            self.metrics = self.add_metrics()
-
     def add_metrics(self):
         metric_names = self.metric_names()
 

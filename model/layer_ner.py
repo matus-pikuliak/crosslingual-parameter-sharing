@@ -66,18 +66,12 @@ class NERLayer(SQTLayer):
             correct_chunks, desired_chunk_count, predicted_chunk_count
         ]
 
-    def evaluate(self, iterator, dataset):
-
-        fetches = self.basic_fetches()
-        fetches.update(self.metrics)
-        results = self.evaluate_batches(iterator, dataset, fetches)
+    def evaluate_task(self, results):
 
         for metric in self.metric_names():
             results[metric] = sum(results[metric])
 
         output = {
-            'loss': np.mean(results['loss']),
-            'adv_loss': np.mean(results['adv_loss']),
             'acc': 100 * results['correct_tags'] / sum(results['length']),
             'tag_precision': results['correct_ner'] / results['predicted_ner'],
             'tag_recall': results['correct_ner'] / results['desired_ner'],

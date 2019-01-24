@@ -15,17 +15,7 @@ class POSLayer(SQTLayer):
             in self.crf_predict(logits, desired, lengths, transition_params)
         )
 
-    def evaluate(self, iterator, dataset):
-
-        fetches = self.basic_fetches()
-        fetches.update(self.metrics)
-        results = self.evaluate_batches(iterator, dataset, fetches)
-
-        output = {
-            'loss': np.mean(results['loss']),
-            'adv_loss': np.mean(results['adv_loss']),
-            'acc': 100 * sum(results['correct_tags']) / sum(results['length']),
-            'oi': sum(results['unit_to_unit_influence'])
-        } # TODO: proper metrics for each task (share most computation in layer.method)
-
-        return output
+    def evaluate_task(self, results):
+        return {
+            'acc': 100 * sum(results['correct_tags']) / sum(results['length'])
+        }

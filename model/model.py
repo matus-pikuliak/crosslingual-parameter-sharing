@@ -179,10 +179,6 @@ class Model(GeneralModel):
         self.total_batch_length = tf.reduce_sum(self.sentence_lengths)
         self.batch_size = tf.shape(self.word_ids)[0]
         self.max_length = tf.shape(self.word_ids)[1]
-        self.dummy = tf.get_variable(
-            name='dummy',
-            shape=[],
-            dtype=tf.float32)
 
     def add_adversarial_loss(self, cont_repr):
         lambda_ = self.config.adversarial_lambda

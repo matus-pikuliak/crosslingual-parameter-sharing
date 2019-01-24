@@ -35,7 +35,13 @@ class LMOLayer(Layer):
                 labels=desired_word_ids,
                 logits=predicted_word_logits)
             self.perplexity = tf.reduce_sum(loss)
+
             self.loss = tf.reduce_mean(loss)
+
+    def add_metrics(self):
+        return {
+            'perplexity': self.perplexity
+        }
 
     def vocab_size(self):
         return min(
@@ -118,16 +124,7 @@ class LMOLayer(Layer):
                 dtype=tf.int32))
         return word_ids
 
-    def evaluate(self, iterator, dataset):
-        fetches = self.basic_fetches()
-        fetches.update({
-            'perplexity': self.perplexity
-        })
-
-        results = self.evaluate_batches(iterator, dataset, fetches)
-
+    def evaluate_task(self, results):
         return {
-            'loss': np.mean(results['loss']),
-            'adv_loss': np.mean(results['adv_loss']),
             'perplexity': np.exp(sum(results['perplexity'])/sum(results['length']))
         }
