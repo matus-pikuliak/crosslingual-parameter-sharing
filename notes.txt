@@ -175,6 +175,7 @@ mierne vylepsenie vysledkov, ale najma naozaj vraciame parse tree a nie nejaky p
 17.12.2018 martak - mtml w/o adversarial + mtml w/o task sharing
 21.12.2018 martak - ml, mtml mwe_projected
 27.12.2018 martak - vanilla 400 word lstm size
+25.01.2019 martak - no adv no task sharing
 
 13.12.2018 gcp - ml w/o adversarial
 17.12.2018 gcp - ml w/o task sharing
