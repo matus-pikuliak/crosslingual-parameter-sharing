@@ -2,6 +2,21 @@ ls = ['cs', 'de', 'en', 'es']
 ts = ['dep', 'lmo', 'ner', 'pos']
 
 '''
+25.01.2019 martak run
+'''
+for t in ts:
+    print(f'bash train.sh task_layer_sharing false adversarial_training false tasks ', end='')
+    for l in ls:
+        print(f'{t}-{l} ', end='')
+    print('&& ', end='')
+print(f'bash train.sh task_layer_sharing false adversarial_training false  tasks ', end='')
+for l in ls:
+    for t in ts:
+        print(f'{t}-{l} ', end='')
+exit()
+
+
+'''
 27.12.2018 gcp run
 '''
 
