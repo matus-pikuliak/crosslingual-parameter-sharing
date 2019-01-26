@@ -81,14 +81,17 @@ class Dataset:
         print(f'Loaded.')
 
     def load_hists(self):
-        if os.path.isfile(self.vocab_file()):
-            with open(self.vocab_file(), 'rb') as pickle_file:
-                dump = pickle.load(pickle_file)
-
-        else:
+        if self.limit:
             dump = self._load_hists()
-            with open(self.vocab_file(), 'wb') as pickle_file:
-                pickle.dump(dump, pickle_file)
+        else:
+            if os.path.isfile(self.vocab_file()):
+                with open(self.vocab_file(), 'rb') as pickle_file:
+                    dump = pickle.load(pickle_file)
+
+            else:
+                dump = self._load_hists()
+                with open(self.vocab_file(), 'wb') as pickle_file:
+                    pickle.dump(dump, pickle_file)
 
         self.lang_hist,\
         self.char_hist,\

@@ -13,7 +13,7 @@ class Logger(object):
         self.slack_token = slack_token
 
     @staticmethod
-    def factory(type, *args, **kwargs):
+    def factory(type, **kwargs):
         from logs.debug_logger import DebugLogger
         from logs.default_logger import DefaultLogger
         from logs.production_logger import ProductionLogger
@@ -22,7 +22,7 @@ class Logger(object):
             'debug': DebugLogger,
             'production': ProductionLogger
         }[type]
-        return logger_type(*args, **kwargs)
+        return logger_type(**kwargs)
 
     def log(self, msg, level):
         f = {
@@ -44,8 +44,8 @@ class Logger(object):
     def stdout(self, msg):
         print(str(msg))
 
-    def file(self, msg):
-        with codecs.open(self.filename, 'a', encoding='utf-8') as f:
+    def file(self, msg, mode='a'):
+        with codecs.open(self.filename, mode=mode, encoding='utf-8') as f:
             f.write(str(msg)+'\n')
 
     def slack(self, msg):

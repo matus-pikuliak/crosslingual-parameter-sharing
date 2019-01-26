@@ -222,42 +222,6 @@ class Model(GeneralModel):
             loss += self.adversarial_loss * use_adversarial
         return GeneralModel.add_train_op(self, loss)
 
-    def run_epoch(self):
-
-        if self.config.train_only is None:
-            train_sets = self.create_sets(role='train')
-            eval_sets = self.create_sets(is_train=False)
-        else:
-            task, lang = self.config.train_only.split('-')
-            train_sets = self.create_sets(role='train', task=task, lang=lang)
-            eval_sets = self.create_sets(is_train=False, task=task, lang=lang)
-
-        for _ in range(self.config.epoch_steps * len(train_sets)):
-            st = random.choice(train_sets)
-            st.layer.train(next(st.iterator), st.dataset)
-
-        self.log(f'Epoch {self.epoch} training done.', LOG_MESSAGE)
-
-        for st in eval_sets:
-            results = st.layer.evaluate(st.iterator, st.dataset)
-            results.update({
-                'language': st.dataset.lang,
-                'task': st.dataset.task,
-                'role': st.dataset.role,
-                'epoch': self.epoch
-            })
-            self.log(results, LOG_RESULT)
-
-    def create_sets(self, is_train=True, **kwargs):
-        return [
-            DatasetIterator(
-                dataset=dt,
-                config=self.config,
-                layer=self.layers[self.task_code(dt.task, dt.lang)],
-                is_train=is_train)
-            for dt
-            in self.dl.find(**kwargs)]
-
     def lstm(self, inputs, sequence_lengths, cell_size, name_scope, avg_pool=False, dropout=True):
         with tf.variable_scope(name_scope):
             cell_fw = tf.contrib.cudnn_rnn.CudnnCompatibleLSTMCell(cell_size)
@@ -292,3 +256,41 @@ class Model(GeneralModel):
                     keep_prob=self.dropout)
 
             return out
+
+    def run_epoch(self):
+
+        if self.config.train_only is None:
+            train_sets = self.create_sets(role='train')
+            eval_sets = self.create_sets(is_train=False)
+        else:
+            task, lang = self.config.train_only.split('-')
+            train_sets = self.create_sets(role='train', task=task, lang=lang)
+            eval_sets = self.create_sets(is_train=False, task=task, lang=lang)
+
+        for _ in range(self.config.epoch_steps * len(train_sets)):
+            st = random.choice(train_sets)
+            st.layer.train(next(st.iterator), st.dataset)
+
+        self.log(f'Epoch {self.epoch} training done.', LOG_MESSAGE)
+
+        for st in eval_sets:
+            results = st.layer.evaluate(st.iterator, st.dataset)
+            results.update({
+                'language': st.dataset.lang,
+                'task': st.dataset.task,
+                'role': st.dataset.role,
+                'epoch': self.epoch
+            })
+            self.log(
+                message={'results': results},
+                level=LOG_RESULT)
+
+    def create_sets(self, is_train=True, **kwargs):
+        return [
+            DatasetIterator(
+                dataset=dt,
+                config=self.config,
+                layer=self.layers[self.task_code(dt.task, dt.lang)],
+                is_train=is_train)
+            for dt
+            in self.dl.find(**kwargs)]

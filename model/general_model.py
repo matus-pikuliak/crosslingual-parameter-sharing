@@ -10,10 +10,13 @@ from constants import LOG_CRITICAL, LOG_MESSAGE, LOG_RESULT
 
 class GeneralModel:
 
-    def __init__(self, data_loader, config):
+    def __init__(self, data_loader, config, name=None):
         self.config = config
         self.dl = data_loader
-        self.name = datetime.datetime.now().strftime('%Y-%m-%d-%H%M%S')
+        if not name:
+            self.name = datetime.datetime.now().strftime('%Y-%m-%d-%H%M%S')
+        else:
+            self.name = name
         self.logger = self.initialize_logger()
 
     def build_graph(self):
@@ -80,9 +83,15 @@ class GeneralModel:
 
     def run_experiment(self):
         start_time = datetime.datetime.now()
-        self.log(f'Run started {start_time}', LOG_CRITICAL)
-        self.log(f'{self.config}', LOG_MESSAGE)
-        self.log(f'git hash: {utils.git_hash()}', LOG_MESSAGE)
+        self.log(
+            message=f'Run started {start_time}',
+            level=LOG_CRITICAL)
+        self.log(
+            message={
+                'config': self.config,
+                'git_hash': utils.git_hash()
+            },
+            level=LOG_RESULT)
 
         self.epoch = 1
         for i in range(self.config.epochs):
@@ -90,7 +99,9 @@ class GeneralModel:
 
             if i == 0:
                 epoch_time = datetime.datetime.now() - start_time
-                self.log(f'ETA {start_time + epoch_time * self.config.epochs}', LOG_CRITICAL)
+                self.log(
+                    message=f'ETA {start_time + epoch_time * self.config.epochs}',
+                    level=LOG_CRITICAL)
 
             if self.config.save_model == 'epoch':
                 self.save(self.epoch)
@@ -100,10 +111,15 @@ class GeneralModel:
         if self.config.save_model == 'run':
             self.save()
 
-        # TODO: log results
-
         end_time = datetime.datetime.now()
-        self.log(f'Run done in {end_time - start_time}', LOG_CRITICAL)
+        self.log(
+            message=f'Run done in {end_time - start_time}',
+            level=LOG_CRITICAL)
+
+    def run_evaluation(self):
+        """
+        This method runs only evaluation phase on pretrained models
+        """
 
     def run_epoch(self):
         raise NotImplementedError
@@ -122,13 +138,15 @@ class GeneralModel:
             write_meta_graph=False)
         self.log(f'Model saved as {self.name}.', LOG_MESSAGE)
 
-    def load(self):
+    def load(self, model_file=None):
+        if model_file is None:
+            model_file = self.config.load_model
         self.saver.restore(
             sess=self.sess,
-            save_path=os.path.join(self.config.model_path, self.config.load_model))
+            save_path=os.path.join(self.config.model_path, model_file))
         reset_op = tf.group([v.initializer for v in self.optimizer.variables()])
         self.sess.run(reset_op)
-        self.log(f'Model restored from {self.config.load_model}.', LOG_MESSAGE)
+        self.log(f'Model restored from {model_file}.', LOG_MESSAGE)
 
     def log(self, message, level):
         self.logger.log(message, level)
