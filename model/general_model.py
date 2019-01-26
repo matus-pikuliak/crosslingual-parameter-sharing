@@ -120,6 +120,27 @@ class GeneralModel:
         """
         This method runs only evaluation phase on pretrained models
         """
+        start_time = datetime.datetime.now()
+        self.log(
+            message=f'Run started {start_time}',
+            level=LOG_CRITICAL)
+        self.log(
+            message={
+                'config': self.config,
+                'git_hash': utils.git_hash()
+            },
+            level=LOG_RESULT)
+
+        self.epoch = 1
+        for i in range(self.config.epochs):
+            self.load(f'{self.name}-{self.epoch}')
+            self.run_evaluate()
+            self.epoch += 1
+
+        end_time = datetime.datetime.now()
+        self.log(
+            message=f'Run done in {end_time - start_time}',
+            level=LOG_CRITICAL)
 
     def run_epoch(self):
         raise NotImplementedError
