@@ -1,4 +1,5 @@
 import os
+import pickle
 
 import numpy as np
 
@@ -39,7 +40,6 @@ class Dataset:
         self.dl = data_loader
         self.limit = self.set_limit()
         self.loaded = False
-        self.generators = []
 
     def __str__(self):
         return f'Dataset {self.task} {self.lang} {self.role} ({self.__class__.__name__})'
@@ -81,9 +81,27 @@ class Dataset:
         print(f'Loaded.')
 
     def load_hists(self):
-        self.lang_hist = {}
-        self.char_hist = {}
-        self.task_hist = {}
+        if os.path.isfile(self.vocab_file()):
+            with open(self.vocab_file(), 'rb') as pickle_file:
+                dump = pickle.load(pickle_file)
+
+        else:
+            dump = self._load_hists()
+            with open(self.vocab_file(), 'wb') as pickle_file:
+                pickle.dump(dump, pickle_file)
+
+        self.lang_hist,\
+        self.char_hist,\
+        self.task_hist,\
+        self.size = dump
+
+    def vocab_file(self):
+        return f'{self.filename}.vocab.pckl'
+
+    def _load_hists(self):
+        lang_hist = {}
+        char_hist = {}
+        task_hist = {}
 
         counter = 0
         for sample in self.read_raw_samples():
@@ -92,17 +110,19 @@ class Dataset:
 
                 if len(line) > 0:
                     word = line[0]
-                    self.lang_hist.setdefault(word, 0)
-                    self.lang_hist[word] += 1
+                    lang_hist.setdefault(word, 0)
+                    lang_hist[word] += 1
                     for char in word:
-                        self.char_hist.setdefault(char, 0)
-                        self.char_hist[char] += 1
+                        char_hist.setdefault(char, 0)
+                        char_hist[char] += 1
 
                 if len(line) > 1:
                     label = line[1]
-                    self.task_hist.setdefault(label, 0)
-                    self.task_hist[label] += 1
-        self.size = counter
+                    task_hist.setdefault(label, 0)
+                    task_hist[label] += 1
+        size = counter
+
+        return lang_hist, char_hist, task_hist, size
 
     def del_hists(self):
         self.lang_hist.clear()
