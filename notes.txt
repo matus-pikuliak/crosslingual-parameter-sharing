@@ -181,6 +181,7 @@ mierne vylepsenie vysledkov, ale najma naozaj vraciame parse tree a nie nejaky p
 17.12.2018 gcp - ml w/o task sharing
 21.12.2018 gcp - ml, mtml mwe_projected w/o adversarial
 27.12.2018 gcp - vanilla 300 word lstm size
+26.01.2019 gcp - ml with various adv settings (0.25 0.125 lambda, 2 freq)
 
 # PO EXPERIMENTOCH
 1. Odstran cont_repr a vsetko co s tym suvisi, co sa dostalo do layerov a modelu

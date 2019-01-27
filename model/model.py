@@ -1,5 +1,6 @@
 import random
 
+import numpy as np
 import tensorflow as tf
 
 from data.embedding import Embeddings
@@ -268,7 +269,19 @@ class Model(GeneralModel):
             eval_sets = self.create_sets(is_train=False, task=task, lang=lang)
 
         for _ in range(self.config.epoch_steps * len(train_sets)):
-            st = random.choice(train_sets)
+
+            if self.config.focus_on == 'na':
+                st = np.random.choice(train_sets)
+            else:
+                task, lang = self.config.focus_on.split('-')
+                off_task_prob = (1 - self.config.focus_rate) / (len(self.tasks) - 1)
+                off_lang_prob = (1 - self.config.focus_rate) / (len(self.langs) - 1)
+                task_probs = [
+                    (
+                        (self.config.focus_rate if st.dataset.task == task else off_task_prob)*
+                        (self.config.focus_rate if st.dataset.lang == lang else off_lang_prob)
+                    ) for st in train_sets]
+                st = np.random.choice(train_sets, p=task_probs)
             st.layer.train(next(st.iterator), st.dataset)
 
         self.log(f'Epoch {self.epoch} training done.', LOG_MESSAGE)
