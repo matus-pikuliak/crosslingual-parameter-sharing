@@ -17,7 +17,7 @@ class ProductionLogger(Logger):
                 try:
                     self.results[k].append(v)
                 except AttributeError:
-                    self.results[k] = [self.results[k]] + [v]
+                    self.results[k] = [self.results[k], v]
             else:
                 self.results[k] = v
         self.file(self.results, mode='w')

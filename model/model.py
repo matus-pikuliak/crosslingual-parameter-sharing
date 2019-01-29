@@ -270,7 +270,7 @@ class Model(GeneralModel):
 
         for _ in range(self.config.epoch_steps * len(train_sets)):
 
-            if self.config.focus_on == 'na':
+            if self.config.focus_on is None:
                 st = np.random.choice(train_sets)
             else:
                 task, lang = self.config.focus_on.split('-')
