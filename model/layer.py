@@ -84,7 +84,8 @@ class Layer:
             self.model.sentence_lengths: sentence_lengths,
             self.model.char_ids: char_ids,
             self.model.word_lengths: word_lengths,
-            self.model.lang_id: self.model.langs.index(dataset.lang)
+            self.model.lang_id: self.model.langs.index(dataset.lang),
+            self.model.task_id: self.model.tasks.index(dataset.task)
         }
 
     def train_feed_dict(self, batch, dataset):

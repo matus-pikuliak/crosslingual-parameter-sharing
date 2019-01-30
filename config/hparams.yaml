@@ -6,7 +6,6 @@ default: &default
   char_emb_size: 30
   char_level: true
 
-  task_layer_sharing: true
   word_lstm_size: 200
   char_lstm_size: 100
   hidden_size: 200 # universal hidden size used for task-specific computations
@@ -37,6 +36,10 @@ default: &default
   min_word_freq: 1
   min_char_freq: 100
   max_dataset_cache: 200000
+
+  task_layer_sharing: true
+  private_params: false
+  private_size: 100
 
   adversarial_training: true
   adversarial_lambda: 0.5

@@ -75,6 +75,17 @@ class Model(GeneralModel):
             in enumerate(self.langs)
         }
 
+        self.task_id = tf.placeholder(
+            dtype=tf.int32,
+            shape=[],
+            name='task_id')
+
+        self.task_flags = {
+            task: tf.equal(self.task_id, i)
+            for i, task
+            in enumerate(self.tasks)
+        }
+
     def add_word_processing(self):
 
         word_emb_matrix = self.add_word_emb_matrices()
@@ -156,11 +167,45 @@ class Model(GeneralModel):
         return char_lstm_out
 
     def add_sentence_processing(self, word_repr):
-        return self.lstm(
-            inputs=word_repr,
-            sequence_lengths=self.sentence_lengths,
-            cell_size=self.config.word_lstm_size,
-            name_scope='word_bilstm')
+
+        if not self.config.private_params:
+            return self.lstm(
+                inputs=word_repr,
+                sequence_lengths=self.sentence_lengths,
+                cell_size=self.config.word_lstm_size,
+                name_scope='word_bilstm')
+
+        else:
+            shared_lstm = self.lstm(
+                inputs=word_repr,
+                sequence_lengths=self.sentence_lengths,
+                cell_size=self.config.word_lstm_size - self.config.private_size,
+                name_scope='word_bilstm')
+
+            private_lstms = {
+                (task, lang): self.lstm(
+                    inputs=word_repr,
+                    sequence_lengths=self.sentence_lengths,
+                    cell_size=self.config.private_size,
+                    name_scope=f'word_bilstm_{task}-{lang}')
+                for task in self.tasks
+                for lang in self.langs
+            }
+
+            pred_fn_pairs = {
+                tf.logical_and(self.task_flags[task], self.lang_flags[lang]):
+                (lambda task, lang: lambda: private_lstms[task, lang])(task, lang)
+                for task in self.tasks
+                for lang in self.langs
+            }
+
+            selected_lstm = tf.case(
+                pred_fn_pairs=pred_fn_pairs,
+                exclusive=True)
+
+            return tf.concat(
+                values=(shared_lstm, selected_lstm),
+                axis=-1)
 
     def add_task_layers(self, cont_repr):
 
