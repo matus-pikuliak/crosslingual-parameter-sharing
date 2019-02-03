@@ -8,14 +8,18 @@ import numpy as np
 sys.path.append(os.path.abspath('..'))
 
 
-
 class Run:
 
-    def __init__(self, path):
+    def __init__(self, path, type_, code):
+        """
+        :param path:
+        :param type: stsl / mt / ml / mtml
+        :param code: settings that were used
+        """
         self.path = path
         rest, self.name = os.path.split(self.path)
-        rest, self.type = os.path.split(rest)
-        _, self.code = os.path.split(rest)
+        self.type = type_
+        self.code = code
         with open(self.path) as f:
             self.data = ast.literal_eval(f.read())['results']
 

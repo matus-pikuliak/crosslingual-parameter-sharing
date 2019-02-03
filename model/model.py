@@ -182,19 +182,16 @@ class Model(GeneralModel):
                 cell_size=self.config.word_lstm_size - self.config.private_size,
                 name_scope='word_bilstm')
 
-            private_lstms = {
-                (task, lang): self.lstm(
+            def private_lstm(task, lang):
+                return lambda: self.lstm(
                     inputs=word_repr,
                     sequence_lengths=self.sentence_lengths,
                     cell_size=self.config.private_size,
                     name_scope=f'word_bilstm_{task}-{lang}')
-                for task in self.tasks
-                for lang in self.langs
-            }
 
             pred_fn_pairs = {
                 tf.logical_and(self.task_flags[task], self.lang_flags[lang]):
-                (lambda task, lang: lambda: private_lstms[task, lang])(task, lang)
+                private_lstm(task, lang)
                 for task in self.tasks
                 for lang in self.langs
             }

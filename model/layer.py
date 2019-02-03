@@ -23,7 +23,7 @@ class Layer:
 
     def add_output_nodes(self):
         self.train_op, grads = self.model.add_train_op(self.loss)
-        self.global_norm = tf.global_norm(grads)
+        self.gradient_norm = tf.global_norm(grads)
 
         matrices = tf.expand_dims(
             input=self.cont_repr_weights,
@@ -38,13 +38,11 @@ class Layer:
         repr = tf.expand_dims(
             input=repr,
             axis=-1)
-
         activations = tf.multiply(matrices, repr)
 
         norms = tf.norm(
             tensor=activations,
             axis=2)
-
         norms = tf.divide(
             norms,
             tf.reduce_sum(
@@ -52,23 +50,18 @@ class Layer:
                 axis=1,
                 keepdims=True
             ))
-
         self.unit_strenth_2 = tf.reduce_mean(
             input_tensor=norms,
             axis=0)
 
-
         activations = tf.abs(activations)
-
         norms = tf.reduce_sum(
             input_tensor=activations,
             axis=1,
             keepdims=True)
-
         unit_strength = tf.reduce_sum(
             input_tensor=tf.divide(activations, norms),
             axis=[0, 2])
-
         self.unit_strength = tf.divide(
             x=unit_strength,
             y=tf.cast(
@@ -154,7 +147,7 @@ class Layer:
         return {
             'loss': self.loss,
             'adv_loss': self.model.adversarial_loss,
-            'global_norm': self.global_norm,
+            'gradient_norm': self.gradient_norm,
             'length': self.model.total_batch_length,
         }
 
@@ -162,6 +155,7 @@ class Layer:
         output = {
             'loss': np.mean(results['loss']),
             'adv_loss': np.mean(results['adv_loss']),
+            'gradient_norm': np.mean(results['gradient_norm'])
         }
         try:
             output.update({

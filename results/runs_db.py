@@ -1,0 +1,31 @@
+db = {
+    'martak': [
+        (16, 'stsl', 'vanilla'),
+        (4, 'ml', 'vanilla'),
+        (4, 'mt', 'vanilla'),
+        (1, 'mtml', 'vanilla'),
+        (1, 'mtml', 'no-adv'),
+        (1, 'mtml', 'no-task-sharing'),
+        (4, 'ml', 'no-mwe'),
+        (1, 'mtml', 'no-mwe'),
+        (16, 'stsl', 'vanilla400'),
+        (4, 'ml', 'vanilla400'),
+        (4, 'mt', 'vanilla400'),
+        (1, 'mtml', 'vanilla400'),
+        (4, 'ml', 'no-adv-task-sharing'),
+        (1, 'mtml', 'no-adv-task-sharing'),
+    ],
+    'gcp': [
+        (4, 'ml', 'no-adv'),
+        (4, 'ml', 'no-task-sharing'),
+        (4, 'ml', 'no-adv-mwe'),
+        (1, 'mtml', 'no-adv-mwe'),
+        (16, 'stsl', 'vanilla300'),
+        (4, 'ml', 'vanilla300'),
+        (4, 'mt', 'vanilla300'),
+        (1, 'mtml', 'vanilla300'),
+        (1, 'ml', 'dep-adv-lambda-0.25'),
+        (1, 'ml', 'dep-adv-lambda-0.125'),
+        (1, 'ml', 'dep-adv-freq-2'),
+    ]
+}
