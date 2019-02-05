@@ -10,10 +10,8 @@ class DefaultLogger(Logger):
         for k, v in msg.items():
             message = f'{k}: {v}'
             self.stdout(message)
-            self.file(message)
 
     def log_critical(self, msg):
         self.stdout(msg)
-        self.file(f'# {msg}')
         self.system(msg)
 
