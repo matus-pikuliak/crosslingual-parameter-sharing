@@ -19,7 +19,7 @@ with open(log_file_path) as log_file:
 
 dl = DataLoader(config)
 dl.load()
-model = Model(dl, config)
+model = Model(dl, config, name=run_name)
 model.build_graph()
 
 max_epoch = max(record['epoch'] for record in log['results'])
@@ -29,10 +29,10 @@ try:
     model.load(f'{run_name}-{max_epoch}')
 except:
     model.load(f'{run_name}-{max_epoch-1}')
-    log['result'] = [record for record in log['results'] if record['epoch'] != max_epoch]
+    log['results'] = [record for record in log['results'] if record['epoch'] != max_epoch]
     max_epoch -= 1
 
 if config.setup == 'production':
-    model.logger.results = log
+    model.logger.results['results'] = log['results']
 model.run_experiment(start_epoch=max_epoch+1)
 model.close()
