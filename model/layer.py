@@ -22,8 +22,7 @@ class Layer:
         self.metrics = self.add_metrics()
 
     def add_output_nodes(self):
-        self.train_op, grads = self.model.add_train_op(self.loss)
-        self.gradient_norm = tf.global_norm(grads)
+        self.train_op, self.gradient_norm = self.model.add_train_op(self.loss)
 
         matrices = tf.expand_dims(
             input=self.cont_repr_weights,

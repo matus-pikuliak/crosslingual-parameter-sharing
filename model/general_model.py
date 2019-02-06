@@ -69,9 +69,10 @@ class GeneralModel:
 
     def add_train_op(self, loss):
         grads, vs = zip(*self.optimizer.compute_gradients(loss))
+        gradient_norm = tf.global_norm(grads)
         if self.config.clip > 0:
             grads, _ = tf.clip_by_global_norm(grads, self.config.clip)
-        return self.optimizer.apply_gradients(zip(grads, vs)), grads
+        return self.optimizer.apply_gradients(zip(grads, vs)), gradient_norm
 
     def current_learning_rate(self):
         if self.config.learning_rate_schedule == 'static':
