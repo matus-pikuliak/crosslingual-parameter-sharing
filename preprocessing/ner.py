@@ -46,7 +46,7 @@ def process(files, result_path):
                             tag = 'I-MISC'
                         buffer.append(tokens[0]+"\t"+tag)
                     else:
-                        print tag
+                        print(tag)
                     #if not tokens[0].isdigit():
                     #    print tokens[0]
             if len(buffer) > 2:

@@ -81,7 +81,7 @@ class GeneralModel:
         else:
             raise AttributeError('lr_schedule must be set to static or decay')
 
-    def run_experiment(self):
+    def run_experiment(self, start_epoch=1):
         start_time = datetime.datetime.now()
         self.log(
             message=f'Run started {start_time}',
@@ -93,11 +93,10 @@ class GeneralModel:
             },
             level=LOG_RESULT)
 
-        self.epoch = 1
-        for i in range(self.config.epochs):
+        for self.epoch in range(start_epoch, self.config.epochs+1):
             self.run_epoch()
 
-            if i == 0:
+            if self.epoch == 1:
                 epoch_time = datetime.datetime.now() - start_time
                 self.log(
                     message=f'ETA {start_time + epoch_time * self.config.epochs}',
@@ -105,8 +104,6 @@ class GeneralModel:
 
             if self.config.save_model == 'epoch':
                 self.save(self.epoch)
-
-            self.epoch += 1
 
         if self.config.save_model == 'run':
             self.save()
@@ -116,7 +113,7 @@ class GeneralModel:
             message=f'Run done in {end_time - start_time}',
             level=LOG_CRITICAL)
 
-    def run_evaluation(self):
+    def run_evaluation(self, start_epoch=1):
         """
         This method runs only evaluation phase on pretrained models
         """
@@ -131,11 +128,9 @@ class GeneralModel:
             },
             level=LOG_RESULT)
 
-        self.epoch = 1
-        for i in range(self.config.epochs):
+        for self.epoch in range(start_epoch, self.config.epochs+1):
             self.load(f'{self.name}-{self.epoch}')
-            self.run_evaluate()
-            self.epoch += 1
+            self.evaluate_epoch()
 
         end_time = datetime.datetime.now()
         self.log(

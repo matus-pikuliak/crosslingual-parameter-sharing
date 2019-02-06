@@ -66,7 +66,7 @@ class Config:
     def __repr__(self):
         return str(self.values)
 
-    def load_from_logfile(self, dct):
+    def load_from_dict(self, dct):
         self.values.update(dct)
 
         dir = os.path.dirname(__file__)

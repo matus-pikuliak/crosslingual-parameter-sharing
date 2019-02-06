@@ -16,7 +16,6 @@ db = {
         (1, 'mtml', 'no-adv-task-sharing'),
         (1, 'ml', 'private-old'),
         (4, 'ml', 'private'),
-        (1, 'mtml', 'private'),
     ],
     'gcp': [
         (4, 'ml', 'no-adv'),
