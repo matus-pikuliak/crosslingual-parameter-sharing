@@ -27,7 +27,7 @@ class GeneralModel:
         self._build_graph()
 
         config = tf.ConfigProto()
-        if self.config.use_gpu:
+        if not self.config.use_gpu:
             config.device_count = {'GPU': 0, 'CPU': 1}
         if self.config.allow_gpu_growth:
             config.gpu_options.allow_growth = True
