@@ -1,5 +1,6 @@
 import os
 import datetime
+from functools import reduce
 
 import tensorflow as tf
 
@@ -25,7 +26,12 @@ class GeneralModel:
         self.add_optimizer()
         self._build_graph()
 
-        config = None if self.config.use_gpu else tf.ConfigProto(device_count={'GPU': 0, 'CPU': 1})
+        config = tf.ConfigProto()
+        if not self.config.use_gpu:
+            config.device_count = {'GPU': 0, 'CPU': 1}
+        if self.config.allow_gpu_growth:
+            config.gpu_options.allow_growth = True
+
         self.sess = tf.Session(config=config)
         self.sess.run(tf.global_variables_initializer())
 
@@ -143,8 +149,11 @@ class GeneralModel:
 
     def show_graph(self):
         tf.summary.FileWriter(self.config.model_path, self.sess.graph)
+        size = 0
         for variable in tf.global_variables():
             print(variable)
+            size += reduce(lambda x, y: x*y, variable.shape, 1)
+        print(f'Total size: {size}.')
         exit()
 
     def save(self, global_step=None):
