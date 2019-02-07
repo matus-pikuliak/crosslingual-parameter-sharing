@@ -7,7 +7,9 @@ class DebugLogger(Logger):
         self.stdout(msg)
 
     def log_result(self, msg):
-        self.stdout(msg)
+        for k, v in msg.items():
+            message = f'{k}: {v}'
+            self.stdout(message)
 
     def log_critical(self, msg):
         self.stdout(msg)

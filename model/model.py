@@ -340,7 +340,7 @@ class Model(GeneralModel):
                 message={'results': results},
                 level=LOG_RESULT)
 
-    def run_evaluate(self):
+    def evaluate_epoch(self):
         eval_sets = self.create_sets(is_train=False)
 
         for st in eval_sets:

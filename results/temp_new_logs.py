@@ -17,7 +17,7 @@ for log_file in glob.glob(os.path.join(old_log_path, '*')):
         with open(log_file) as log_f:
             contents = ast.literal_eval(log_f.read())
             config = Config()
-            config.load_from_logfile(contents['hparams'])
+            config.load_from_dict(contents['hparams'])
             config.values['log_path'] = new_log_path
             config.values['model_path'] = model_path
             evaluate(run_name, config)
