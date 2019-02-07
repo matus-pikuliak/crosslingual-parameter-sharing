@@ -2,6 +2,47 @@ ls = ['cs', 'de', 'en', 'es']
 ts = ['dep', 'lmo', 'ner', 'pos']
 
 '''
+07.02.2019 martak run
+'''
+for t in ['dep']:
+    print(f'bash train.sh task_layer_sharing false adversarial_lambda 0.25 tasks ', end='')
+    for l in ls:
+        print(f'{t}-{l} ', end='')
+    print('&& ', end='')
+for t in ['dep']:
+    print(f'bash train.sh task_layer_sharing false adversarial_lambda 0.125 tasks ', end='')
+    for l in ls:
+        print(f'{t}-{l} ', end='')
+    print('&& ', end='')
+for t in ['dep']:
+    print(f'bash train.sh task_layer_sharing false adversarial_frequency 2 tasks ', end='')
+    for l in ls:
+        print(f'{t}-{l} ', end='')
+    print('&& ', end='')
+print('; sudo poweroff', end='')
+exit()
+
+'''
+06.02.2019 deepnet run
+'''
+
+for t in ts:
+    print(f'bash train.sh task_layer_sharing false private_params true tasks ', end='')
+    for l in ls:
+        print(f'{t}-{l} ', end='')
+    print('&& ', end='')
+for l in ls:
+    print(f'bash train.sh task_layer_sharing false private_params true tasks ', end='')
+    for t in ts:
+        print(f'{t}-{l} ', end='')
+    print('&& ', end='')
+print(f'bash train.sh task_layer_sharing false private_params true tasks ', end='')
+for l in ls:
+    for t in ts:
+        print(f'{t}-{l} ', end='')
+exit()
+
+'''
 04.02.2019 gcp run
 '''
 

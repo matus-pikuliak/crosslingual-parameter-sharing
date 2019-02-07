@@ -16,7 +16,9 @@ db = {
         (1, 'mtml', 'no-adv-task-sharing'),
         (1, 'ml', 'private-old'),
         (4, 'ml', 'private'),
-        (1, 'mtml', 'private'),
+        #(1, 'mtml', 'private'),
+        (1, 'ml', 'dep-adv-lambda-0.01'),
+        (1, 'ml', 'dep-private-adv-lambda-0.125'),
     ],
     'gcp': [
         (4, 'ml', 'no-adv'),
@@ -31,6 +33,11 @@ db = {
         (1, 'ml', 'dep-adv-lambda-0.125'),
         (1, 'ml', 'dep-adv-freq-2'),
         (4, 'mt', 'private'),
+    ],
+    'deepnet2': [
+        (4, 'ml', 'private-with-adv'),
+        (4, 'mt', 'private-with-adv'),
+        (1, 'mtml', 'private-with-adv'),
     ]
 }
 
