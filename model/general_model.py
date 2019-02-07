@@ -1,5 +1,6 @@
 import os
 import datetime
+from functools import reduce
 
 import tensorflow as tf
 
@@ -143,8 +144,11 @@ class GeneralModel:
 
     def show_graph(self):
         tf.summary.FileWriter(self.config.model_path, self.sess.graph)
+        size = 0
         for variable in tf.global_variables():
             print(variable)
+            size += reduce(lambda x, y: x*y, variable.shape, 1)
+        print(f'Total size: {size}.')
         exit()
 
     def save(self, global_step=None):

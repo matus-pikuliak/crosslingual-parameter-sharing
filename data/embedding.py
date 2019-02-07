@@ -12,6 +12,7 @@ class Embeddings:
         self.lang = lang
 
     def matrix(self, vocab):
+        print(f'Loading {self.lang} embedding matrix.')
         emb_matrix = np.zeros(
             shape=(len(vocab), self.config.word_emb_size),
             dtype=np.float)
@@ -41,6 +42,7 @@ class Embeddings:
                     emb_matrix[id] = vec / norm
                 else:
                     raise RuntimeError('Wrong wrong embedding types (must be "mwe", "random" or "mwe_projected").')
+        print('Loaded.')
 
         return emb_matrix
 
