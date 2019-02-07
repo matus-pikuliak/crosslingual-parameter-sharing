@@ -56,6 +56,7 @@ default: &default
   show_graph: false
   save_model: never  # never / epoch / run
   load_model: na
+  allow_gpu_growth: false
 
 debug:
   <<: *default

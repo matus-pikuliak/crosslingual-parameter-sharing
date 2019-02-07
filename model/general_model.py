@@ -26,7 +26,12 @@ class GeneralModel:
         self.add_optimizer()
         self._build_graph()
 
-        config = None if self.config.use_gpu else tf.ConfigProto(device_count={'GPU': 0, 'CPU': 1})
+        config = tf.ConfigProto()
+        if self.config.use_gpu:
+            config.device_count = {'GPU': 0, 'CPU': 1}
+        if self.config.allow_gpu_growth:
+            config.gpu_options.allow_growth = True
+
         self.sess = tf.Session(config=config)
         self.sess.run(tf.global_variables_initializer())
 
