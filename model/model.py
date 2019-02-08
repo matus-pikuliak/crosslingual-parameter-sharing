@@ -320,14 +320,21 @@ class Model(GeneralModel):
                 st = np.random.choice(train_sets)
             else:
                 task, lang = self.config.focus_on.split('-')
-                off_task_prob = (1 - self.config.focus_rate) / max(1, (len(self.tasks) - 1))
-                off_lang_prob = (1 - self.config.focus_rate) / max(1, (len(self.langs) - 1))
+
+                def on_off_prob(focus_rate, count):
+                    on = focus_rate if count > 1 else 1
+                    off = (1 - focus_rate) / (count - 1) if count > 1 else 0
+                    return on, off
+
+                on_task_prob, off_task_prob = on_off_prob(self.config.focus_rate, len(self.tasks))
+                on_lang_prob, off_lang_prob = on_off_prob(self.config.focus_rate, len(self.langs))
                 task_probs = [
                     (
-                        (self.config.focus_rate if st.dataset.task == task else off_task_prob) *
-                        (self.config.focus_rate if st.dataset.lang == lang else off_lang_prob)
+                        (on_task_prob if st.dataset.task == task else off_task_prob) *
+                        (on_lang_prob if st.dataset.lang == lang else off_lang_prob)
                     ) for st in train_sets]
                 st = np.random.choice(train_sets, p=task_probs)
+
             st.layer.train(next(st.iterator), st.dataset)
 
         self.log(f'Epoch {self.epoch} training done.', LOG_MESSAGE)
