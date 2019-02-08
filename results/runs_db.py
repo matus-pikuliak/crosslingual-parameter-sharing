@@ -37,6 +37,8 @@ db = {
     'deepnet2': [
         (4, 'ml', 'private-with-adv'),
         (4, 'mt', 'private-with-adv'),
+        (6, 'ml', 'private-focused-dep-ner-pos-cs-es'),
+        (6, 'ml', 'private-focused-0.75-dep-ner-pos-cs-es'),
         # (1, 'mtml', 'private-with-adv'),
     ]
 }

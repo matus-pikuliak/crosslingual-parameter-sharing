@@ -320,11 +320,11 @@ class Model(GeneralModel):
                 st = np.random.choice(train_sets)
             else:
                 task, lang = self.config.focus_on.split('-')
-                off_task_prob = (1 - self.config.focus_rate) / (len(self.tasks) - 1)
-                off_lang_prob = (1 - self.config.focus_rate) / (len(self.langs) - 1)
+                off_task_prob = (1 - self.config.focus_rate) / max(1, (len(self.tasks) - 1))
+                off_lang_prob = (1 - self.config.focus_rate) / max(1, (len(self.langs) - 1))
                 task_probs = [
                     (
-                        (self.config.focus_rate if st.dataset.task == task else off_task_prob)*
+                        (self.config.focus_rate if st.dataset.task == task else off_task_prob) *
                         (self.config.focus_rate if st.dataset.lang == lang else off_lang_prob)
                     ) for st in train_sets]
                 st = np.random.choice(train_sets, p=task_probs)
