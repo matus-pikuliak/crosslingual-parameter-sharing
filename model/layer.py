@@ -24,24 +24,21 @@ class Layer:
     def add_output_nodes(self):
         self.train_op, self.gradient_norm = self.model.add_train_op(self.loss)
 
-        matrices = tf.expand_dims(
-            input=self.cont_repr_weights,
-            axis=0)
-        matrices = tf.tile(
-            input=matrices,
-            multiples=[self.model.total_batch_length, 1, 1])
-
         repr = tf.boolean_mask(
             tensor=self.cont_repr,
             mask=self.model.sentence_lengths_mask)
-        repr = tf.expand_dims(
-            input=repr,
-            axis=-1)
-        activations = tf.multiply(matrices, repr)
 
         norms = tf.norm(
-            tensor=activations,
-            axis=2)
+            tensor=self.cont_repr_weights,
+            axis=1)
+        norms = tf.expand_dims(
+            input=norms,
+            axis=0)
+        norms = tf.tile(
+            input=norms,
+            multiples=[self.model.total_batch_length, 1])
+
+        norms = tf.abs(tf.multiply(norms, repr))
         norms = tf.divide(
             norms,
             tf.reduce_sum(
@@ -49,24 +46,9 @@ class Layer:
                 axis=1,
                 keepdims=True
             ))
-        self.unit_strenth_2 = tf.reduce_mean(
+        self.unit_strength_2 = tf.reduce_mean(
             input_tensor=norms,
             axis=0)
-
-        activations = tf.abs(activations)
-        norms = tf.reduce_sum(
-            input_tensor=activations,
-            axis=1,
-            keepdims=True)
-        unit_strength = tf.reduce_sum(
-            input_tensor=tf.divide(activations, norms),
-            axis=[0, 2])
-        self.unit_strength = tf.divide(
-            x=unit_strength,
-            y=tf.cast(
-                x=tf.shape(activations)[0] * tf.shape(activations)[2],
-                dtype=tf.float32
-            ))
 
     def basic_feed_dict(self, batch, dataset):
         word_ids, sentence_lengths, char_ids, word_lengths, *_ = batch
@@ -110,37 +92,22 @@ class Layer:
 
         return output
 
-    def evaluate_batches_iterator(self, iterator, dataset, fetches):
-
-        fetches = list(fetches.values())
-        flag = True
-        word_count = 0
-
-        if dataset.role in ['train', 'test']:
-            fetches += [self.unit_strength, self.unit_strenth_2]
-            flag = False
-
-        for batch in iterator:
-            result = self.model.sess.run(
-                fetches=fetches,
-                feed_dict=self.test_feed_dict(batch, dataset)
-            )
-
-            word_count += result[fetches.index(self.model.total_batch_length)]
-            if not flag and word_count > 10_000:
-                flag = True
-                fetches = fetches[:-2]
-            yield result
-
     def evaluate_batches(self, iterator, dataset, fetches):
+        results = self.evaluate_batches_iterator(
+            iterator=iterator,
+            dataset=dataset,
+            fetch_nodes=list(fetches.values()))
 
-        results = self.evaluate_batches_iterator(iterator, dataset, fetches)
-
-        keys = list(fetches.keys()) + ['unit_strength', 'unit_strength_2']
         return dict(zip(
-            keys,
-            uneven_zip(*results)
+            fetches.keys(),
+            zip(*results)
         ))
+
+    def evaluate_batches_iterator(self, iterator, dataset, fetch_nodes):
+        for batch in iterator:
+            yield self.model.sess.run(
+                fetches=fetch_nodes,
+                feed_dict=self.test_feed_dict(batch, dataset))
 
     def basic_fetches(self):
         return {
@@ -148,20 +115,15 @@ class Layer:
             'adv_loss': self.model.adversarial_loss,
             'gradient_norm': self.gradient_norm,
             'length': self.model.total_batch_length,
+            'unit_strength_2': self.unit_strength_2
         }
 
     def basic_results(self, results):
         output = {
             'loss': np.mean(results['loss']),
             'adv_loss': np.mean(results['adv_loss']),
-            'gradient_norm': np.mean(results['gradient_norm'])
+            'gradient_norm': np.mean(results['gradient_norm']),
+            'unit_strength_2': np.std(np.mean(results['unit_strength_2'], axis=0))
         }
-        try:
-            output.update({
-                'unit_strength': np.std(np.mean(results['unit_strength'], axis=0)),
-                'unit_strength_2': np.std(np.mean(results['unit_strength_2'], axis=0))
-            })
-        except KeyError:
-            pass
 
         return output
