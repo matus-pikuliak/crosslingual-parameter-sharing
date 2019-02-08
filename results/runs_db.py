@@ -37,7 +37,7 @@ db = {
     'deepnet2': [
         (4, 'ml', 'private-with-adv'),
         (4, 'mt', 'private-with-adv'),
-        (1, 'mtml', 'private-with-adv'),
+        # (1, 'mtml', 'private-with-adv'),
     ]
 }
 

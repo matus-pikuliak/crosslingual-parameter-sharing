@@ -304,7 +304,11 @@ class Model(GeneralModel):
 
         if self.config.train_only is None:
             train_sets = self.create_sets(role='train')
-            eval_sets = self.create_sets(is_train=False)
+            if self.config.focus_on is None:
+                eval_sets = self.create_sets(is_train=False)
+            else:
+                task, lang = self.config.focus_on.split('-')
+                eval_sets = self.create_sets(is_train=False, task=task, lang=lang)
         else:
             task, lang = self.config.train_only.split('-')
             train_sets = self.create_sets(role='train', task=task, lang=lang)
