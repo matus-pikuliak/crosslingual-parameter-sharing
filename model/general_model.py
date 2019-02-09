@@ -154,7 +154,6 @@ class GeneralModel:
             print(variable)
             size += reduce(lambda x, y: x*y, variable.shape, 1)
         print(f'Total size: {size}.')
-        exit()
 
     def save(self, global_step=None):
         self.saver.save(

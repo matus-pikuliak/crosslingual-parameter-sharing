@@ -79,7 +79,10 @@ class Layer:
 
     def train(self, batch, dataset):
         fd = self.train_feed_dict(batch, dataset)
-        self.model.sess.run(self.train_op, feed_dict=fd)
+        self.model.sess.run(
+            fetches=self.train_op,
+            feed_dict=fd,
+            options=tf.RunOptions(report_tensor_allocations_upon_oom=True))
 
     def evaluate(self, iterator, dataset):
 
@@ -107,7 +110,8 @@ class Layer:
         for batch in iterator:
             yield self.model.sess.run(
                 fetches=fetch_nodes,
-                feed_dict=self.test_feed_dict(batch, dataset))
+                feed_dict=self.test_feed_dict(batch, dataset),
+                options=tf.RunOptions(report_tensor_allocations_upon_oom=True))
 
     def basic_fetches(self):
         return {
