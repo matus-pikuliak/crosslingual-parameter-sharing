@@ -1,6 +1,21 @@
 ls = ['cs', 'de', 'en', 'es']
 ts = ['dep', 'lmo', 'ner', 'pos']
 
+
+
+print(f'bash train.sh task_layer_sharing false adversarial_training false private_params true tasks ', end='')
+for l in ls:
+    for t in ts:
+        print(f'{t}-{l} ', end='')
+print(f'&& ', end='')
+print(f'bash train.sh task_layer_sharing false private_params true tasks ', end='')
+for l in ls:
+    for t in ts:
+        print(f'{t}-{l} ', end='')
+print('; sudo poweroff', end='')
+exit()
+
+
 '''
 08.02.2019 martak run
 '''
@@ -63,10 +78,6 @@ for l in ls:
     for t in ts:
         print(f'{t}-{l} ', end='')
     print('&& ', end='')
-print(f'bash train.sh task_layer_sharing false private_params true tasks ', end='')
-for l in ls:
-    for t in ts:
-        print(f'{t}-{l} ', end='')
 exit()
 
 '''
@@ -89,10 +100,6 @@ for t in ts:
     for l in ls:
         print(f'{t}-{l} ', end='')
     print('&& ', end='')
-print(f'bash train.sh task_layer_sharing false adversarial_training false private_params true tasks ', end='')
-for l in ls:
-    for t in ts:
-        print(f'{t}-{l} ', end='')
 exit()
 
 '''

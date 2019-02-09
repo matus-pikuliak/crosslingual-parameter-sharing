@@ -16,7 +16,6 @@ db = {
         (1, 'mtml', 'no-adv-task-sharing'),
         (1, 'ml', 'private-old'),
         (4, 'ml', 'private'),
-        #(1, 'mtml', 'private'),
         (1, 'ml', 'dep-adv-lambda-0.01'),
         (1, 'ml', 'dep-private-adv-lambda-0.125'),
         (6, 'mt', 'private-focused-dep-ner-pos-cs-es'),
@@ -35,13 +34,14 @@ db = {
         (1, 'ml', 'dep-adv-lambda-0.125'),
         (1, 'ml', 'dep-adv-freq-2'),
         (4, 'mt', 'private'),
+        (1, 'mtml', 'private'),
+        (1, 'mtml', 'private-with-adv'),
     ],
     'deepnet2': [
         (4, 'ml', 'private-with-adv'),
         (4, 'mt', 'private-with-adv'),
         (6, 'ml', 'private-focused-dep-ner-pos-cs-es'),
         (6, 'ml', 'private-focused-0.75-dep-ner-pos-cs-es'),
-        # (1, 'mtml', 'private-with-adv'),
     ]
 }
 
