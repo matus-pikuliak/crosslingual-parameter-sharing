@@ -7,13 +7,13 @@ import utils.tf_utils as tfu
 
 class LMOLayer(Layer):
 
-    def __init__(self, model, task, lang, cont_repr):
-        Layer.__init__(self, model, task, lang, cont_repr)
+    def __init__(self, model, cont_repr, task, lang):
+        Layer.__init__(self, model, cont_repr, task, lang)
         self.build_graph(cont_repr)
 
     def _build_graph(self):
 
-        with tf.variable_scope(self.task_code()):
+        with tf.variable_scope(self.task_code(), reuse=tf.AUTO_REUSE):
 
             past = self.add_past(self.cont_repr)
             future = self.add_future(self.cont_repr)
@@ -22,7 +22,7 @@ class LMOLayer(Layer):
 
             hidden, self.cont_repr_weights = tfu.dense_with_weights(
                 inputs=context,
-                units=self.model.config.hidden_size,
+                units=self.config.hidden_size,
                 activation=tf.nn.relu)
 
             predicted_word_logits = tf.layers.dense(
@@ -46,7 +46,7 @@ class LMOLayer(Layer):
     def vocab_size(self):
         return min(
             len(self.model.dl.lang_vocabs[self.lang]),
-            self.model.config.lmo_vocab_limit
+            self.config.lmo_vocab_limit
         )
 
     def add_past(self, cont_repr):

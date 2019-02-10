@@ -7,18 +7,18 @@ import utils.tf_utils as tfu
 
 class SQTLayer(Layer):
 
-    def __init__(self, model, task, lang, cont_repr):
-        Layer.__init__(self, model, task, lang, cont_repr)
+    def __init__(self, model, cont_repr, task, lang):
+        Layer.__init__(self, model, cont_repr, task, lang)
         self.build_graph(cont_repr)
 
     def _build_graph(self):
         tag_count = len(self.model.dl.task_vocabs[self.task])
 
-        with tf.variable_scope(self.task_code()):
+        with tf.variable_scope(self.task_code(), reuse=tf.AUTO_REUSE):
 
             hidden, self.cont_repr_weights = tfu.dense_with_weights(
                 inputs=self.cont_repr,
-                units=self.model.config.hidden_size,
+                units=self.config.hidden_size,
                 activation=tf.nn.relu)
 
             # shape = (batch_size, max_sentence_length, tag_count)

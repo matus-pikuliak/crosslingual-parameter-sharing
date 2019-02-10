@@ -73,13 +73,6 @@ class GeneralModel:
         selected_optimizer = available_optimizers[self.config.optimizer]
         self.optimizer = selected_optimizer(self.learning_rate)
 
-    def add_train_op(self, loss):
-        grads, vs = zip(*self.optimizer.compute_gradients(loss))
-        gradient_norm = tf.global_norm(grads)
-        if self.config.clip > 0:
-            grads, _ = tf.clip_by_global_norm(grads, self.config.clip)
-        return self.optimizer.apply_gradients(zip(grads, vs)), gradient_norm
-
     def current_learning_rate(self):
         if self.config.learning_rate_schedule == 'static':
             return self.config.learning_rate
@@ -151,7 +144,8 @@ class GeneralModel:
         tf.summary.FileWriter(self.config.model_path, self.sess.graph)
         size = 0
         for variable in tf.global_variables():
-            print(variable)
+            if 'Adam' not in variable.name:
+                print(variable)
             size += reduce(lambda x, y: x*y, variable.shape, 1)
         print(f'Total size: {size}.')
 

@@ -7,8 +7,8 @@ from model.layer_sqt import SQTLayer
 
 class NERLayer(SQTLayer):
 
-    def __init__(self, model, task, lang, cont_repr):
-        SQTLayer.__init__(self, model, task, lang, cont_repr)
+    def __init__(self, model, cont_repr, task, lang):
+        SQTLayer.__init__(self, model, cont_repr, task, lang)
 
         self.o_tag = self.model.dl.task_vocabs['ner'].label_to_id(constants.NER_O_TAG)
 

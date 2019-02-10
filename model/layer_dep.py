@@ -10,13 +10,13 @@ import utils.tf_utils as tfu
 
 class DEPLayer(Layer):
 
-    def __init__(self, model, task, lang, cont_repr):
-        Layer.__init__(self, model, task, lang, cont_repr)
+    def __init__(self, model, cont_repr, task, lang):
+        Layer.__init__(self, model, cont_repr, task, lang,)
         self.build_graph(cont_repr)
 
     def _build_graph(self):
 
-        with tf.variable_scope(self.task_code()):
+        with tf.variable_scope(self.task_code(), reuse=tf.AUTO_REUSE):
             tag_count = len(self.model.dl.task_vocabs[self.task])
 
             self.desired_arcs = self.add_pair_labels(
@@ -28,14 +28,14 @@ class DEPLayer(Layer):
 
             hidden, self.cont_repr_weights = tfu.dense_with_weights(
                 inputs=self.cont_repr,
-                units=self.model.config.hidden_size,
+                units=self.config.hidden_size,
                 activation=tf.nn.relu)
 
             # shape = (sentence_lengths_sum x max_sentence_length+1 x hidden)
             pairs_repr = self.add_pairs(hidden)
             pairs_repr = tf.layers.dense(
                 inputs=pairs_repr,
-                units=self.model.config.hidden_size,
+                units=self.config.hidden_size,
                 activation=tf.nn.relu)
 
             uas_loss, predicted_arcs_logits = self.add_uas_loss(pairs_repr)
@@ -69,7 +69,7 @@ class DEPLayer(Layer):
 
         root = tf.get_variable(
             name="root_vector",
-            shape=[1, 1, self.model.config.hidden_size],
+            shape=[1, 1, self.config.hidden_size],
             dtype=tf.float32)
         root = tf.tile(
             input=root,

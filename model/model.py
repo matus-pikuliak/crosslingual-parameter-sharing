@@ -1,3 +1,4 @@
+import itertools
 import random
 
 import numpy as np
@@ -20,24 +21,16 @@ class Model(GeneralModel):
         GeneralModel.__init__(self, *args, **kwargs)
         self.langs = self.dl.langs
         self.tasks = self.dl.tasks
-        self.layers = {}
-
-    def task_code(self, task, lang):
-        if task == 'lmo':
-            return f'{task}-{lang}'
-        if self.config.task_layer_sharing:
-            return task
-        else:
-            return f'{task}-{lang}'
+        self.task_langs = itertools.product(self.tasks, self.langs)
 
     def _build_graph(self):
         self.add_inputs()
         self.add_utils()
         word_repr = self.add_word_processing()
-        cont_repr = self.add_sentence_processing(word_repr)
-        self.add_adversarial_loss(cont_repr)
-        self.add_task_layers(cont_repr)
-
+        self.layers = {}
+        for (task, lang) in self.task_langs:
+            cont_repr = self.add_sentence_processing(word_repr, task, lang)
+            self.layers[task, lang] = self.add_task_layer(cont_repr, task, lang)
 
     def add_inputs(self):
         # shape = (batch size, max_sentence_length)
@@ -166,7 +159,7 @@ class Model(GeneralModel):
 
         return char_lstm_out
 
-    def add_sentence_processing(self, word_repr):
+    def add_sentence_processing(self, word_repr, task, lang):
 
         if not self.config.private_params:
             return self.lstm(
@@ -182,36 +175,19 @@ class Model(GeneralModel):
                 cell_size=self.config.word_lstm_size - self.config.private_size,
                 name_scope='word_bilstm')
 
-            def private_lstm(task, lang):
-                return lambda: self.lstm(
+            private_lstm = self.lstm(
                     inputs=word_repr,
                     sequence_lengths=self.sentence_lengths,
                     cell_size=self.config.private_size,
                     name_scope=f'word_bilstm_{task}-{lang}')
 
-            pred_fn_pairs = {
-                tf.logical_and(self.task_flags[task], self.lang_flags[lang]):
-                private_lstm(task, lang)
-                for task in self.tasks
-                for lang in self.langs
-            }
-
-            selected_lstm = tf.case(
-                pred_fn_pairs=pred_fn_pairs,
-                exclusive=True)
-
             return tf.concat(
-                values=(shared_lstm, selected_lstm),
+                values=(shared_lstm, private_lstm),
                 axis=-1)
 
-    def add_task_layers(self, cont_repr):
-
-        for (task, lang) in self.config.tasks:
-            task_code = self.task_code(task, lang)
-            if task_code not in self.layers:
-                layer_class = globals()[f'{task.upper()}Layer']
-                new_layer = layer_class(self, task, lang, cont_repr)
-                self.layers[task_code] = new_layer
+    def add_task_layer(self, cont_repr, task, lang):
+        layer_class = globals()[f'{task.upper()}Layer']
+        return layer_class(self, cont_repr, task, lang)
 
     def add_utils(self):
         """
@@ -222,51 +198,8 @@ class Model(GeneralModel):
         self.batch_size = tf.shape(self.word_ids)[0]
         self.max_length = tf.shape(self.word_ids)[1]
 
-    def add_adversarial_loss(self, cont_repr):
-        lambda_ = self.config.adversarial_lambda
-
-        cont_repr = tf.boolean_mask(
-            tensor=cont_repr,
-            mask=self.sentence_lengths_mask)
-
-        gradient_reversal = tf.stop_gradient((1+lambda_)*cont_repr) - lambda_*cont_repr
-
-        hidden = tf.layers.dense(
-            inputs=gradient_reversal,
-            units=self.config.hidden_size,
-            activation=tf.nn.relu)
-        logits = tf.layers.dense(
-            inputs=hidden,
-            units=len(self.dl.langs))
-
-        one_hot_lang = tf.one_hot(
-            indices=self.lang_id,
-            depth=len(self.langs))
-        one_hot_lang = tf.expand_dims(
-            input=one_hot_lang,
-            axis=0)
-        one_hot_lang = tf.tile(
-            input=one_hot_lang,
-            multiples=[tf.shape(cont_repr)[0], 1])
-
-        loss = tf.nn.softmax_cross_entropy_with_logits_v2(
-            labels=one_hot_lang,
-            logits=logits)
-        self.adversarial_loss = tf.reduce_mean(loss)
-
-    def add_train_op(self, loss):
-        if self.config.adversarial_training and len(self.langs) > 1:
-            use_adversarial = tf.less_equal(
-                tf.random.uniform(shape=[]),
-                1 / self.config.adversarial_freq)
-            use_adversarial = tf.cast(
-                x=use_adversarial,
-                dtype=tf.float32)
-            loss += self.adversarial_loss * use_adversarial
-        return GeneralModel.add_train_op(self, loss)
-
     def lstm(self, inputs, sequence_lengths, cell_size, name_scope, avg_pool=False, dropout=True):
-        with tf.variable_scope(name_scope):
+        with tf.variable_scope(name_scope, reuse=tf.AUTO_REUSE):
             cell_fw = tf.contrib.cudnn_rnn.CudnnCompatibleLSTMCell(cell_size)
             cell_bw = tf.contrib.cudnn_rnn.CudnnCompatibleLSTMCell(cell_size)
             (out_fw, out_bw), _ = tf.nn.bidirectional_dynamic_rnn(
@@ -371,7 +304,7 @@ class Model(GeneralModel):
             DatasetIterator(
                 dataset=dt,
                 config=self.config,
-                layer=self.layers[self.task_code(dt.task, dt.lang)],
+                layer=self.layers[dt.task, dt.lang],
                 is_train=is_train)
             for dt
             in self.dl.find(**kwargs)]
