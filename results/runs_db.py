@@ -34,8 +34,10 @@ db = {
         (1, 'ml', 'dep-adv-lambda-0.125'),
         (1, 'ml', 'dep-adv-freq-2'),
         (4, 'mt', 'private'),
-        (1, 'mtml', 'private'),
-        (1, 'mtml', 'private-with-adv'),
+        (6, 'mt', 'private-focused-dep-ner-pos-cs-es-2000'),
+        (6, 'mt', 'private-focused-dep-ner-pos-cs-es-200'),
+        # (1, 'mtml', 'private'),
+        # (1, 'mtml', 'private-with-adv'),
     ],
     'deepnet2': [
         (4, 'ml', 'private-with-adv'),
