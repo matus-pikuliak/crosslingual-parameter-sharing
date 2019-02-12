@@ -181,8 +181,18 @@ class Model(GeneralModel):
                     cell_size=self.config.private_size,
                     name_scope=f'word_bilstm_{task}-{lang}')
 
+            shared_fw, shared_bw = tf.split(
+                value=shared_lstm,
+                num_or_size_splits=2,
+                axis=-1)
+
+            private_fw, private_bw = tf.split(
+                value=private_lstm,
+                num_or_size_splits=2,
+                axis=-1)
+
             return tf.concat(
-                values=(shared_lstm, private_lstm),
+                values=(shared_fw, private_fw, shared_bw, private_bw),
                 axis=-1)
 
     def add_task_layer(self, cont_repr, task, lang):
