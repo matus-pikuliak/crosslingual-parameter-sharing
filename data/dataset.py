@@ -42,7 +42,7 @@ class Dataset:
         self.loaded = False
 
     def __str__(self):
-        return f'Dataset {self.task} {self.lang} {self.role} ({self.__class__.__name__})'
+        return f'Dataset {self.task} {self.lang} {self.role} ({self.__class__.__name__}): {self.size}'
 
     def __len__(self):
         try:
