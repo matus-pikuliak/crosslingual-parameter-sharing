@@ -3,6 +3,22 @@ ts = ['dep', 'lmo', 'ner', 'pos']
 
 
 '''
+12.02.2019 deepnet run
+'''
+print(f'bash train.sh task_layer_sharing false adversarial_training false private_params true tasks ', end='')
+for l in ls:
+    for t in ts:
+        print(f'{t}-{l} ', end='')
+print(f'&& ', end='')
+print(f'bash train.sh task_layer_sharing false private_params true tasks ', end='')
+for l in ls:
+    for t in ts:
+        print(f'{t}-{l} ', end='')
+exit()
+
+
+
+'''
 09.02.2019 gcp run
 '''
 for t in ['dep', 'ner', 'pos']:
@@ -18,19 +34,6 @@ for t in ['dep', 'ner', 'pos']:
             print(f'{t}-{l} ', end='')
         print('&& ', end='')
 exit()
-
-# print(f'bash train.sh task_layer_sharing false adversarial_training false private_params true tasks ', end='')
-# for l in ls:
-#     for t in ts:
-#         print(f'{t}-{l} ', end='')
-# print(f'&& ', end='')
-# print(f'bash train.sh task_layer_sharing false private_params true tasks ', end='')
-# for l in ls:
-#     for t in ts:
-#         print(f'{t}-{l} ', end='')
-# print('; sudo poweroff', end='')
-# exit()
-
 
 '''
 08.02.2019 martak run
