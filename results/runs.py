@@ -9,7 +9,7 @@ ts = ['dep', 'lmo', 'ner', 'pos']
 int_task = ('dep', 'cs')
 for (t, l) in itertools.product(ts, ls):
     if (t == int_task[0]) ^ (l == int_task[1]):
-        print(f'bash train.sh task_layer_sharing false adversarial_training false private_paramts true tasks dep-cs {t}-{l}', end=' &&')
+        print(f'bash train.sh task_layer_sharing false adversarial_training false private_params true tasks dep-cs {t}-{l}', end=' &&')
 exit()
 
 

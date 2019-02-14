@@ -44,6 +44,10 @@ db = {
         (6, 'ml', 'private-focused-0.75-dep-ner-pos-cs-es'),
         (1, 'mtml', 'private'),
         (1, 'mtml', 'private-with-adv'),
+    ],
+    'acer': [
+        (3, 'ml', 'dep-cs-one-aux'),
+        (3, 'mt', 'dep-cs-one-aux')
     ]
 }
 
