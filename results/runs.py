@@ -4,6 +4,25 @@ ls = ['cs', 'de', 'en', 'es']
 ts = ['dep', 'lmo', 'ner', 'pos']
 
 '''
+14.02.2019 deepnet2 run
+'''
+for t in ['dep', 'ner', 'pos']:
+    for l in ['cs', 'es']:
+        print(f'bash train.sh private_params true task_layer_sharing false adversarial_training false focus_on {t}-{l} limited_data_size 2000 limited_task_language {t}-{l} tasks ', end='')
+        for l in ls:
+            print(f'{t}-{l} ', end='')
+        print('&& ', end='')
+for t in ['dep', 'ner', 'pos']:
+    for l in ['cs', 'es']:
+        print(f'bash train.sh private_params true task_layer_sharing false adversarial_training false focus_on {t}-{l} limited_data_size 200 limited_task_language {t}-{l}tasks ', end='')
+        for l in ls:
+            print(f'{t}-{l} ', end='')
+        print('&& ', end='')
+print('; sudo poweroff', end='')
+exit()
+
+
+'''
 14.02.2019 acer run
 '''
 int_task = ('dep', 'cs')
