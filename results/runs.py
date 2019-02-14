@@ -1,5 +1,17 @@
+import itertools
+
 ls = ['cs', 'de', 'en', 'es']
 ts = ['dep', 'lmo', 'ner', 'pos']
+
+'''
+14.02.2019 acer run
+'''
+int_task = ('dep', 'cs')
+for (t, l) in itertools.product(ts, ls):
+    if (t == int_task[0]) ^ (l == int_task[1]):
+        print(f'bash train.sh task_layer_sharing false adversarial_training false private_paramts true tasks dep-cs {t}-{l}', end=' &&')
+exit()
+
 
 '''
 12.02.2019 deepnet run
