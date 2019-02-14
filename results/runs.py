@@ -70,23 +70,6 @@ print('; sudo poweroff', end='')
 exit()
 
 '''
-08.02.2019 martak run
-'''
-for t in ['dep', 'ner', 'pos']:
-    for l in ['cs', 'es']:
-        print(f'bash train.sh private_params true task_layer_sharing false adversarial_training false focus_on {t}-{l} tasks ', end='')
-        for t in ts:
-            print(f'{t}-{l} ', end='')
-        print('&& ', end='')
-for t in ['dep', 'ner', 'pos']:
-    for l in ['cs', 'es']:
-        print(f'bash train.sh private_params true task_layer_sharing false adversarial_training false focus_on {t}-{l} focus_rate 0.75 tasks ', end='')
-        for t in ts:
-            print(f'{t}-{l} ', end='')
-        print('&& ', end='')
-exit()
-
-'''
 08.02.2019 deepnet2 run
 '''
 for t in ['dep', 'ner', 'pos']:

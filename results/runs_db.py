@@ -17,7 +17,7 @@ db = {
         (1, 'ml', 'private-old'),
         (4, 'ml', 'private'),
         (1, 'ml', 'dep-adv-lambda-0.01'),
-        (1, 'ml', 'dep-private-adv-lambda-0.125'),
+        (1, 'ml', 'dep-private-adv-lambda-0.25'),
         (6, 'mt', 'private-focused-dep-ner-pos-cs-es'),
         (6, 'mt', 'private-focused-0.75-dep-ner-pos-cs-es'),
     ],
