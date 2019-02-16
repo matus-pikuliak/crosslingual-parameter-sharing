@@ -3,6 +3,31 @@ import itertools
 ls = ['cs', 'de', 'en', 'es']
 ts = ['dep', 'lmo', 'ner', 'pos']
 
+# '''
+# 14.02.2019 acer run
+# '''
+# int_task = ('dep', 'es')
+# for (t, l) in itertools.product(ts, ls):
+#     if (t == int_task[0]) ^ (l == int_task[1]):
+#         print(f'bash train.sh task_layer_sharing false adversarial_training false private_params true tasks dep-es {t}-{l}', end=' && ')
+# int_task = ('ner', 'cs')
+# for (t, l) in itertools.product(['lmo', 'ner', 'pos'], ls):
+#     if (t == int_task[0]) ^ (l == int_task[1]):
+#         print(f'bash train.sh task_layer_sharing false adversarial_training false private_params true tasks ner-cs {t}-{l}', end=' && ')
+# int_task = ('ner', 'es')
+# for (t, l) in itertools.product(['lmo', 'ner', 'pos'], ls):
+#     if (t == int_task[0]) ^ (l == int_task[1]):
+#         print(f'bash train.sh task_layer_sharing false adversarial_training false private_params true tasks ner-es {t}-{l}', end=' && ')
+# int_task = ('pos', 'cs')
+# for (t, l) in itertools.product(['lmo', 'pos'], ls):
+#     if (t == int_task[0]) ^ (l == int_task[1]):
+#         print(f'bash train.sh task_layer_sharing false adversarial_training false private_params true tasks pos-cs {t}-{l}', end=' && ')
+# int_task = ('pos', 'es')
+# for (t, l) in itertools.product(['lmo', 'pos'], ls):
+#     if (t == int_task[0]) ^ (l == int_task[1]):
+#         print(f'bash train.sh task_layer_sharing false adversarial_training false private_params true tasks pos-es {t}-{l}', end=' && ')
+# exit()
+
 '''
 14.02.2019 deepnet2 run
 '''
@@ -14,7 +39,7 @@ for t in ['dep', 'ner', 'pos']:
         print('&& ', end='')
 for t in ['dep', 'ner', 'pos']:
     for l in ['cs', 'es']:
-        print(f'bash train.sh private_params true task_layer_sharing false adversarial_training false focus_on {t}-{l} limited_data_size 200 limited_task_language {t}-{l}tasks ', end='')
+        print(f'bash train.sh private_params true task_layer_sharing false adversarial_training false focus_on {t}-{l} limited_data_size 200 limited_task_language {t}-{l} tasks ', end='')
         for l in ls:
             print(f'{t}-{l} ', end='')
         print('&& ', end='')
