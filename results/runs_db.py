@@ -18,8 +18,8 @@ db = {
         (4, 'ml', 'private'),
         (1, 'ml', 'dep-adv-lambda-0.01'),
         (1, 'ml', 'dep-private-adv-lambda-0.25'),
-        (6, 'mt', 'private-focused-dep-ner-pos-cs-es'),
-        (6, 'mt', 'private-focused-0.75-dep-ner-pos-cs-es'),
+        (4, 'mt', 'private-focused-dep-ner-pos-cs-es'),
+        (4, 'mt', 'private-focused-0.75-dep-ner-pos-cs-es'),
         (6, 'stsl', 'dep-ner-pos-cs-es-2000'),
         (6, 'stsl', 'dep-ner-pos-cs-es-200'),
     ],
@@ -48,6 +48,8 @@ db = {
         (1, 'mtml', 'private-with-adv'),
         (6, 'ml', 'private-focused-dep-ner-pos-cs-es-2000'),
         (6, 'ml', 'private-focused-dep-ner-pos-cs-es-200'),
+        (2, 'mt', 'private-focused-dep-ner-pos-cs-es'),  # martak bug
+        (2, 'mt', 'private-focused-0.75-dep-ner-pos-cs-es'),
     ],
     'acer': [
         (3, 'ml', 'dep-cs-one-aux'),

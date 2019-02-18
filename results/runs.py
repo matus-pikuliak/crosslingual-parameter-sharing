@@ -4,7 +4,7 @@ ls = ['cs', 'de', 'en', 'es']
 ts = ['dep', 'lmo', 'ner', 'pos']
 
 '''
-14.02.2019 martak run
+18.02.2019 martak run
 '''
 for t in ['dep', 'ner', 'pos']:
     for l in ['cs', 'es']:
@@ -89,14 +89,14 @@ exit()
 for t in ['dep', 'ner', 'pos']:
     for l in ['cs', 'es']:
         print(f'bash train.sh private_params true task_layer_sharing false adversarial_training false focus_on {t}-{l} tasks ', end='')
-        for t in ts:
-            print(f'{t}-{l} ', end='')
+        for tt in ts:
+            print(f'{tt}-{l} ', end='')
         print('&& ', end='')
 for t in ['dep', 'ner', 'pos']:
     for l in ['cs', 'es']:
         print(f'bash train.sh private_params true task_layer_sharing false adversarial_training false focus_on {t}-{l} focus_rate 0.75 tasks ', end='')
-        for t in ts:
-            print(f'{t}-{l} ', end='')
+        for tt in ts:
+            print(f'{tt}-{l} ', end='')
         print('&& ', end='')
 exit()
 
