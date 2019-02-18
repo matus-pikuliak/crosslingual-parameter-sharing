@@ -4,6 +4,25 @@ ls = ['cs', 'de', 'en', 'es']
 ts = ['dep', 'lmo', 'ner', 'pos']
 
 '''
+18.02.2019 deepnet run
+dep-es/ner-es oprava z martak 11.02
+'''
+for t in ['dep', 'ner']:
+    for l in ['es']:
+        print(f'bash train.sh private_params true task_layer_sharing false adversarial_training false focus_on {t}-{l} tasks ', end='')
+        for tt in ts:
+            print(f'{tt}-{l} ', end='')
+        print('&& ', end='')
+for t in ['dep', 'ner']:
+    for l in ['es']:
+        print(f'bash train.sh private_params true task_layer_sharing false adversarial_training false focus_on {t}-{l} focus_rate 0.75 tasks ', end='')
+        for tt in ts:
+            print(f'{tt}-{l} ', end='')
+        print('&& ', end='')
+exit()
+
+
+'''
 18.02.2019 martak run
 '''
 for t in ['dep', 'ner', 'pos']:
@@ -85,6 +104,7 @@ exit()
 
 '''
 11.02.2019 martak run
+dep-es/ner-es kvoli bugu opat spustene na deepnete 18.02
 '''
 for t in ['dep', 'ner', 'pos']:
     for l in ['cs', 'es']:
