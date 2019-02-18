@@ -4,6 +4,17 @@ ls = ['cs', 'de', 'en', 'es']
 ts = ['dep', 'lmo', 'ner', 'pos']
 
 '''
+14.02.2019 martak run
+'''
+for t in ['dep', 'ner', 'pos']:
+    for l in ['cs', 'es']:
+        print(f'bash train.sh limited_data_size 2000 limited_task_language {t}-{l} tasks {t}-{l}', end=' && ')
+for t in ['dep', 'ner', 'pos']:
+    for l in ['cs', 'es']:
+        print(f'bash train.sh limited_data_size 200 limited_task_language {t}-{l} tasks {t}-{l}', end=' && ')
+exit()
+
+'''
 17.02.2019 acer run
 '''
 int_task = ('dep', 'es')

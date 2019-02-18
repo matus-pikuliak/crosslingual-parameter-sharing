@@ -20,6 +20,8 @@ db = {
         (1, 'ml', 'dep-private-adv-lambda-0.25'),
         (6, 'mt', 'private-focused-dep-ner-pos-cs-es'),
         (6, 'mt', 'private-focused-0.75-dep-ner-pos-cs-es'),
+        (6, 'stsl', 'dep-ner-pos-cs-es-2000'),
+        (6, 'stsl', 'dep-ner-pos-cs-es-200'),
     ],
     'gcp': [
         (4, 'ml', 'no-adv'),
