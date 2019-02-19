@@ -1,3 +1,9 @@
+# vanilla focused
+# private mtml (without irrelevant) focused
+# 200 2000 ml mt vanilla?
+# pick best and do fine tuning
+# zero shot for new languages - slovak, finnish, portugese, italian?
+
 db = {
     'martak': [
         (16, 'stsl', 'vanilla'),
@@ -20,8 +26,9 @@ db = {
         (1, 'ml', 'dep-private-adv-lambda-0.25'),
         (4, 'mt', 'private-focused-dep-ner-pos-cs-es'),
         (4, 'mt', 'private-focused-0.75-dep-ner-pos-cs-es'),
-        (6, 'stsl', 'dep-ner-pos-cs-es-2000'),
-        (6, 'stsl', 'dep-ner-pos-cs-es-200'),
+        (6, 'stsl', 'vanilla-2000'),
+        (6, 'stsl', 'vanilla-200'),
+        (3, 'mtml', 'private-focused-0.75-dep-ner-pos-es'),  # without cs
     ],
     'gcp': [
         (4, 'ml', 'no-adv'),

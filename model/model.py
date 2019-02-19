@@ -276,6 +276,7 @@ class Model(GeneralModel):
                         (on_task_prob if st.dataset.task == task else off_task_prob) *
                         (on_lang_prob if st.dataset.lang == lang else off_lang_prob)
                     ) for st in train_sets]
+                task_probs = [v / sum(task_probs) for v in task_probs]
                 st = np.random.choice(train_sets, p=task_probs)
 
             st.layer.train(next(st.iterator), st.dataset)

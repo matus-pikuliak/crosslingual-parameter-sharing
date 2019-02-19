@@ -4,6 +4,19 @@ ls = ['cs', 'de', 'en', 'es']
 ts = ['dep', 'lmo', 'ner', 'pos']
 
 '''
+19.02.2019 martak run
+'''
+for t in ['dep', 'ner', 'pos']:
+    for l in ['es']:
+        print(f'bash train.sh private_params true task_layer_sharing false adversarial_training false focus_rate 0.866 focus_on {t}-{l} tasks ', end='')
+        for tt in ts:
+            for lt in ls:
+                if lt == l or tt == t:
+                    print(f'{tt}-{lt} ', end='')
+        print('&& ', end='')
+exit()
+
+'''
 18.02.2019 deepnet run
 dep-es/ner-es oprava z martak 11.02
 '''
