@@ -1,37 +1,37 @@
+import os
+import sys
+
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.manifold import TSNE
 from sklearn.decomposition import PCA
 
-num_samples = 1000
-tsne = True
-pca = False
-adv = True
-file = '2018-11-20-105207' if adv else '2018-11-20-133729'
+sys.path.append(os.path.abspath('..'))
+from get_representations import get_representations
 
-X = np.zeros((2*num_samples, 400))
-i=0
-with open(f'/home/fiit/{file}-pos-en') as f:
-    for line in f:
-        X[i] = np.array([float(n) for n in line.strip().split(', ')])
-        i += 1
-        if i == num_samples:
-            break
+tsne = False
+pca = True
 
-with open(f'/home/fiit/{file}-pos-es') as f:
-    for line in f:
-        X[i] = np.array([float(n) for n in line.strip().split(', ')])
-        i += 1
-        if i == 2*num_samples:
-            break
+repr = get_representations(sys.argv[1])
+x = np.vstack([r for r in repr.values()])
+
+print('Representations loaded.')
+print(x.shape)
 
 if tsne and pca:
-    X = PCA(n_components=50).fit_transform(X)
-    X = TSNE(n_components=2, n_iter=5000).fit_transform(X)
+    x = PCA(n_components=50).fit_transform(x)
+    print('PCA done.')
+    x = TSNE(n_components=2, n_iter=500).fit_transform(x)
 elif tsne:
-    X = TSNE(n_components=2, n_iter=5000).fit_transform(X)
+    x = TSNE(n_components=2, n_iter=500).fit_transform(x)
 elif pca:
-    X = PCA(n_components=2).fit_transform(X)
+    x = PCA(n_components=2).fit_transform(x)
 
-plt.scatter(*zip(*X), s=1, c=[0 for _ in range(num_samples)] + [1 for _ in range(num_samples)])
+print('TSNE done.')
+
+colors = []
+for i, r in enumerate(repr.values()):
+    colors += [i for _ in range(r.shape[0])]
+
+plt.scatter(*zip(*x), s=1, c=colors)
 plt.show()

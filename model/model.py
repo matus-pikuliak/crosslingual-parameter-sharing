@@ -310,6 +310,18 @@ class Model(GeneralModel):
                 message={'results': results},
                 level=LOG_RESULT)
 
+    def get_representations(self):
+        eval_sets = [
+            st
+            for st
+            in self.create_sets()
+            if st.dataset.role == 'train']
+
+        return {
+            st: st.layer.get_representations(st.iterator, st.dataset)
+            for st
+            in eval_sets}
+
     def create_sets(self, is_train=True, **kwargs):
         return [
             DatasetIterator(

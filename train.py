@@ -13,7 +13,5 @@ config = Config(*sys.argv[1:])
 dl = DataLoader(config)
 dl.load()
 
-model = Model(dl, config)
-model.build_graph()
-model.run_experiment()
-model.close()
+with Model(dl, config) as model:
+    model.run_experiment()

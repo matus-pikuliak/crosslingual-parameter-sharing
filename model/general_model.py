@@ -20,6 +20,13 @@ class GeneralModel:
             self.name = name
         self.logger = self.initialize_logger()
 
+    def __enter__(self, *args):
+        self.build_graph()
+        return self
+
+    def __exit__(self, *exc_info):
+        self.close()
+
     def build_graph(self):
 
         self.add_hyperparameters()
