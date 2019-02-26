@@ -167,6 +167,7 @@ class GeneralModel:
     def load(self, model_file=None):
         if model_file is None:
             model_file = self.config.load_model
+
         self.saver.restore(
             sess=self.sess,
             save_path=os.path.join(self.config.model_path, model_file))

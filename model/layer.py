@@ -17,18 +17,16 @@ class Layer:
         self.cont_repr_masked = tf.boolean_mask(
                 tensor=cont_repr,
                 mask=self.model.sentence_lengths_mask)
-        self.add_adversarial_loss(cont_repr)
+        self.add_adversarial_loss()
         self._build_graph()
         self.train_op, self.gradient_norm = self.add_train_op()
         self.add_unit_strength()
         self.metrics = self.add_metrics()
 
-    def add_adversarial_loss(self, cont_repr):
+    def add_adversarial_loss(self):
         with tf.variable_scope('adversarial_training', reuse=tf.AUTO_REUSE):
-            lambda_ = self.config.adversarial_lambda
-
             cont_repr = self.cont_repr_masked
-
+            lambda_ = self.config.adversarial_lambda
             gradient_reversal = tf.stop_gradient((1 + lambda_) * cont_repr) - lambda_ * cont_repr
 
             hidden = tf.layers.dense(

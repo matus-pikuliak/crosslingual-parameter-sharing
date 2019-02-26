@@ -9,7 +9,7 @@ from sklearn.decomposition import PCA
 sys.path.append(os.path.abspath('..'))
 from get_representations import get_representations
 
-tsne = False
+tsne = True
 pca = True
 
 repr = get_representations(sys.argv[1])
@@ -21,9 +21,9 @@ print(x.shape)
 if tsne and pca:
     x = PCA(n_components=50).fit_transform(x)
     print('PCA done.')
-    x = TSNE(n_components=2, n_iter=500).fit_transform(x)
+    x = TSNE(n_components=2, n_iter=5000).fit_transform(x)
 elif tsne:
-    x = TSNE(n_components=2, n_iter=500).fit_transform(x)
+    x = TSNE(n_components=2, n_iter=5000).fit_transform(x)
 elif pca:
     x = PCA(n_components=2).fit_transform(x)
 

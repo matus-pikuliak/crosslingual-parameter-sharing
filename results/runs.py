@@ -3,6 +3,58 @@ import itertools
 ls = ['cs', 'de', 'en', 'es']
 ts = ['dep', 'lmo', 'ner', 'pos']
 
+
+# for t in ['dep', 'ner', 'pos']:
+#     for l in ['es']:
+#         print(f'bash train.sh task_layer_sharing false adversarial_training false focus_on {t}-{l} focus_rate 0.75 tasks ', end='')
+#         for lt in ls:
+#             print(f'{t}-{lt} ', end='')
+#         print('&& ', end='')
+# print('; sudo poweroff', end='')
+# exit()
+
+'''
+26.02.2019 deepnet2 run
+'''
+for t in ['dep', 'ner', 'pos']:
+    for l in ['cs']:
+        print(f'bash train.sh task_layer_sharing false adversarial_training false focus_on {t}-{l} focus_rate 0.75 tasks ', end='')
+        for lt in ls:
+            print(f'{t}-{lt} ', end='')
+        print('&& ', end='')
+print('; sudo poweroff', end='')
+exit()
+
+'''
+26.02.2019 deepnet2 run
+'''
+for t in ['dep', 'ner', 'pos']:
+    for l in ['cs', 'es']:
+        print(f'bash train.sh task_layer_sharing false adversarial_training false focus_on {t}-{l} focus_rate 0.75 tasks ', end='')
+        for tt in ts:
+            print(f'{tt}-{l} ', end='')
+        print('&& ', end='')
+print('; sudo poweroff', end='')
+exit()
+
+
+'''
+25.02.2019 deepnet2 run
+'''
+int_task = ('ner', 'en')
+for (t, l) in [('ner', 'de'), ('lmo', 'en'), ('pos', 'en')]:
+    print(f'bash train.sh task_layer_sharing false adversarial_training false private_params true tasks ner-en {t}-{l}', end=' && ')
+int_task = ('ner', 'de')
+for (t, l) in [('lmo', 'de'), ('pos', 'de')]:
+    print(f'bash train.sh task_layer_sharing false adversarial_training false private_params true tasks ner-de {t}-{l}', end=' && ')
+int_task = ('pos', 'en')
+for (t, l) in [('pos', 'de'), ('lmo', 'en')]:
+    print(f'bash train.sh task_layer_sharing false adversarial_training false private_params true tasks pos-en {t}-{l}', end=' && ')
+int_task = ('pos', 'de')
+for (t, l) in [('lmo', 'de')]:
+    print(f'bash train.sh task_layer_sharing false adversarial_training false private_params true tasks pos-de {t}-{l}', end=' && ')
+exit()
+
 '''
 25.02.2019 fiit-gcp-3 run
 '''
@@ -12,18 +64,6 @@ for (t, l) in [('dep', 'de'), ('lmo', 'en'), ('ner', 'en'), ('pos', 'en')]:
 int_task = ('dep', 'de')
 for (t, l) in [('lmo', 'de'), ('ner', 'de'), ('pos', 'de')]:
     print(f'bash train.sh task_layer_sharing false adversarial_training false private_params true tasks dep-de {t}-{l}', end=' && ')
-# int_task = ('ner', 'en')
-# for (t, l) in [('ner', 'de'), ('lmo', 'en'), ('pos', 'en')]:
-#     print(f'bash train.sh task_layer_sharing false adversarial_training false private_params true tasks ner-en {t}-{l}', end=' && ')
-# int_task = ('ner', 'de')
-# for (t, l) in [('lmo', 'de'), ('pos', 'de')]:
-#     print(f'bash train.sh task_layer_sharing false adversarial_training false private_params true tasks ner-de {t}-{l}', end=' && ')
-# int_task = ('pos', 'en')
-# for (t, l) in [('pos', 'de'), ('lmo', 'en')]:
-#     print(f'bash train.sh task_layer_sharing false adversarial_training false private_params true tasks pos-en {t}-{l}', end=' && ')
-# int_task = ('pos', 'de')
-# for (t, l) in [('lmo', 'de')]:
-#     print(f'bash train.sh task_layer_sharing false adversarial_training false private_params true tasks pos-de {t}-{l}', end=' && ')
 print('; sudo poweroff', end='')
 exit()
 

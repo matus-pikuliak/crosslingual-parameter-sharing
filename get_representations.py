@@ -11,11 +11,15 @@ from model.model import Model
 
 
 def get_representations(run_name):
-    config = Config.load_from_log(run_name)
+    pth = f'/home/fiit/oink/'
+    config = Config.load_from_log(run_name, pth)
+    config.values['log_path'] = pth
+    config.values['model_path'] = pth
     dl = DataLoader(config)
     dl.load()
 
     with Model(dl, config, name=run_name) as model:
+        model.load(f'{run_name}-1')
         return model.get_representations()
 
 
