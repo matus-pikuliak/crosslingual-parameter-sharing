@@ -13,10 +13,8 @@ def evaluate(run_name, config):
     dl = DataLoader(config)
     dl.load()
 
-    model = Model(dl, config, name=run_name)
-    model.build_graph()
-    model.run_evaluation()
-    model.close()
+    with Model(dl, config, name=run_name) as model:
+        model.run_evaluation()
 
 
 if __name__ == '__main__':

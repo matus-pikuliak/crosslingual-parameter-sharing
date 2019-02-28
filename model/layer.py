@@ -14,20 +14,19 @@ class Layer:
 
     def build_graph(self, cont_repr):
         self.cont_repr = cont_repr
-        self.add_adversarial_loss(cont_repr)
+        self.cont_repr_masked = tf.boolean_mask(
+                tensor=cont_repr,
+                mask=self.model.sentence_lengths_mask)
+        self.add_adversarial_loss()
         self._build_graph()
         self.train_op, self.gradient_norm = self.add_train_op()
         self.add_unit_strength()
         self.metrics = self.add_metrics()
 
-    def add_adversarial_loss(self, cont_repr):
+    def add_adversarial_loss(self):
         with tf.variable_scope('adversarial_training', reuse=tf.AUTO_REUSE):
+            cont_repr = self.cont_repr_masked
             lambda_ = self.config.adversarial_lambda
-
-            cont_repr = tf.boolean_mask(
-                tensor=cont_repr,
-                mask=self.model.sentence_lengths_mask)
-
             gradient_reversal = tf.stop_gradient((1 + lambda_) * cont_repr) - lambda_ * cont_repr
 
             hidden = tf.layers.dense(
@@ -160,6 +159,14 @@ class Layer:
             yield self.model.sess.run(
                 fetches=fetch_nodes,
                 feed_dict=self.test_feed_dict(batch, dataset))
+
+    def get_representations(self, iterator, dataset):
+        return np.vstack([
+            self.model.sess.run(
+                fetches=self.cont_repr_masked,
+                feed_dict=self.test_feed_dict(next(iterator), dataset))
+            for _ in range(5)
+        ])
 
     def basic_fetches(self):
         return {

@@ -1,3 +1,4 @@
+import ast
 import os
 
 import yaml
@@ -66,9 +67,21 @@ class Config:
     def __repr__(self):
         return str(self.values)
 
-    def load_from_dict(self, dct):
-        self.values.update(dct)
-
+    @staticmethod
+    def load_from_dict(dct):
+        config = Config()
+        config.values.update(dct)
         dir = os.path.dirname(__file__)
         settings = yaml.safe_load(open(os.path.join(dir, 'private.yaml')))
-        self.values.update(settings['default'])
+        config.values.update(settings['default'])
+        return config
+
+    @staticmethod
+    def load_from_log(run_name, log_path=None):
+        if log_path is None:
+            log_path = Config().log_path
+        log_file_path = os.path.join(log_path, run_name)
+        with open(log_file_path) as log_file:
+            log = ast.literal_eval(log_file.read())
+            config = Config.load_from_dict(log['config'])
+            return config

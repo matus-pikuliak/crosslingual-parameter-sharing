@@ -276,6 +276,7 @@ class Model(GeneralModel):
                         (on_task_prob if st.dataset.task == task else off_task_prob) *
                         (on_lang_prob if st.dataset.lang == lang else off_lang_prob)
                     ) for st in train_sets]
+                task_probs = [v / sum(task_probs) for v in task_probs]
                 st = np.random.choice(train_sets, p=task_probs)
 
             st.layer.train(next(st.iterator), st.dataset)
@@ -308,6 +309,18 @@ class Model(GeneralModel):
             self.log(
                 message={'results': results},
                 level=LOG_RESULT)
+
+    def get_representations(self):
+        eval_sets = [
+            st
+            for st
+            in self.create_sets()
+            if st.dataset.role == 'train']
+
+        return {
+            st.dataset.lang: st.layer.get_representations(st.iterator, st.dataset)
+            for st
+            in eval_sets}
 
     def create_sets(self, is_train=True, **kwargs):
         return [

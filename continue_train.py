@@ -14,25 +14,22 @@ default_config = Config(*sys.argv[2:])
 log_file_path = os.path.join(default_config.log_path, run_name)
 with open(log_file_path) as log_file:
     log = ast.literal_eval(log_file.read())
-    config = Config()
-    config.load_from_dict(log['config'])
+    config = Config.load_from_dict(log['config'])
 
 dl = DataLoader(config)
 dl.load()
-model = Model(dl, config, name=run_name)
-model.build_graph()
 
-max_epoch = max(record['epoch'] for record in log['results'])
+with Model(dl, config, name=run_name) as model:
+    max_epoch = max(record['epoch'] for record in log['results'])
 
-try:
-    assert(sum(1 for record in log['results'] if record['epoch'] == max_epoch) == len(config.tasks) * 3)
-    model.load(f'{run_name}-{max_epoch}')
-except:
-    model.load(f'{run_name}-{max_epoch-1}')
-    log['results'] = [record for record in log['results'] if record['epoch'] != max_epoch]
-    max_epoch -= 1
+    try:
+        assert(sum(1 for record in log['results'] if record['epoch'] == max_epoch) == len(config.tasks) * 3)
+        model.load(f'{run_name}-{max_epoch}')
+    except:
+        model.load(f'{run_name}-{max_epoch-1}')
+        log['results'] = [record for record in log['results'] if record['epoch'] != max_epoch]
+        max_epoch -= 1
 
-if config.setup == 'production':
-    model.logger.results['results'] = log['results']
-model.run_experiment(start_epoch=max_epoch+1)
-model.close()
+    if config.setup == 'production':
+        model.logger.results['results'] = log['results']
+    model.run_experiment(start_epoch=max_epoch+1)
