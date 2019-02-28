@@ -1,6 +1,9 @@
 import codecs
 import os
 
+from slackclient import SlackClient
+import requests
+
 from constants import LOG_CRITICAL, LOG_RESULT, LOG_MESSAGE
 
 
@@ -49,13 +52,14 @@ class Logger(object):
             f.write(str(msg)+'\n')
 
     def slack(self, msg):
-        from slackclient import SlackClient
-        sc = SlackClient(self.slack_token)
-        sc.api_call(
-            "chat.postMessage",
-            channel=self.slack_channel,
-            text=str(msg)
-        )
+        try:
+            sc = SlackClient(self.slack_token)
+            sc.api_call(
+                "chat.postMessage",
+                channel=self.slack_channel,
+                text=str(msg))
+        except requests.exceptions.ConnectionError:
+            pass
 
     def system(self, msg):
         os.system(f'notify-send "{msg}"')
