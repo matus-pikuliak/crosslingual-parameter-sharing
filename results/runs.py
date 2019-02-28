@@ -4,17 +4,43 @@ ls = ['cs', 'de', 'en', 'es']
 ts = ['dep', 'lmo', 'ner', 'pos']
 
 
-# for t in ['dep', 'ner', 'pos']:
-#     for l in ['es']:
-#         print(f'bash train.sh task_layer_sharing false adversarial_training false focus_on {t}-{l} focus_rate 0.75 tasks ', end='')
-#         for lt in ls:
-#             print(f'{t}-{lt} ', end='')
-#         print('&& ', end='')
-# print('; sudo poweroff', end='')
-# exit()
+'''
+28.02.2019 deepnet2 run
+'''
+for t in ['dep', 'ner', 'pos']:
+    for l in ['cs']:
+        print(f'bash train.sh private_params true  task_layer_sharing false adversarial_training false limited_data_size 200 limited_task_language {t}-{l} tasks ', end='')
+        for lt in ls:
+            print(f'{t}-{lt} ', end='')
+        print('&& ', end='')
+exit()
 
 '''
-26.02.2019 deepnet2 run
+28.02.2019 martak run
+'''
+for t in ['dep', 'ner', 'pos']:
+    for l in ['es']:
+        print(f'bash train.sh private_params true task_layer_sharing false adversarial_training false limited_data_size 200 limited_task_language {t}-{l} tasks ', end='')
+        for lt in ls:
+            print(f'{t}-{lt} ', end='')
+        print('&& ', end='')
+exit()
+
+'''
+28.02.2019 deepnet2 run
+'''
+
+for t in ['dep', 'ner', 'pos']:
+    for l in ['es']:
+        print(f'bash train.sh task_layer_sharing false adversarial_training false focus_on {t}-{l} focus_rate 0.75 tasks ', end='')
+        for lt in ls:
+            print(f'{t}-{lt} ', end='')
+        print('&& ', end='')
+print('; sudo poweroff', end='')
+exit()
+
+'''
+26.02.2019 fiit-gcp-2 run
 '''
 for t in ['dep', 'ner', 'pos']:
     for l in ['cs']:

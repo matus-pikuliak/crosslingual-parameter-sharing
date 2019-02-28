@@ -31,6 +31,7 @@ db = {
         (3, 'mtml',     'private-focused-0.75'),  # without cs
         (4, 'mt',       'no-adv-task-sharing-no-lmo'),
         (6, 'mtml',     'no-adv-tsh-200'),
+        (3, 'ml',       'private-focused-200'),
     ],
     'gcp': [
         (4, 'ml',       'no-adv'),
@@ -67,6 +68,8 @@ db = {
         (8, 'var',      'one-aux'),
         (2, 'var',      'adv_comparison'),
         (6, 'mt',       'no-adv-tsh-focused-0.75'),
+        (3, 'ml',       'no-adv-tsh-focused-0.75'),
+        (3, 'ml',       'private-focused-200'),
     ],
     'fiit-gcp-1': [
         (1, 'mtml',     'private-focused-0.75'),

@@ -318,7 +318,7 @@ class Model(GeneralModel):
             if st.dataset.role == 'train']
 
         return {
-            st: st.layer.get_representations(st.iterator, st.dataset)
+            st.dataset.lang: st.layer.get_representations(st.iterator, st.dataset)
             for st
             in eval_sets}
 
