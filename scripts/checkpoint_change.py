@@ -8,8 +8,8 @@ def change(checkpoint):
     change_list = {
         'dense/kernel': 'adversarial_training/dense/kernel',
         'dense/bias': 'adversarial_training/dense/bias',
-        'dense/kernel_1': 'adversarial_training/dense/kernel_1',
-        'dense/bias_1': 'adversarial_training/dense/bias_1',
+        'dense_1/kernel': 'adversarial_training/dense_1/kernel',
+        'dense_1/bias': 'adversarial_training/dense_1/bias',
     }
 
     with tf.Session() as sess:
