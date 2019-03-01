@@ -69,6 +69,7 @@ db = {
         (6, 'mt',       'no-adv-tsh-focused-0.75'),
         (3, 'ml',       'no-adv-tsh-focused-0.75'),
         (3, 'ml',       'private-focused-200'),
+        (5, 'var',      'fine-tune'),
     ],
     'fiit-gcp-1': [
         (1, 'mtml',     'private-focused-0.75'),
