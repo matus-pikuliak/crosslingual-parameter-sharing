@@ -19,7 +19,7 @@ with open(log_file_path) as log_file:
 dl = DataLoader(config)
 dl.load()
 config.values['train_only'] = sys.argv[2]
-max_epoch = config.values['epoch_steps']
+max_epoch = config.values['epochs']
 config.values['epochs'] += int(sys.argv[3])
 
 with Model(dl, config) as model:
