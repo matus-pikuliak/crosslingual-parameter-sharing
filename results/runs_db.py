@@ -1,9 +1,3 @@
-
-# focused vanilla 75 - mtml
-# focused private 50 - mtml
-# (6, 'mt', 'private-focused-200'),
-
-
 db = {
     'martak': [
         (16, 'stsl',    'vanilla'),
@@ -49,6 +43,7 @@ db = {
         (6, 'mt',       'private-focused-2000'),
         (6, 'ml',       'no-adv-tsh-focused'),
         (3, 'mtml',     'no-adv-tsh-focused'),
+        (2, 'var',      'fine-tune'),
     ],
     'deepnet2': [
         (4, 'ml',       'private-with-adv'),
