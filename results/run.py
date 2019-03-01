@@ -21,7 +21,9 @@ class Run:
         self.type = type_
         self.code = code
         with open(self.path) as f:
-            self.data = ast.literal_eval(f.read())['results']
+            log = ast.literal_eval(f.read())
+            self.data = log['results']
+            self.hparams = log['config']
 
     def match(self, datum, **filters):
         return all(

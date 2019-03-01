@@ -64,7 +64,6 @@ db = {
         (6, 'mt',       'no-adv-tsh-focused'),
         (6, 'mt',       'no-adv-tsh-200'),
         (6, 'mtml',     'no-adv-tsh-2000'),
-        (3, 'mtml',     'no-adv-tsh-focused'),
         (8, 'var',      'one-aux'),
         (2, 'var',      'adv_comparison'),
         (6, 'mt',       'no-adv-tsh-focused-0.75'),
