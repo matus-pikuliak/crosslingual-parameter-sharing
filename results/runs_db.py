@@ -26,6 +26,7 @@ db = {
         (4, 'mt',       'no-adv-task-sharing-no-lmo'),
         (6, 'mtml',     'no-adv-tsh-200'),
         (3, 'ml',       'private-focused-200'),
+        (3, 'var',      'fine-tune'),
     ],
     'gcp': [
         (4, 'ml',       'no-adv'),
@@ -84,6 +85,7 @@ db = {
     ],
     'acer': [
         (30, 'var',      'one-aux'),
+        (2, 'var', 'fine-tune'),
     ]
 }
 

@@ -40,6 +40,7 @@ def get_scatter_data(run_name):
             i += 1
 
     np.random.shuffle(x)
+    x = x[:2000, ...]
     x, y, c = zip(*x)
     c = np.rint(c)
     c = [plt_colors[scheme[int(i)]] for i in c]
