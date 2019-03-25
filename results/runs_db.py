@@ -84,8 +84,9 @@ db = {
         (7, 'var',      'one-aux'),
     ],
     'acer': [
-        (30, 'var',      'one-aux'),
-        (2, 'var', 'fine-tune'),
+        (30, 'var',     'one-aux'),
+        (1, 'var',      'adv-experiment'),
+        (2, 'var',      'fine-tune'),
     ]
 }
 

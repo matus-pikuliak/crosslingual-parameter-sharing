@@ -1,3 +1,5 @@
+# python WikiExtractor.py -o - --processes 10 --no-templates -q dump.xml > output.txt
+
 import sys
 
 import nltk

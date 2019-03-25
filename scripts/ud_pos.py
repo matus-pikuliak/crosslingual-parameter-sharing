@@ -6,10 +6,12 @@
 #
 # word1 tag3
 # word2 tag4
-import codecs, os
+import codecs
+import os
+import sys
 
 
-def process(files, result_path):
+def process(result_path, files):
     if not os.path.exists(os.path.dirname(result_path)):
         os.makedirs(os.path.dirname(result_path))
     if not isinstance(files, list):
@@ -37,5 +39,5 @@ def process(files, result_path):
         f.write(data+'\n')
 
 
-process('/media/piko/Data/data/cll-para-sharing/raw_data/dep_pos/UD_English-master/en-ud-dev.conllu',
-        '/media/piko/Data/data/cll-para-sharing/processed_data/pos/en/dev')
+if __name__ == '__main__':
+    process(sys.argv[1], sys.argv[2:])
