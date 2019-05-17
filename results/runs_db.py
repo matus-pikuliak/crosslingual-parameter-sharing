@@ -86,6 +86,9 @@ db = {
     'acer': [
         (30, 'var',      'one-aux'),
         (2, 'var', 'fine-tune'),
+    ],
+    'deepnet2070': [
+        (10, 'var', 'var')
     ]
 }
 

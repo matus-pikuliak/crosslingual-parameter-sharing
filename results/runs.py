@@ -3,6 +3,19 @@ import itertools
 ls = ['cs', 'de', 'en', 'es']
 ts = ['dep', 'lmo', 'ner', 'pos']
 
+'''
+16.05.2019 deepnet2070 run
+'''
+for t in ['dep', 'ner', 'pos']:
+    for l in ['cs', 'es']:
+        print(f'bash train.sh task_layer_sharing false adversarial_training false focus_rate 0.866 focus_on {t}-{l} tasks ', end='')
+        for tt in ts:
+            for lt in ls:
+                if lt == l or tt == t:
+                    print(f'{tt}-{lt} ', end='')
+        print('&& ', end='')
+exit()
+
 
 '''
 28.02.2019 deepnet2 run

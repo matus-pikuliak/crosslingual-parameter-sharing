@@ -263,19 +263,11 @@ class Model(GeneralModel):
                 st = np.random.choice(train_sets)
             else:
                 task, lang = self.config.focus_on.split('-')
-
-                def on_off_prob(focus_rate, count):
-                    on = focus_rate if count > 1 else 1
-                    off = (1 - focus_rate) / (count - 1) if count > 1 else 0
-                    return on, off
-
-                on_task_prob, off_task_prob = on_off_prob(self.config.focus_rate, len(self.tasks))
-                on_lang_prob, off_lang_prob = on_off_prob(self.config.focus_rate, len(self.langs))
                 task_probs = [
-                    (
-                        (on_task_prob if st.dataset.task == task else off_task_prob) *
-                        (on_lang_prob if st.dataset.lang == lang else off_lang_prob)
-                    ) for st in train_sets]
+                    self.config.focus_rate
+                    if st.dataset.task == task and st.dataset.lang == lang
+                    else (1 - self.config.focus_rate) / (len(train_sets) - 1)
+                    for st in train_sets]
                 task_probs = [v / sum(task_probs) for v in task_probs]
                 st = np.random.choice(train_sets, p=task_probs)
 
