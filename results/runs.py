@@ -3,6 +3,115 @@ import itertools
 ls = ['cs', 'de', 'en', 'es']
 ts = ['dep', 'lmo', 'ner', 'pos']
 
+
+
+# TOP1
+# TOP3 pre pos-de     'pos-de': ['ner-de', 'pos-en', 'lmo-de'],
+'''
+20.05.2019 deepnet5 run
+'''
+tops = {
+    'ner-en': 'ner-cs',
+    'ner-es': 'lmo-es',
+    'pos-cs': 'dep-cs',
+    'pos-de': 'ner-de',
+    'pos-en': 'lmo-en',
+    'pos-es': 'pos-en',
+    'dep-cs': 'dep-es',
+    'dep-de': 'dep-cs',
+    'dep-en': 'dep-es',
+    'dep-es': 'dep-en',
+    'ner-cs': 'dep-cs',
+    'ner-de': 'lmo-de',
+}
+
+for k, v in tops.items():
+    print(
+        f'bash train.sh task_layer_sharing false adversarial_training false private_params true focus_rate 0.5 focus_on {k} tasks {k} {v}',
+        end=' && ')
+exit()
+
+'''
+20.05.2019 gcp run
+'''
+tops = {
+    'dep-cs': 'dep-es',
+    'dep-de': 'dep-cs',
+    'dep-en': 'dep-es',
+    'dep-es': 'dep-en',
+    'ner-cs': 'dep-cs',
+    'ner-de': 'lmo-de',
+}
+
+for k, v in tops.items():
+    print(
+        f'bash train.sh task_layer_sharing false adversarial_training false private_params true focus_rate 0.5 focus_on {k} tasks {k} {v}',
+        end=' && ')
+exit()
+
+
+'''
+20.05.2019 deepnet2070 run
+'''
+for t in ['dep', 'ner', 'pos']:
+    for l in ['de', 'en']:
+        print(f'bash train.sh task_layer_sharing false adversarial_training false private_params true focus_rate 0.75 focus_on {t}-{l} tasks ', end='')
+        for tt in ts:
+            for lt in ls:
+                if lt == l or tt == t:
+                    print(f'{tt}-{lt} ', end='')
+        print('&& ', end='')
+exit()
+
+
+'''
+19.05.2019 deepnet5 run
+'''
+ll = ['de', 'en']
+tt = ['dep', 'ner', 'pos']
+setup = {f'{t}-{l}': [f'{t2}-{l2}' for t2, l2 in itertools.product(ts, ls) if t2 == t] for t, l in itertools.product(tt, ll)}
+
+for k, v in setup.items():
+        print(f'bash train.sh private_params true task_layer_sharing false adversarial_training false focus_rate 0.5 focus_on {k} tasks {" ".join(v)}', end=' ')
+        print('&&', end=' ')
+
+exit()
+
+
+'''
+18.05.2019 deepnet2070 run
+'''
+ll = ['de', 'en']
+tt = ['dep', 'ner', 'pos']
+setup = {f'{t}-{l}': [f'{t2}-{l2}' for t2, l2 in itertools.product(ts, ls) if l2 == l] for t, l in itertools.product(tt, ll)}
+
+for k, v in setup.items():
+        print(f'bash train.sh private_params true task_layer_sharing false adversarial_training false focus_rate 0.5 focus_on {k} tasks {" ".join(v)}', end=' ')
+        print('&&', end=' ')
+
+exit()
+
+'''
+17.05.2019 deepnet5 run
+'''
+setup = {
+    'ner-cs': ['dep-cs', 'ner-en', 'pos-cs'],
+    'ner-es': ['lmo-es', 'ner-de', 'ner-cs'],
+    'dep-de': ['dep-cs', 'dep-es', 'dep-en'],
+    'dep-en': ['dep-es', 'dep-cs', 'lmo-en'],
+    'ner-de': ['lmo-de', 'ner-cs', 'ner-en'],
+    'ner-en': ['ner-cs', 'ner-es', 'pos-en'],
+    'pos-de': ['ner-de', 'pos-de', 'lmo-de'],
+    'pos-en': ['lmo-en', 'ner-en', 'dep-en']
+}
+
+for k, v in setup.items():
+        print(f'bash train.sh private_params true task_layer_sharing false adversarial_training false focus_rate 0.5 focus_on {k} tasks {" ".join([k] + v)}', end=' ')
+        print('&&', end=' ')
+
+exit()
+
+
 '''
 16.05.2019 deepnet2070 run
 '''

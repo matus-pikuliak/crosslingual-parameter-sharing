@@ -45,6 +45,7 @@ db = {
         (6, 'ml',       'no-adv-tsh-focused'),
         (3, 'mtml',     'no-adv-tsh-focused'),
         (2, 'var',      'fine-tune'),
+        (6, 'top1',    'private-focused'),
     ],
     'deepnet2': [
         (4, 'ml',       'private-with-adv'),
@@ -89,7 +90,16 @@ db = {
         (2, 'var',      'fine-tune'),
     ],
     'deepnet2070': [
-        (10, 'var', 'var')
+        (10, 'var', 'var'),
+        (6, 'mtml', 'no-adv-tsh-focused'),
+        (6, 'mt', 'private-focused'),
+        (6, 'mtml', 'private-focused-0.75'),
+    ],
+    'deepnet5': [
+        (8, 'top3', 'private-focused'),
+        (6, 'ml', 'private-focused'),
+        (6, 'top1',    'private-focused'),
+        (6, 'top1', 'private-focused'),
     ]
 }
 
