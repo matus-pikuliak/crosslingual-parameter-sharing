@@ -38,8 +38,10 @@ default: &default
   max_dataset_cache: 200000
 
   task_layer_sharing: true
-  private_params: false
-  private_size: 100
+  word_lstm_private: false
+  word_lstm_task: false
+  word_lstm_lang: false
+  word_lstm_global: true
 
   adversarial_training: true
   adversarial_lambda: 0.5

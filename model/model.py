@@ -30,6 +30,7 @@ class Model(GeneralModel):
         self.layers = {}
         for (task, lang) in self.task_langs:
             cont_repr = self.add_sentence_processing(word_repr, task, lang)
+            i = 5
             self.layers[task, lang] = self.add_task_layer(cont_repr, task, lang)
 
     def add_inputs(self):
@@ -161,39 +162,44 @@ class Model(GeneralModel):
 
     def add_sentence_processing(self, word_repr, task, lang):
 
-        if not self.config.private_params:
+        lstms = []
+
+        def get_lstm(name_scope):
             return self.lstm(
                 inputs=word_repr,
                 sequence_lengths=self.sentence_lengths,
                 cell_size=self.config.word_lstm_size,
-                name_scope='word_bilstm')
+                name_scope=name_scope)
 
-        else:
-            shared_lstm = self.lstm(
-                inputs=word_repr,
-                sequence_lengths=self.sentence_lengths,
-                cell_size=self.config.word_lstm_size - self.config.private_size,
-                name_scope='word_bilstm')
+        if self.config.word_lstm_private:
+            lstms.append(get_lstm(f'word_bilstm_{task}_{lang}'))
 
-            private_lstm = self.lstm(
-                    inputs=word_repr,
-                    sequence_lengths=self.sentence_lengths,
-                    cell_size=self.config.private_size,
-                    name_scope=f'word_bilstm_{task}-{lang}')
+        if self.config.word_lstm_task:
+            lstms.append(get_lstm(f'word_bilstm_{task}'))
 
-            shared_fw, shared_bw = tf.split(
-                value=shared_lstm,
-                num_or_size_splits=2,
-                axis=-1)
+        if self.config.word_lstm_lang:
+            lstms.append(get_lstm(f'word_bilstm_{lang}'))
 
-            private_fw, private_bw = tf.split(
-                value=private_lstm,
-                num_or_size_splits=2,
-                axis=-1)
+        if self.config.word_lstm_global:
+            lstms.append(get_lstm(f'word_bilstm'))
 
-            return tf.concat(
-                values=(shared_fw, private_fw, shared_bw, private_bw),
-                axis=-1)
+        assert(len(lstms) > 0)
+
+        if len(lstms) == 1:
+            return lstms[0]
+
+        fw, bw = zip(
+                    tf.split(
+                        value=lstm,
+                        num_or_size_splits=2,
+                        axis=-1)
+                    for lstm
+                    in lstms)
+
+        return tf.concat(
+            values=fw+bw,
+            axis=-1)
+
 
     def add_task_layer(self, cont_repr, task, lang):
         layer_class = globals()[f'{task.upper()}Layer']
