@@ -30,7 +30,6 @@ class Model(GeneralModel):
         self.layers = {}
         for (task, lang) in self.task_langs:
             cont_repr = self.add_sentence_processing(word_repr, task, lang)
-            i = 5
             self.layers[task, lang] = self.add_task_layer(cont_repr, task, lang)
 
     def add_inputs(self):
@@ -188,13 +187,13 @@ class Model(GeneralModel):
         if len(lstms) == 1:
             return lstms[0]
 
-        fw, bw = zip(
-                    tf.split(
-                        value=lstm,
-                        num_or_size_splits=2,
-                        axis=-1)
-                    for lstm
-                    in lstms)
+        fw, bw = zip(*(
+            tf.split(
+                value=lstm,
+                num_or_size_splits=2,
+                axis=-1)
+            for lstm
+            in lstms))
 
         return tf.concat(
             values=fw+bw,
