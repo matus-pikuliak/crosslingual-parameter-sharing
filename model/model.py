@@ -184,6 +184,13 @@ class Model(GeneralModel):
 
         assert(len(lstms) > 0)
 
+        self.frobenius = self.add_frobenius(*(
+            tf.boolean_mask(
+                tensor=lstm,
+                mask=self.sentence_lengths_mask)
+            for lstm
+            in lstms))
+
         if len(lstms) == 1:
             return lstms[0]
 
@@ -198,6 +205,25 @@ class Model(GeneralModel):
         return tf.concat(
             values=fw+bw,
             axis=-1)
+
+    def add_frobenius(self, *matrices):
+
+        count = len(matrices)
+
+        if count == 1:
+            return tf.constant(
+                value=0,
+                dtype=tf.float32)
+
+        return sum(
+            tf.square(
+                tf.norm(
+                    tf.matmul(m, tf.transpose(m2)),
+                    ord='fro',
+                    axis=[0, 1]))
+            for i, m in enumerate(matrices)
+            for j, m2 in enumerate(matrices)
+            if i < j) / (count * count-1 / 2)
 
 
     def add_task_layer(self, cont_repr, task, lang):
