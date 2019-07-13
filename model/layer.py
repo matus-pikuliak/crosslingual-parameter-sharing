@@ -84,6 +84,8 @@ class Layer:
         loss = self.loss
         if self.config.adversarial_training and len(self.model.langs) > 1:
             loss += self.adversarial_term()
+        if self.config.frobenius > 0:
+            loss += self.config.frobenius * self.model.frobenius
         grads, vs = zip(*self.model.optimizer.compute_gradients(loss))
         gradient_norm = tf.global_norm(grads)
         if self.config.clip > 0:
@@ -174,7 +176,8 @@ class Layer:
             'adv_loss': self.adversarial_loss,
             'gradient_norm': self.gradient_norm,
             'length': self.model.total_batch_length,
-            'unit_strength_2': self.unit_strength_2
+            'unit_strength_2': self.unit_strength_2,
+            'frobenius': self.model.frobenius
         }
 
     def basic_results(self, results):
@@ -182,7 +185,8 @@ class Layer:
             'loss': np.mean(results['loss']),
             'adv_loss': np.mean(results['adv_loss']),
             'gradient_norm': np.mean(results['gradient_norm']),
-            'unit_strength_2': np.std(np.mean(results['unit_strength_2'], axis=0))
+            'unit_strength_2': np.std(np.mean(results['unit_strength_2'], axis=0)),
+            'frobenius': np.mean(results['frobenius'])
         }
 
     def task_code(self):

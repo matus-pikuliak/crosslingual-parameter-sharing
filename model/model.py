@@ -30,7 +30,6 @@ class Model(GeneralModel):
         self.layers = {}
         for (task, lang) in self.task_langs:
             cont_repr = self.add_sentence_processing(word_repr, task, lang)
-            i = 5
             self.layers[task, lang] = self.add_task_layer(cont_repr, task, lang)
 
     def add_inputs(self):
@@ -185,20 +184,46 @@ class Model(GeneralModel):
 
         assert(len(lstms) > 0)
 
+        self.frobenius = self.add_frobenius(*(
+            tf.boolean_mask(
+                tensor=lstm,
+                mask=self.sentence_lengths_mask)
+            for lstm
+            in lstms))
+
         if len(lstms) == 1:
             return lstms[0]
 
-        fw, bw = zip(
-                    tf.split(
-                        value=lstm,
-                        num_or_size_splits=2,
-                        axis=-1)
-                    for lstm
-                    in lstms)
+        fw, bw = zip(*(
+            tf.split(
+                value=lstm,
+                num_or_size_splits=2,
+                axis=-1)
+            for lstm
+            in lstms))
 
         return tf.concat(
             values=fw+bw,
             axis=-1)
+
+    def add_frobenius(self, *matrices):
+
+        count = len(matrices)
+
+        if count == 1:
+            return tf.constant(
+                value=0,
+                dtype=tf.float32)
+
+        return sum(
+            tf.square(
+                tf.norm(
+                    tf.matmul(m, tf.transpose(m2)),
+                    ord='fro',
+                    axis=[0, 1]))
+            for i, m in enumerate(matrices)
+            for j, m2 in enumerate(matrices)
+            if i < j) / (count * count-1 / 2)
 
 
     def add_task_layer(self, cont_repr, task, lang):
