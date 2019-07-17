@@ -1,83 +1,80 @@
 import itertools
 import random
+import types
 
 import numpy as np
 import tensorflow as tf
 
 from data.embedding import Embeddings
 from model.dataset_iterator import DatasetIterator
-from model.general_model import GeneralModel
 
 from constants import LOG_CRITICAL, LOG_MESSAGE, LOG_RESULT
 
-from model.layer_ner import NERLayer
-from model.layer_pos import POSLayer
-from model.layer_dep import DEPLayer
-from model.layer_lmo import LMOLayer
+class Model:
 
-class Model(GeneralModel):
+    def __init__(self, task, lang, orchestrator, data_loader, config, logger):
+        self.task = task
+        self.lang = lang
+        self.orch = orchestrator
+        self.dl = data_loader
+        self.config = config
+        self.logger = logger
 
-    def __init__(self, *args, **kwargs):
-        GeneralModel.__init__(self, *args, **kwargs)
-        self.langs = self.dl.langs
-        self.tasks = self.dl.tasks
-        self.task_langs = itertools.product(self.tasks, self.langs)
+        self.n = types.SimpleNamespace()
 
-    def _build_graph(self):
+        # TODO: add iterators
+
+
+    def build_graph(self):
         self.add_inputs()
         self.add_utils()
-        word_repr = self.add_word_processing()
-        self.layers = {}
-        for (task, lang) in self.task_langs:
-            cont_repr = self.add_sentence_processing(word_repr, task, lang)
-            self.layers[task, lang] = self.add_task_layer(cont_repr, task, lang)
+        self.add_word_processing()
+        self.add_sentence_processing()
+        self.add_task_layer()
 
     def add_inputs(self):
         # shape = (batch size, max_sentence_length)
-        self.word_ids = tf.placeholder(
+        self.n.word_ids = tf.placeholder(
             dtype=tf.int32,
             shape=[None, None],
             name="word_ids")
 
         # shape = (batch size)
-        self.sentence_lengths = tf.placeholder(
+        self.n.sentence_lengths = tf.placeholder(
             dtype=tf.int32,
             shape=[None],
             name='sentence_lengths')
 
         # shape = (batch_size, max_sentence_length, max_word_length)
-        self.char_ids = tf.placeholder(
+        self.n.char_ids = tf.placeholder(
             dtype=tf.int32,
             shape=[None, None, None],
             name='char_ids')
 
         # shape = (batch_size, max_sentence_length)
-        self.word_lengths = tf.placeholder(
+        self.n.word_lengths = tf.placeholder(
             dtype=tf.int32,
             shape=[None, None],
             name='word_lengths')
 
-        self.lang_id = tf.placeholder(
+        self.n.lang_id = tf.placeholder(
             dtype=tf.int32,
             shape=[],
             name='lang_id')
 
-        self.lang_flags = {
-            lang: tf.equal(self.lang_id, i)
-            for i, lang
-            in enumerate(self.langs)
-        }
-
-        self.task_id = tf.placeholder(
+        self.n.task_id = tf.placeholder(
             dtype=tf.int32,
             shape=[],
             name='task_id')
 
-        self.task_flags = {
-            task: tf.equal(self.task_id, i)
-            for i, task
-            in enumerate(self.tasks)
-        }
+    def add_utils(self):
+        """
+        Several useful nodes.
+        """
+        self.n.sentence_lengths_mask = tf.sequence_mask(self.n.sentence_lengths)
+        self.n.total_batch_length = tf.reduce_sum(self.n.sentence_lengths)
+        self.n.batch_size = tf.shape(self.n.word_ids)[0]
+        self.n.max_length = tf.shape(self.n.word_ids)[1]
 
     def add_word_processing(self):
 
@@ -230,15 +227,6 @@ class Model(GeneralModel):
         layer_class = globals()[f'{task.upper()}Layer']
         return layer_class(self, cont_repr, task, lang)
 
-    def add_utils(self):
-        """
-        Several useful nodes.
-        """
-        self.sentence_lengths_mask = tf.sequence_mask(self.sentence_lengths)
-        self.total_batch_length = tf.reduce_sum(self.sentence_lengths)
-        self.batch_size = tf.shape(self.word_ids)[0]
-        self.max_length = tf.shape(self.word_ids)[1]
-
     def lstm(self, inputs, sequence_lengths, cell_size, name_scope, avg_pool=False, dropout=True):
         with tf.variable_scope(name_scope, reuse=tf.AUTO_REUSE):
             cell_fw = tf.contrib.cudnn_rnn.CudnnCompatibleLSTMCell(cell_size)
@@ -274,38 +262,22 @@ class Model(GeneralModel):
 
             return out
 
-    def run_epoch(self):
+    def create_sets(self, is_train=True, **kwargs):
+        return [
+            DatasetIterator(
+                dataset=dt,
+                config=self.config,
+                is_train=is_train)
+            for dt
+            in self.dl.find(**kwargs)]
 
-        if self.config.train_only is None:
-            train_sets = self.create_sets(role='train')
-            if self.config.focus_on is None:
-                eval_sets = self.create_sets(is_train=False)
-            else:
-                task, lang = self.config.focus_on.split('-')
-                eval_sets = self.create_sets(is_train=False, task=task, lang=lang)
+    def train:
+        if have training set:
+            train
         else:
-            task, lang = self.config.train_only.split('-')
-            train_sets = self.create_sets(role='train', task=task, lang=lang)
-            eval_sets = self.create_sets(is_train=False, task=task, lang=lang)
+            pass
 
-        for _ in range(self.config.epoch_steps * len(train_sets)):
-
-            if self.config.focus_on is None:
-                st = np.random.choice(train_sets)
-            else:
-                task, lang = self.config.focus_on.split('-')
-                task_probs = [
-                    self.config.focus_rate
-                    if st.dataset.task == task and st.dataset.lang == lang
-                    else (1 - self.config.focus_rate) / (len(train_sets) - 1)
-                    for st in train_sets]
-                task_probs = [v / sum(task_probs) for v in task_probs]
-                st = np.random.choice(train_sets, p=task_probs)
-
-            st.layer.train(next(st.iterator), st.dataset)
-
-        self.log(f'Epoch {self.epoch} training done.', LOG_MESSAGE)
-
+    def evaluate:
         for st in eval_sets:
             results = st.layer.evaluate(st.iterator, st.dataset)
             results.update({
@@ -318,20 +290,10 @@ class Model(GeneralModel):
                 message={'results': results},
                 level=LOG_RESULT)
 
-    def evaluate_epoch(self):
-        eval_sets = self.create_sets(is_train=False)
+        run all eval datasets
 
-        for st in eval_sets:
-            results = st.layer.evaluate(st.iterator, st.dataset)
-            results.update({
-                'language': st.dataset.lang,
-                'task': st.dataset.task,
-                'role': st.dataset.role,
-                'epoch': self.epoch
-            })
-            self.log(
-                message={'results': results},
-                level=LOG_RESULT)
+    def trainable(self):
+        if exists train_set
 
     def get_representations(self):
         eval_sets = [
@@ -345,12 +307,5 @@ class Model(GeneralModel):
             for st
             in eval_sets}
 
-    def create_sets(self, is_train=True, **kwargs):
-        return [
-            DatasetIterator(
-                dataset=dt,
-                config=self.config,
-                layer=self.layers[dt.task, dt.lang],
-                is_train=is_train)
-            for dt
-            in self.dl.find(**kwargs)]
+    def log(self, message, level):
+        self.orch.log(message, level)

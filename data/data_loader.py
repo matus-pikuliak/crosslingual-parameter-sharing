@@ -22,13 +22,15 @@ class DataLoader:
         return 'Created:\n'+'\n'.join([str(dt) for dt in self.datasets])+'\n'
 
     def find(self, task=None, lang=None, role=None):
-        def cond(dt, task, lang, role):
-            return (
+        return [
+            dt
+            for dt
+            in self.datasets
+            if (
                 (task is None or task == dt.task) and
                 (lang is None or lang == dt.lang) and
-                (role is None or role == dt.role)
-            )
-        return [dt for dt in self.datasets if cond(dt, task, lang, role)]
+                (role is None or role == dt.role))
+        ]
 
     def find_one(self, *args, **kwargs):
         return self.find(*args, **kwargs)[0]

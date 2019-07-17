@@ -41,7 +41,7 @@ class Embeddings:
                     norm = np.linalg.norm(vec)
                     emb_matrix[id] = vec / norm
                 else:
-                    raise RuntimeError('Wrong wrong embedding types (must be "mwe", "random" or "mwe_projected").')
+                    raise RuntimeError('Wrong embedding types(must be "mwe", "random" or "mwe_projected").')
         print('Loaded.')
 
         return emb_matrix

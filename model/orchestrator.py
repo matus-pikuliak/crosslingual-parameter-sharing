@@ -1,5 +1,6 @@
 import os
 import datetime
+import types
 from functools import reduce
 
 import tensorflow as tf
@@ -7,31 +8,36 @@ import tensorflow as tf
 import utils.general_utils as utils
 from logs.logger import Logger
 from constants import LOG_CRITICAL, LOG_MESSAGE, LOG_RESULT
+from model.model import Model
 
 
-class GeneralModel:
+class Orchestrator:
 
     def __init__(self, data_loader, config, name=None):
         self.config = config
         self.dl = data_loader
+
         if not name:
             self.name = datetime.datetime.now().strftime('%Y-%m-%d-%H%M%S')
         else:
             self.name = name
-        self.logger = self.initialize_logger()
+
+        self.logger = Logger.factory(
+            type=self.config.setup,
+            server_name=self.config.server_name,
+            filename=os.path.join(self.config.log_path, self.name),
+            slack_channel=self.config.slack_channel,
+            slack_token=self.config.slack_token)
+
+        self.n = types.SimpleNamespace()
 
     def __enter__(self, *args):
-        self.build_graph()
-        return self
-
-    def __exit__(self, *exc_info):
-        self.close()
-
-    def build_graph(self):
-
         self.add_hyperparameters()
         self.add_optimizer()
-        self._build_graph()
+
+        self.models = {tl: Model(*tl, self, self.dl, self.config, self.logger) for tl in self.config.tasks}
+        for model in self.models:
+            model.build_graph()
 
         config = tf.ConfigProto()
         if not self.config.use_gpu:
@@ -51,21 +57,19 @@ class GeneralModel:
 
         if self.config.load_model:
             self.load()
+        return self
 
-    def _build_graph(self):
-        raise NotImplementedError
-
-    def close(self):
+    def __exit__(self, *exc_info):
         self.sess.close()
         tf.reset_default_graph()
 
     def add_hyperparameters(self):
-        self.learning_rate = tf.placeholder(
+        self.n.learning_rate = tf.placeholder(
             dtype=tf.float32,
             shape=[],
             name="learning_rate")
 
-        self.dropout = tf.placeholder(
+        self.n.dropout = tf.placeholder(
             dtype=tf.float32,
             shape=[],
             name="dropout")
@@ -78,17 +82,20 @@ class GeneralModel:
             'sgd': tf.train.GradientDescentOptimizer
         }
         selected_optimizer = available_optimizers[self.config.optimizer]
-        self.optimizer = selected_optimizer(self.learning_rate)
+        self.n.optimizer = selected_optimizer(self.n.learning_rate)
 
-    def current_learning_rate(self):
+    def current_learning_rate(self, epoch=None):
+        if epoch is None:
+            epoch = self.epoch
+
         if self.config.learning_rate_schedule == 'static':
             return self.config.learning_rate
         elif self.config.learning_rate_schedule == 'decay':
-            return self.config.learning_rate * pow(self.config.learning_rate_decay, self.epoch)
+            return self.config.learning_rate * pow(self.config.learning_rate_decay, epoch-1)
         else:
             raise AttributeError('lr_schedule must be set to static or decay')
 
-    def run_experiment(self, start_epoch=1):
+    def run_training(self, start_epoch=1):
         start_time = datetime.datetime.now()
         self.log(
             message=f'Run started {start_time}',
@@ -120,6 +127,39 @@ class GeneralModel:
             message=f'Run done in {end_time - start_time}',
             level=LOG_CRITICAL)
 
+    def run_epoch(self):
+
+        train_models = [m for m in self.models if m.trainable()]
+        if self.config.train_only is not None:
+            train_models = [m for m in train_models if (m.task, m.lang) == self.config.train_only.split('-')]
+
+        for _ in range(self.config.epoch_steps):
+
+            if self.config.focus_on is None:
+                off_rate = 1 / len(train_models)
+            else:
+                on_rate = self.config.focus_rate
+                off_rate = (1 - self.config.focus_rate) / (len(train_models) - 1)
+
+            def is_focused(model):
+                if self.config.focus_on is not None:
+                    if (model.task, model.lang) == self.config.focus_on.split('-'):
+                        return True
+                return False
+
+            probs = {
+                model: on_rate if is_focused(model) else off_rate
+                for model
+                in train_models
+            }
+
+            sampled_model = np.random.choice(probs.keys(), p=probs.values())
+            sampled_model.train_step()
+
+        self.log(f'Epoch {self.epoch} training done.', LOG_MESSAGE)
+
+        self.evaluate_models()
+
     def run_evaluation(self, start_epoch=1):
         """
         This method runs only evaluation phase on pretrained models
@@ -137,15 +177,25 @@ class GeneralModel:
 
         for self.epoch in range(start_epoch, self.config.epochs+1):
             self.load(f'{self.name}-{self.epoch}')
-            self.evaluate_epoch()
+            self.evaluate_models()
 
         end_time = datetime.datetime.now()
         self.log(
             message=f'Run done in {end_time - start_time}',
             level=LOG_CRITICAL)
 
-    def run_epoch(self):
-        raise NotImplementedError
+    def evaluate_models(self):
+
+        eval_models = self.models
+
+        if self.config.focus_on is not None:
+            eval_models = self.models[self.config.focus_on.split('-')]
+
+        if self.config.train_only is not None:
+            eval_models = self.models[self.config.train_only.split('-')]
+
+        for model in eval_models:
+            model.evaluate()
 
     def show_graph(self):
         tf.summary.FileWriter(self.config.model_path, self.sess.graph)
@@ -171,17 +221,9 @@ class GeneralModel:
         self.saver.restore(
             sess=self.sess,
             save_path=os.path.join(self.config.model_path, model_file))
-        reset_op = tf.group([v.initializer for v in self.optimizer.variables()])
+        reset_op = tf.group([v.initializer for v in self.n.optimizer.variables()])
         self.sess.run(reset_op)
         self.log(f'Model restored from {model_file}.', LOG_MESSAGE)
 
     def log(self, message, level):
         self.logger.log(message, level)
-
-    def initialize_logger(self):
-        return Logger.factory(
-            type=self.config.setup,
-            server_name=self.config.server_name,
-            filename=os.path.join(self.config.log_path, self.name),
-            slack_channel=self.config.slack_channel,
-            slack_token=self.config.slack_token)
