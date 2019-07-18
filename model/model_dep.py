@@ -3,31 +3,28 @@ from collections import namedtuple
 import numpy as np
 import tensorflow as tf
 
-from model.layer import Layer
+from model.model import Model
 from utils import edmonds
 import utils.tf_utils as tfu
 
 
-class DEPLayer(Layer):
+class ModelDEP(Model):
 
-    def __init__(self, model, cont_repr, task, lang):
-        Layer.__init__(self, model, cont_repr, task, lang,)
-        self.build_graph(cont_repr)
+    def add_task_layer(self):
 
-    def _build_graph(self):
+        # FIXME: add various sharing strategies
+        with tf.variable_scope(f'{self.task}-{self.lang}', reuse=tf.AUTO_REUSE):
+            tag_count = len(self.n.dl.task_vocabs[self.task])
 
-        with tf.variable_scope(self.task_code(), reuse=tf.AUTO_REUSE):
-            tag_count = len(self.model.dl.task_vocabs[self.task])
-
-            self.desired_arcs = self.add_pair_labels(
+            self.n.desired_arcs = self.add_pair_labels(
                 name='desired_arcs',
-                depth=self.model.max_length+1)
-            self.desired_labels = self.add_pair_labels(
+                depth=self.n.max_length+1)
+            self.n.desired_labels = self.add_pair_labels(
                 name='desired_labels',
                 depth=tag_count)
 
-            hidden, self.cont_repr_weights = tfu.dense_with_weights(
-                inputs=self.cont_repr,
+            hidden, self.n.contextualized_weights = tfu.dense_with_weights(
+                inputs=self.n.contextualized,
                 units=self.config.hidden_size,
                 activation=tf.nn.relu)
 
@@ -40,7 +37,7 @@ class DEPLayer(Layer):
 
             uas_loss, predicted_arcs_logits = self.add_uas_loss(pairs_repr)
             las_loss = self.add_las_loss(pairs_repr)
-            self.loss = (uas_loss + las_loss) / 2
+            self.n.loss = (uas_loss + las_loss) / 2
 
             self.add_eval_metrics(predicted_arcs_logits, pairs_repr)
 
@@ -56,7 +53,7 @@ class DEPLayer(Layer):
         # shape = (sentence_lengths_sum)
         ids = tf.boolean_mask(
             tensor=placeholder,
-            mask=self.model.sentence_lengths_mask)
+            mask=self.n.sentence_lengths_mask)
 
         # shape = (sentence_lengths_sum x depth)
         one_hots = tf.one_hot(
@@ -73,7 +70,7 @@ class DEPLayer(Layer):
             dtype=tf.float32)
         root = tf.tile(
             input=root,
-            multiples=[self.model.batch_size, 1, 1])
+            multiples=[self.n.batch_size, 1, 1])
 
         cont_repr_with_root = tf.concat(
             values=[root, cont_repr],
@@ -81,10 +78,10 @@ class DEPLayer(Layer):
 
         tile_a = tf.tile(
             input=tf.expand_dims(cont_repr, 2),
-            multiples=[1, 1, self.model.max_length + 1, 1])
+            multiples=[1, 1, self.n.max_length + 1, 1])
         tile_b = tf.tile(
             input=tf.expand_dims(cont_repr_with_root, 1),
-            multiples=[1, self.model.max_length, 1, 1])
+            multiples=[1, self.n.max_length, 1, 1])
 
         # shape = (batch_size, max_sentence_length, max_sentence_length+1, 4*word_lstm_size)
         pairs = tf.concat(
@@ -93,7 +90,7 @@ class DEPLayer(Layer):
 
         valid_pairs = tf.boolean_mask(
             tensor=pairs,
-            mask=self.model.sentence_lengths_mask)
+            mask=self.n.sentence_lengths_mask)
 
         return valid_pairs
 
@@ -106,7 +103,7 @@ class DEPLayer(Layer):
             axis=-1)  # must be specified because we need a static tensor shape for the boolean mask later
 
         uas_loss = tf.nn.softmax_cross_entropy_with_logits_v2(
-            labels=self.desired_arcs.one_hots,
+            labels=self.n.desired_arcs.one_hots,
             logits=predicted_arcs_logits)
         uas_loss = tf.reduce_mean(uas_loss)
 
@@ -114,10 +111,10 @@ class DEPLayer(Layer):
 
     def add_las_loss(self, pairs_repr):
         predicted_labels_logits = self.arc_ids_to_label_logits(
-            arcs_ids=self.desired_arcs.ids,
+            arcs_ids=self.n.desired_arcs.ids,
             pairs_repr=pairs_repr)
         las_loss = tf.nn.softmax_cross_entropy_with_logits_v2(
-            labels=self.desired_labels.one_hots,
+            labels=self.n.desired_labels.one_hots,
             logits=predicted_labels_logits)
         las_loss = tf.reduce_mean(las_loss)
 
@@ -128,14 +125,14 @@ class DEPLayer(Layer):
         predicted_arcs_logits = tf.nn.softmax(predicted_arcs_logits)
         predicted_arcs_ids = tf.py_func(
             func=self.edmonds_prediction,
-            inp=[predicted_arcs_logits, self.model.sentence_lengths],
+            inp=[predicted_arcs_logits, self.n.sentence_lengths],
             Tout=tf.int32)
-        predicted_arcs_ids.set_shape(self.desired_arcs.ids.get_shape())
+        predicted_arcs_ids.set_shape(self.n.desired_arcs.ids.get_shape())
 
-        self.uas = tf.count_nonzero(
+        self.n.uas = tf.count_nonzero(
             tf.equal(
                 predicted_arcs_ids,
-                self.desired_arcs.ids
+                self.n.desired_arcs.ids
             ))
 
         predicted_labels_logits = self.arc_ids_to_label_logits(
@@ -147,24 +144,24 @@ class DEPLayer(Layer):
             axis=-1,
             output_type=tf.int32)
 
-        self.las = tf.count_nonzero(
+        self.n.las = tf.count_nonzero(
             tf.logical_and(
-                tf.equal(predicted_labels_ids, self.desired_labels.ids),
-                tf.equal(predicted_arcs_ids, self.desired_arcs.ids)
+                tf.equal(predicted_labels_ids, self.n.desired_labels.ids),
+                tf.equal(predicted_arcs_ids, self.n.desired_arcs.ids)
             ))
 
     def add_metrics(self):
         return {
-            'uas': self.uas,
-            'las': self.las
+            'uas': self.n.uas,
+            'las': self.n.las
         }
 
     def arc_ids_to_label_logits(self, arcs_ids, pairs_repr, reuse=False):
-        tag_count = len(self.model.dl.task_vocabs[self.task])
+        tag_count = len(self.orch.dl.task_vocabs[self.task])
 
         selected_arcs_mask = tf.one_hot(
             indices=arcs_ids,
-            depth=self.model.max_length + 1,
+            depth=self.n.max_length + 1,
             on_value=True,
             off_value=False,
             dtype=tf.bool)
@@ -180,12 +177,12 @@ class DEPLayer(Layer):
 
         return predicted_labels_logits
 
-    def basic_feed_dict(self, batch, dataset):
-        fd = Layer.basic_feed_dict(self, batch, dataset)
+    def basic_feed_dict(self, batch):
+        fd = Model.basic_feed_dict(self, batch)
         *_, desired_labels, desired_arcs = batch
         fd.update({
-            self.desired_arcs.placeholder: desired_arcs,
-            self.desired_labels.placeholder: desired_labels
+            self.n.desired_arcs.placeholder: desired_arcs,
+            self.n.desired_labels.placeholder: desired_labels
         })
         return fd
 

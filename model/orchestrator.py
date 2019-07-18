@@ -3,6 +3,7 @@ import datetime
 import types
 from functools import reduce
 
+import numpy as np
 import tensorflow as tf
 
 import utils.general_utils as utils
@@ -31,12 +32,14 @@ class Orchestrator:
 
         self.n = types.SimpleNamespace()
 
+        self.tasks, self.langs = zip(*self.config.tasks)
+
     def __enter__(self, *args):
         self.add_hyperparameters()
         self.add_optimizer()
 
-        self.models = {tl: Model(*tl, self, self.dl, self.config, self.logger) for tl in self.config.tasks}
-        for model in self.models:
+        self.models = {tl: Model.factory(*tl, self, self.dl, self.config, self.logger) for tl in self.config.tasks}
+        for model in self.models.values():
             model.build_graph()
 
         config = tf.ConfigProto()
@@ -129,31 +132,30 @@ class Orchestrator:
 
     def run_epoch(self):
 
-        train_models = [m for m in self.models if m.trainable()]
+        train_models = [m for m in self.models.values() if m.trainable()]
         if self.config.train_only is not None:
             train_models = [m for m in train_models if (m.task, m.lang) == self.config.train_only.split('-')]
 
+        if self.config.focus_on is None:
+            off_rate = 1 / len(train_models)
+        else:
+            on_rate = self.config.focus_rate
+            off_rate = (1 - self.config.focus_rate) / (len(train_models) - 1)
+
+        def is_focused(model):
+            if self.config.focus_on is not None:
+                if (model.task, model.lang) == self.config.focus_on.split('-'):
+                    return True
+            return False
+
+        probs = {
+            model: on_rate if is_focused(model) else off_rate
+            for model
+            in train_models
+        }
+
         for _ in range(self.config.epoch_steps):
-
-            if self.config.focus_on is None:
-                off_rate = 1 / len(train_models)
-            else:
-                on_rate = self.config.focus_rate
-                off_rate = (1 - self.config.focus_rate) / (len(train_models) - 1)
-
-            def is_focused(model):
-                if self.config.focus_on is not None:
-                    if (model.task, model.lang) == self.config.focus_on.split('-'):
-                        return True
-                return False
-
-            probs = {
-                model: on_rate if is_focused(model) else off_rate
-                for model
-                in train_models
-            }
-
-            sampled_model = np.random.choice(probs.keys(), p=probs.values())
+            sampled_model = np.random.choice(list(probs.keys()), p=list(probs.values()))
             sampled_model.train_step()
 
         self.log(f'Epoch {self.epoch} training done.', LOG_MESSAGE)
@@ -185,8 +187,7 @@ class Orchestrator:
             level=LOG_CRITICAL)
 
     def evaluate_models(self):
-
-        eval_models = self.models
+        eval_models = self.models.values()
 
         if self.config.focus_on is not None:
             eval_models = self.models[self.config.focus_on.split('-')]

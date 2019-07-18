@@ -1,26 +1,22 @@
 import numpy as np
 import tensorflow as tf
 
-from model.layer import Layer
 import utils.tf_utils as tfu
+from model.model import Model
 
 
-class LMOLayer(Layer):
+class ModelLMO(Model):
 
-    def __init__(self, model, cont_repr, task, lang):
-        Layer.__init__(self, model, cont_repr, task, lang)
-        self.build_graph(cont_repr)
+    def add_task_layer(self):
 
-    def _build_graph(self):
+        # FIXME: add various sharing strategies
+        with tf.variable_scope(f'{self.task}-{self.lang}', reuse=tf.AUTO_REUSE):
 
-        with tf.variable_scope(self.task_code(), reuse=tf.AUTO_REUSE):
-
-            past = self.add_past(self.cont_repr)
-            future = self.add_future(self.cont_repr)
+            past, future = self.add_past(), self.add_future()
             # shape = (sentence_lengths_sum x 2*word_lstm_size)
             context = tf.concat([past, future], axis=1)
 
-            hidden, self.cont_repr_weights = tfu.dense_with_weights(
+            hidden, self.n.contextualized_weights = tfu.dense_with_weights(
                 inputs=context,
                 units=self.config.hidden_size,
                 activation=tf.nn.relu)
@@ -34,29 +30,30 @@ class LMOLayer(Layer):
             loss = tf.nn.sparse_softmax_cross_entropy_with_logits(
                 labels=desired_word_ids,
                 logits=predicted_word_logits)
-            self.perplexity = tf.reduce_sum(loss)
+            self.n.perplexity = tf.reduce_sum(loss)
 
-            self.loss = tf.reduce_mean(loss)
+            self.n.loss = tf.reduce_mean(loss)
 
     def add_metrics(self):
         return {
-            'perplexity': self.perplexity
+            'perplexity': self.n.perplexity
         }
 
     def vocab_size(self):
         return min(
-            len(self.model.dl.lang_vocabs[self.lang]),
+            len(self.orch.dl.lang_vocabs[self.lang]),
             self.config.lmo_vocab_limit
         )
 
-    def add_past(self, cont_repr):
+    def add_past(self):
+        cont_repr = self.n.contextualized
         start_tag = tf.get_variable(
             name='start_tag',
             shape=[1, 1, self.config.word_lstm_size],
             dtype=tf.float32)
         start_tag = tf.tile(
             input=start_tag,
-            multiples=[self.model.batch_size, 1, 1])
+            multiples=[self.n.batch_size, 1, 1])
 
         fw_repr, _ = tf.split(
             value=cont_repr,
@@ -72,17 +69,18 @@ class LMOLayer(Layer):
             axis=1)
         fw_repr = tf.boolean_mask(
             tensor=fw_repr,
-            mask=self.model.sentence_lengths_mask)
+            mask=self.n.sentence_lengths_mask)
         return fw_repr
 
-    def add_future(self, cont_repr):
+    def add_future(self):
+        cont_repr = self.n.contextualized
         end_tag = tf.get_variable(
             name='end_tag',
             shape=[1, 1, self.config.word_lstm_size],
             dtype=tf.float32)
         end_tag = tf.tile(
             input=end_tag,
-            multiples=[self.model.batch_size, self.model.max_length, 1])
+            multiples=[self.n.batch_size, self.n.max_length, 1])
 
         _, bw_repr = tf.split(
             value=cont_repr,
@@ -94,8 +92,8 @@ class LMOLayer(Layer):
             axis=1)
 
         mask = tf.sequence_mask(
-            lengths=self.model.sentence_lengths - 1,
-            maxlen=self.model.max_length)
+            lengths=self.n.sentence_lengths - 1,
+            maxlen=self.n.max_length)
         mask = tf.expand_dims(
             input=mask,
             axis=-1)
@@ -109,13 +107,13 @@ class LMOLayer(Layer):
 
         bw_repr = tf.boolean_mask(
             tensor=bw_repr,
-            mask=self.model.sentence_lengths_mask)
+            mask=self.n.sentence_lengths_mask)
         return bw_repr
 
     def add_desired_word_ids(self):
         word_ids = tf.boolean_mask(
-            tensor=self.model.word_ids,
-            mask=self.model.sentence_lengths_mask)
+            tensor=self.n.word_ids,
+            mask=self.n.sentence_lengths_mask)
         word_ids = tf.where(  # adds zero id for <UNK> instead of out of LMO vocab words
             condition=tf.less(word_ids, self.vocab_size()),
             x=word_ids,

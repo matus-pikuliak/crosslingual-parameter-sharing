@@ -2,21 +2,21 @@ import numpy as np
 
 import constants
 import utils.general_utils as utils
-from model.layer_sqt import SQTLayer
+from model.model_sqt import ModelSQT
 
 
-class NERLayer(SQTLayer):
+class ModelNER(ModelSQT):
 
-    def __init__(self, model, cont_repr, task, lang):
-        SQTLayer.__init__(self, model, cont_repr, task, lang)
+    def __init__(self, *args):
+        ModelSQT.__init__(self, *args)
 
-        self.o_tag = self.model.dl.task_vocabs['ner'].label_to_id(constants.NER_O_TAG)
+        self.o_tag = self.orch.dl.task_vocabs['ner'].label_to_id(constants.NER_O_TAG)
 
-        b_tags = [key for key in self.model.dl.task_vocabs['ner'] if key.startswith('B-')]
-        self.b_tags = [self.model.dl.task_vocabs['ner'].label_to_id(tag) for tag in b_tags]
+        b_tags = [key for key in self.orch.dl.task_vocabs['ner'] if key.startswith('B-')]
+        self.b_tags = [self.orch.dl.task_vocabs['ner'].label_to_id(tag) for tag in b_tags]
 
         i_tags = [f'I-{b_tag[2:]}' for b_tag in b_tags]
-        self.i_tags = [self.model.dl.task_vocabs['ner'].label_to_id(tag) for tag in i_tags]
+        self.i_tags = [self.orch.dl.task_vocabs['ner'].label_to_id(tag) for tag in i_tags]
 
     def metric_names(self):
         return [

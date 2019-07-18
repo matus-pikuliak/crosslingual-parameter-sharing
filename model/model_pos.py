@@ -1,9 +1,9 @@
 import numpy as np
 
-from model.layer_sqt import SQTLayer
+from model.model_sqt import ModelSQT
 
 
-class POSLayer(SQTLayer):
+class ModelPOS(ModelSQT):
 
     def metric_names(self):
         return ['correct_tags']
