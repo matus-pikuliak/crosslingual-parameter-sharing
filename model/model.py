@@ -19,9 +19,6 @@ class Model:
         self.config = config
         self.logger = logger
 
-        self.train_set = self.create_sets(task=self.task, lang=self.lang, role='train')[0]
-        self.eval_sets = self.create_sets(is_train=False, task=self.task, lang=self.lang)
-
         self.n = types.SimpleNamespace()
 
     @staticmethod
@@ -51,6 +48,12 @@ class Model:
             for dt
             in self.dl.find(**kwargs)]
 
+    def train_set(self):
+        return self.create_sets(task=self.task, lang=self.lang, role='train')[0]
+
+    def eval_sets(self):
+        return self.create_sets(is_train=False, task=self.task, lang=self.lang)
+
     def build_graph(self):
         self.add_inputs()
         self.add_utils()
@@ -60,8 +63,6 @@ class Model:
         self.add_unit_strength()
         self.add_train_op()
         self.metrics = self.add_metrics()
-
-        self.check_nodes()
 
     def add_inputs(self):
         # shape = (batch size, max_sentence_length)
@@ -133,7 +134,6 @@ class Model:
         self.n.word_embeddings = word_embeddings
 
     def load_embeddings(self, lang):
-        # FIXME: ako casto sa toto spusta pri multitask?
         emb = Embeddings(lang, self.config)
         return emb.matrix(self.dl.lang_vocabs[lang])
 
@@ -369,10 +369,6 @@ class Model:
 
         self.n.train_op, self.n.gradient_norm = self.orch.n.optimizer.apply_gradients(zip(grads, vs)), gradient_norm
 
-    def check_nodes(self):
-        ...
-        # FIXME: add all nodes that should be defined in the model
-
     def basic_feed_dict(self, batch):
         word_ids, sentence_lengths, char_ids, word_lengths, *_ = batch
 
@@ -401,14 +397,14 @@ class Model:
         return fd
 
     def train_step(self):
-        batch = next(self.train_set.iterator)
+        batch = next(self.train_set().iterator)
         fd = self.train_feed_dict(batch)
         self.orch.sess.run(
             fetches=self.n.train_op,
             feed_dict=fd)
 
     def evaluate(self):
-        for eval_set in self.eval_sets:
+        for eval_set in self.eval_sets():
             fetches = self.basic_fetches()
             fetches.update(self.metrics)
 
@@ -475,7 +471,7 @@ class Model:
             return f'{self.task}-{self.lang}'
 
     def trainable(self):
-        return self.train_set is not None
+        return self.train_set() is not None
 
     def get_representations(self):
         eval_sets = [

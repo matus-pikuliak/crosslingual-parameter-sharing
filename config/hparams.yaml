@@ -24,7 +24,7 @@ default: &default
   limited_language: na
   limited_task_language: na
   limited_task: na
-  eval_size_limit: -1  # mainly for debugging
+  eval_size_limit: -1  # for debugging
 
   train_only: na
   focus_on: na
@@ -37,15 +37,15 @@ default: &default
   min_char_freq: 100
   max_dataset_cache: 200000
 
-  task_layer_sharing: true
   word_lstm_private: false
   word_lstm_task: false
   word_lstm_lang: false
   word_lstm_global: true
 
-  adversarial_training: true
+  adversarial_training: false
   adversarial_lambda: 0.5
   adversarial_freq: 1
+
   frobenius: 0.0
 
   lmo_vocab_limit: 15000

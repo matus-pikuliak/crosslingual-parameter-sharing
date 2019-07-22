@@ -12,9 +12,8 @@ class ModelDEP(Model):
 
     def add_task_layer(self):
 
-        # FIXME: add various sharing strategies
-        with tf.variable_scope(f'{self.task}-{self.lang}', reuse=tf.AUTO_REUSE):
-            tag_count = len(self.n.dl.task_vocabs[self.task])
+        with tf.variable_scope(f'{self.task}-{self.lang}'):
+            tag_count = len(self.orch.dl.task_vocabs[self.task])
 
             self.n.desired_arcs = self.add_pair_labels(
                 name='desired_arcs',

@@ -9,8 +9,7 @@ class ModelLMO(Model):
 
     def add_task_layer(self):
 
-        # FIXME: add various sharing strategies
-        with tf.variable_scope(f'{self.task}-{self.lang}', reuse=tf.AUTO_REUSE):
+        with tf.variable_scope(f'{self.task}-{self.lang}'):
 
             past, future = self.add_past(), self.add_future()
             # shape = (sentence_lengths_sum x 2*word_lstm_size)

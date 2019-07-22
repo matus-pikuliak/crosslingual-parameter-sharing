@@ -10,8 +10,7 @@ class ModelSQT(Model):
     def add_task_layer(self):
         tag_count = len(self.orch.dl.task_vocabs[self.task])
 
-        # FIXME: add various sharing strategies
-        with tf.variable_scope(f'{self.task}-{self.lang}', reuse=tf.AUTO_REUSE):
+        with tf.variable_scope(f'{self.task}-{self.lang}'):
 
             hidden, self.n.contextualized_weights = tfu.dense_with_weights(
                 inputs=self.n.contextualized,
@@ -40,7 +39,6 @@ class ModelSQT(Model):
     def add_metrics(self):
         metric_names = self.metric_names()
 
-        # FIXME: wtf
         metrics = tf.py_func(
             func=self.metrics_from_batch,
             inp=[
