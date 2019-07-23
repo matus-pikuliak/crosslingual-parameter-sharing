@@ -42,6 +42,8 @@ default: &default
   word_lstm_lang: false
   word_lstm_global: true
 
+  task_layer_private: false
+
   adversarial_training: false
   adversarial_lambda: 0.5
   adversarial_freq: 1

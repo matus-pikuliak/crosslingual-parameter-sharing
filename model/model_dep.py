@@ -12,7 +12,7 @@ class ModelDEP(Model):
 
     def add_task_layer(self):
 
-        with tf.variable_scope(f'{self.task}-{self.lang}'):
+        with tf.variable_scope(self.task_layer_scope(), reuse=tf.AUTO_REUSE):
             tag_count = len(self.orch.dl.task_vocabs[self.task])
 
             self.n.desired_arcs = self.add_pair_labels(

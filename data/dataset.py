@@ -11,15 +11,12 @@ class Dataset:
     @staticmethod
     def create(task, *args):
 
-        def module_name(task):
-            return f'data.dataset_{task}'
-
         def subclass_name(task):
             return f'{task.upper()}Dataset'
 
         # loads relevant subclasses defined in task_models
         dataset_classes = {
-            task: __import__(module_name(task), fromlist=[subclass_name(task)])
+            task: __import__(f'data.dataset_{task}', fromlist=[subclass_name(task)])
             for task
             in constants.TASKS
         }

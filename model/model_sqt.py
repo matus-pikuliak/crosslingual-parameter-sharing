@@ -10,7 +10,7 @@ class ModelSQT(Model):
     def add_task_layer(self):
         tag_count = len(self.orch.dl.task_vocabs[self.task])
 
-        with tf.variable_scope(f'{self.task}-{self.lang}'):
+        with tf.variable_scope(self.task_layer_scope(), reuse=tf.AUTO_REUSE):
 
             hidden, self.n.contextualized_weights = tfu.dense_with_weights(
                 inputs=self.n.contextualized,

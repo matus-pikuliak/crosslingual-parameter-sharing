@@ -3,10 +3,9 @@ import types
 import numpy as np
 import tensorflow as tf
 
-from constants import LOG_RESULT
+from constants import LOG_RESULT, TASKS
 from data.embedding import Embeddings
 from model.dataset_iterator import DatasetIterator
-
 
 
 class Model:
@@ -23,18 +22,17 @@ class Model:
 
     @staticmethod
     def factory(task, *args):
-        from model.model_dep import ModelDEP
-        from model.model_lmo import ModelLMO
-        from model.model_ner import ModelNER
-        from model.model_pos import ModelPOS
+
+        def model_class(task):
+            return f'Model{task.upper()}'
 
         classes = {
-            'pos': ModelPOS,
-            'ner': ModelNER,
-            'lmo': ModelLMO,
-            'dep': ModelDEP
+            task: __import__(f'model.model_{task}', fromlist=[model_class(task)])
+            for task
+            in TASKS
         }
-        return classes[task](task, *args)
+
+        return getattr(classes[task], model_class(task))(task, *args)
 
     def __repr__(self):
         return f'{self.task}-{self.lang}_Model'
@@ -129,7 +127,7 @@ class Model:
 
         word_embeddings = tf.nn.dropout(
             x=word_embeddings,
-            keep_prob=self.orch.n.dropout)
+            rate=self.orch.n.dropout)
 
         self.n.word_embeddings = word_embeddings
 
@@ -306,7 +304,7 @@ class Model:
                 axis=0)
             one_hot_lang = tf.tile(
                 input=one_hot_lang,
-                multiples=[tf.shape(cont_repr)[0], 1])
+                multiples=[self.n.total_batch_length, 1])
 
             loss = tf.nn.softmax_cross_entropy_with_logits_v2(
                 labels=one_hot_lang,
@@ -484,6 +482,11 @@ class Model:
             st.dataset.lang: st.layer.get_representations(st.iterator, st.dataset)
             for st
             in eval_sets}
+
+    def task_layer_scope(self):
+        if self.config.task_layer_private:
+            return f'{self.task}-{self.lang}'
+        return self.task
 
     def log(self, message, level):
         self.orch.log(message, level)
