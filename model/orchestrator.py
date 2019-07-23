@@ -132,7 +132,7 @@ class Orchestrator:
 
     def run_epoch(self):
 
-        train_models = [m for m in self.models.values() if m.trainable()]
+        train_models = [m for m in self.models.values()]
         if self.config.train_only is not None:
             train_models = [m for m in train_models if (m.task, m.lang) == self.config.train_only.split('-')]
 
@@ -142,14 +142,8 @@ class Orchestrator:
             on_rate = self.config.focus_rate
             off_rate = (1 - self.config.focus_rate) / (len(train_models) - 1)
 
-        def is_focused(model):
-            if self.config.focus_on is not None:
-                if (model.task, model.lang) == self.config.focus_on.split('-'):
-                    return True
-            return False
-
         probs = {
-            model: on_rate if is_focused(model) else off_rate
+            model: on_rate if model.is_focused() else off_rate
             for model
             in train_models
         }

@@ -468,8 +468,11 @@ class Model:
         else:
             return f'{self.task}-{self.lang}'
 
-    def trainable(self):
-        return self.train_set() is not None
+    def is_focused(self):
+        if self.config.focus_on is not None:
+            if (self.task, self.lang) == self.config.focus_on.split('-'):
+                return True
+        return False
 
     def get_representations(self):
         eval_sets = [
