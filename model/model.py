@@ -125,6 +125,12 @@ class Model:
                 values=[word_embeddings, char_embeddings],
                 axis=-1)
 
+        model_embeddings = self.add_model_embeddings()
+        if model_embeddings is not None:
+            word_embeddings = tf.concat(
+                values=[word_embeddings, model_embeddings],
+                axis=-1)
+
         word_embeddings = tf.nn.dropout(
             x=word_embeddings,
             rate=self.orch.n.dropout)
@@ -174,6 +180,58 @@ class Model:
             y=char_lstm_out)
 
         return char_lstm_out
+
+    def add_model_embeddings(self):
+
+        embs = list()
+
+        with tf.variable_scope('model_embeddings', reuse=tf.AUTO_REUSE):
+
+            task_embeddings = tf.get_variable(
+                dtype=tf.float32,
+                shape=(len(self.orch.tasks), 25),
+                name="task_embeddings")
+
+            lang_embeddings = tf.get_variable(
+                dtype=tf.float32,
+                shape=(len(self.orch.langs), 25),
+                name="lang_embeddings")
+
+            task_lang_embeddings = tf.get_variable(
+                dtype=tf.float32,
+                shape=(len(self.orch.tasks) * len(self.orch.langs), 25),
+                name="task_lang_embeddings")
+
+        if self.config.emb_task:
+            embs.append(tf.nn.embedding_lookup(
+                params=task_embeddings,
+                ids=self.n.task_id))
+
+        if self.config.emb_lang:
+            embs.append(tf.nn.embedding_lookup(
+                params=lang_embeddings,
+                ids=self.n.lang_id))
+
+        if self.config.emb_task_lang:
+            embs.append(tf.nn.embedding_lookup(
+                params=task_lang_embeddings,
+                ids=self.n.task_id * len(self.orch.tasks) + self.n.lang_id))
+
+        if not embs:
+            return None
+
+        embs = tf.concat(
+            values=embs,
+            axis=-1)
+        embs = tf.expand_dims(
+            input=embs,
+            axis=0)
+        embs = tf.expand_dims(
+            input=embs,
+            axis=0)
+        return tf.tile(
+            input=embs,
+            multiples=(self.n.batch_size, self.n.max_length, 1))
 
     def add_sentence_processing(self):
 
@@ -296,18 +354,18 @@ class Model:
                 inputs=hidden,
                 units=len(self.orch.langs))
 
-            one_hot_lang = tf.one_hot(
+            lang_one_hot = tf.one_hot(
                 indices=self.n.lang_id,
                 depth=len(self.orch.langs))
-            one_hot_lang = tf.expand_dims(
-                input=one_hot_lang,
+            lang_one_hot = tf.expand_dims(
+                input=lang_one_hot,
                 axis=0)
-            one_hot_lang = tf.tile(
-                input=one_hot_lang,
+            lang_one_hot = tf.tile(
+                input=lang_one_hot,
                 multiples=[self.n.total_batch_length, 1])
 
             loss = tf.nn.softmax_cross_entropy_with_logits_v2(
-                labels=one_hot_lang,
+                labels=lang_one_hot,
                 logits=logits)
 
             self.n.adversarial_loss = tf.reduce_mean(loss)
@@ -470,7 +528,7 @@ class Model:
 
     def is_focused(self):
         if self.config.focus_on is not None:
-            if (self.task, self.lang) == self.config.focus_on.split('-'):
+            if [self.task, self.lang] == self.config.focus_on.split('-'):
                 return True
         return False
 

@@ -6,6 +6,10 @@ default: &default
   char_emb_size: 30
   char_level: true
 
+  emb_task: false
+  emb_lang: false
+  emb_task_lang: false
+
   word_lstm_size: 200
   char_lstm_size: 100
   hidden_size: 200 # universal hidden size used for task-specific computations

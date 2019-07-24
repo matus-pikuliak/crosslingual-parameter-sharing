@@ -134,7 +134,7 @@ class Orchestrator:
 
         train_models = [m for m in self.models.values()]
         if self.config.train_only is not None:
-            train_models = [m for m in train_models if (m.task, m.lang) == self.config.train_only.split('-')]
+            train_models = [m for m in train_models if [m.task, m.lang] == self.config.train_only.split('-')]
 
         if self.config.focus_on is None:
             off_rate = 1 / len(train_models)
@@ -184,10 +184,10 @@ class Orchestrator:
         eval_models = self.models.values()
 
         if self.config.focus_on is not None:
-            eval_models = self.models[self.config.focus_on.split('-')]
+            eval_models = [self.models[tuple(self.config.focus_on.split('-'))]]
 
         if self.config.train_only is not None:
-            eval_models = self.models[self.config.train_only.split('-')]
+            eval_models = [self.models[tuple(self.config.train_only.split('-'))]]
 
         for model in eval_models:
             model.evaluate()
