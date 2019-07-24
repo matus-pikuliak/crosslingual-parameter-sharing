@@ -48,7 +48,7 @@ class ModelLMO(Model):
         cont_repr = self.n.contextualized
         start_tag = tf.get_variable(
             name='start_tag',
-            shape=[1, 1, self.config.word_lstm_size],
+            shape=[1, 1, tf.shape(self.n.contextualized)[-1]],
             dtype=tf.float32)
         start_tag = tf.tile(
             input=start_tag,
