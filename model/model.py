@@ -336,7 +336,7 @@ class Model:
             if dropout:
                 out = tf.nn.dropout(
                     x=out,
-                    keep_prob=self.orch.n.dropout)
+                    rate=self.orch.n.dropout)
 
             return out
 
@@ -448,7 +448,7 @@ class Model:
     def test_feed_dict(self, batch):
         fd = self.basic_feed_dict(batch)
         fd.update({
-            self.orch.n.dropout: 1
+            self.orch.n.dropout: 0
         })
         return fd
 
