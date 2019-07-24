@@ -9,6 +9,8 @@ class ModelLMO(Model):
 
     def add_task_layer(self):
 
+        self.half_size = int(self.n.contextualized.get_shape()[-1]) // 2
+
         with tf.variable_scope(f'{self.task}-{self.lang}'):
 
             past, future = self.add_past(), self.add_future()
@@ -48,7 +50,7 @@ class ModelLMO(Model):
         cont_repr = self.n.contextualized
         start_tag = tf.get_variable(
             name='start_tag',
-            shape=[1, 1, tf.shape(self.n.contextualized)[-1]],
+            shape=[1, 1, self.half_size],
             dtype=tf.float32)
         start_tag = tf.tile(
             input=start_tag,
@@ -74,8 +76,8 @@ class ModelLMO(Model):
     def add_future(self):
         cont_repr = self.n.contextualized
         end_tag = tf.get_variable(
+            shape=[1, 1, self.half_size],
             name='end_tag',
-            shape=[1, 1, self.config.word_lstm_size],
             dtype=tf.float32)
         end_tag = tf.tile(
             input=end_tag,
@@ -98,7 +100,7 @@ class ModelLMO(Model):
             axis=-1)
         mask = tf.tile(
             input=mask,
-            multiples=[1, 1, self.config.word_lstm_size])
+            multiples=[1, 1, self.half_size])
         bw_repr = tf.where(
             condition=mask,
             x=bw_repr,
