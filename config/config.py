@@ -3,6 +3,8 @@ import os
 
 import yaml
 
+from constants import TASKS, LANGS
+
 
 class Config:
     """
@@ -36,6 +38,8 @@ class Config:
 
             if arg == 'tasks':
                 self.values['tasks'] = [tuple(tl.split('-')) for _, tl in ite]
+                if self.values['tasks'] == [('all', )]:
+                    self.values['tasks'] = [(task, lang) for task in TASKS for lang in LANGS]
                 break
 
             _, value = next(ite)

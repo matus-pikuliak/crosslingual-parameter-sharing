@@ -2,6 +2,7 @@ ROLES = ['train', 'dev', 'test']
 UNK_WORD = '<UNK>'
 UNK_CHAR = u'\u2716'
 TASKS = ['pos', 'ner', 'dep', 'lmo']
+LANGS = ['cs', 'de', 'en', 'es']
 NER_O_TAG = 'O'
 LOG_CRITICAL = 'CRITICAL'
 LOG_MESSAGE = 'MESSAGE'
