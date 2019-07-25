@@ -317,7 +317,7 @@ class Model:
         return sum(
             tf.square(
                 tf.norm(
-                    tf.matmul(tf.transpose(m1), tf.transpose(m2)),
+                    tf.matmul(tf.transpose(m1), m2),
                     ord='fro',
                     axis=[0, 1]))
             for i, m1 in enumerate(matrices)
