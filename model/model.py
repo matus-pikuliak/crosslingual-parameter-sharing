@@ -154,26 +154,45 @@ class Model:
             ids=self.n.char_ids,
             name="char_embeddings_lookup")
 
-        shape = tf.shape(char_embeddings)
-        max_sentence, max_word = shape[1], shape[2]
-
         char_embeddings = tf.reshape(
             tensor=char_embeddings,
-            shape=[-1, max_word, self.config.char_emb_size])
+            shape=[-1, tf.shape(char_embeddings)[2], self.config.char_emb_size])
         word_lengths = tf.reshape(
             tensor=self.n.word_lengths,
             shape=[-1])
-        char_lstm_out = self.lstm(
-            inputs=char_embeddings,
-            sequence_lengths=word_lengths,
-            cell_size=self.config.char_lstm_size,
-            name_scope='char_bilstm',
-            avg_pool=True,
-            dropout=False)
+
+        lstms = []
+
+        def get_lstm(name_scope):
+            return self.lstm(
+                inputs=char_embeddings,
+                sequence_lengths=word_lengths,
+                cell_size=self.config.char_lstm_size,
+                name_scope=name_scope,
+                avg_pool=True,
+                dropout=False)
+
+        if self.config.char_lstm_private:
+            lstms.append(get_lstm(f'char_bilstm_{self.task}_{self.lang}'))
+
+        if self.config.char_lstm_lang:
+            lstms.append(get_lstm(f'char_bilstm_{self.lang}'))
+
+        if self.config.char_lstm_global:
+            lstms.append(get_lstm(f'char_bilstm'))
+
+        assert(len(lstms) > 0)
+
+        if len(lstms) == 1:
+            char_lstm_out = lstms[0]
+        else:
+            char_lstm_out = tf.concat(
+                values=lstms,
+                axis=-1)
 
         char_lstm_out = tf.reshape(
             tensor=char_lstm_out,
-            shape=[-1, max_sentence, 2 * self.config.char_lstm_size])
+            shape=[self.n.batch_size, self.n.max_length, 2 * len(lstms) * self.config.char_lstm_size])
         char_lstm_out = tf.where(
             condition=tf.is_nan(char_lstm_out),
             x=tf.zeros_like(char_lstm_out),

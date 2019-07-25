@@ -41,6 +41,10 @@ default: &default
   min_char_freq: 100
   max_dataset_cache: 200000
 
+  char_lstm_private: false
+  char_lstm_lang: false
+  char_lstm_global: true
+
   word_lstm_private: false
   word_lstm_task: false
   word_lstm_lang: false
