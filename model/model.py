@@ -298,11 +298,11 @@ class Model:
         return sum(
             tf.square(
                 tf.norm(
-                    tf.matmul(m, tf.transpose(n)), # FIXME: je spravny clen transponovany?
+                    tf.matmul(tf.transpose(m1), tf.transpose(m2)),
                     ord='fro',
                     axis=[0, 1]))
-            for i, m in enumerate(matrices)
-            for j, n in enumerate(matrices)
+            for i, m1 in enumerate(matrices)
+            for j, m2 in enumerate(matrices)
             if i < j) / (count * count-1 / 2)
 
     def lstm(self, inputs, sequence_lengths, cell_size, name_scope, avg_pool=False, dropout=True):
