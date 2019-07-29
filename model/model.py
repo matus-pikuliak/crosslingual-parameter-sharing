@@ -314,15 +314,26 @@ class Model:
                 value=0,
                 dtype=tf.float32)
 
-        return sum(
-            tf.square(
-                tf.norm(
-                    tf.matmul(tf.transpose(m1), m2),
-                    ord='fro',
-                    axis=[0, 1]))
-            for i, m1 in enumerate(matrices)
-            for j, m2 in enumerate(matrices)
-            if i < j) / (count * count-1 / 2)
+        if self.config.original_frob:
+            return sum(
+                tf.square(
+                    tf.norm(
+                        tf.matmul(tf.transpose(m1), m2),
+                        ord='fro',
+                        axis=[0, 1]))
+                for i, m1 in enumerate(matrices)
+                for j, m2 in enumerate(matrices)
+                if i < j) / (count * count-1 / 2)
+        else:
+            return sum(
+                tf.square(
+                    tf.norm(
+                        tf.matmul(m1, tf.transpose(m2)),
+                        ord='fro',
+                        axis=[0, 1]))
+                for i, m1 in enumerate(matrices)
+                for j, m2 in enumerate(matrices)
+                if i < j) / (count * count-1 / 2)
 
     def lstm(self, inputs, sequence_lengths, cell_size, name_scope, avg_pool=False, dropout=True):
         with tf.variable_scope(name_scope, reuse=tf.AUTO_REUSE):
@@ -533,7 +544,7 @@ class Model:
             'loss': np.mean(results['loss']),
             'adv_loss': np.mean(results['adv_loss']),
             'gradient_norm': np.mean(results['gradient_norm']),
-            'unit_strength_2': np.std(np.mean(results['unit_strength'], axis=0)),
+            'unit_strength': np.std(np.mean(results['unit_strength'], axis=0)),
             'frobenius': np.mean(results['frobenius'])
         }
 
@@ -550,18 +561,6 @@ class Model:
             if [self.task, self.lang] == self.config.focus_on.split('-'):
                 return True
         return False
-
-    def get_representations(self):
-        eval_sets = [
-            st
-            for st
-            in self.create_sets()
-            if st.dataset.role == 'train']
-
-        return {
-            st.dataset.lang: st.layer.get_representations(st.iterator, st.dataset)
-            for st
-            in eval_sets}
 
     def task_layer_scope(self):
         if self.config.task_layer_private:

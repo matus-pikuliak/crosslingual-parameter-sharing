@@ -57,6 +57,7 @@ default: &default
   adversarial_freq: 1
 
   frobenius: 0.0
+  original_frob: true
 
   lmo_vocab_limit: 15000
 
