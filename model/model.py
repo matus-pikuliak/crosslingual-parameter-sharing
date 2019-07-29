@@ -1,4 +1,5 @@
 import types
+import itertools
 
 import numpy as np
 import tensorflow as tf
@@ -314,26 +315,33 @@ class Model:
                 value=0,
                 dtype=tf.float32)
 
-        if self.config.original_frob:
-            return sum(
-                tf.square(
-                    tf.norm(
-                        tf.matmul(tf.transpose(m1), m2),
-                        ord='fro',
-                        axis=[0, 1]))
-                for i, m1 in enumerate(matrices)
-                for j, m2 in enumerate(matrices)
-                if i < j) / (count * count-1 / 2)
-        else:
-            return sum(
-                tf.square(
-                    tf.norm(
-                        tf.matmul(m1, tf.transpose(m2)),
-                        ord='fro',
-                        axis=[0, 1]))
-                for i, m1 in enumerate(matrices)
-                for j, m2 in enumerate(matrices)
-                if i < j) / (count * count-1 / 2)
+        norms = {
+            matrix: tf.norm(
+                tensor=matrix,
+                axis=-1,
+                keepdims=True)
+            for matrix
+            in matrices
+        }
+
+        losses = []
+        for m1, m2 in itertools.combinations(matrices, 2):
+            loss = tf.matmul(
+                a=m1,
+                b=m2,
+                transpose_b=True)
+            loss /= tf.matmul(
+                a=norms[m1],
+                b=norms[m2],
+                transpose_b=True)
+            loss = tf.square(
+                tf.norm(
+                    tensor=loss,
+                    ord='fro',
+                    axis=[0, 1]))
+            losses.append(loss)
+
+        return sum(losses) / ((count - 1) * count / 2)
 
     def lstm(self, inputs, sequence_lengths, cell_size, name_scope, avg_pool=False, dropout=True):
         with tf.variable_scope(name_scope, reuse=tf.AUTO_REUSE):
