@@ -56,8 +56,7 @@ default: &default
   adversarial_lambda: 0.5
   adversarial_freq: 1
 
-  frobenius: 0.0
-  original_frob: true
+  ortho: 0.0
 
   lmo_vocab_limit: 15000
 

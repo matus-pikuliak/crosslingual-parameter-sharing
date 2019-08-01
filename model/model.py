@@ -278,7 +278,7 @@ class Model:
 
         assert(len(lstms) > 0)
 
-        self.n.frobenius = self.add_frobenius(*(
+        self.n.ortho = self.add_ortho(*(
             tf.boolean_mask(
                 tensor=lstm,
                 mask=self.n.sentence_lengths_mask)
@@ -306,11 +306,9 @@ class Model:
 
         self.add_adversarial_loss()
 
-    def add_frobenius(self, *matrices):
+    def add_ortho(self, *matrices):
 
-        count = len(matrices)
-
-        if count == 1:
+        if len(matrices) == 1:
             return tf.constant(
                 value=0,
                 dtype=tf.float32)
@@ -341,7 +339,9 @@ class Model:
                     axis=[0, 1]))
             losses.append(loss)
 
-        return sum(losses) / ((count - 1) * count / 2)
+        return sum(losses) / tf.cast(
+            x=len(losses) * self.n.total_batch_length**2,
+            dtype=tf.float32)
 
     def lstm(self, inputs, sequence_lengths, cell_size, name_scope, avg_pool=False, dropout=True):
         with tf.variable_scope(name_scope, reuse=tf.AUTO_REUSE):
@@ -454,8 +454,8 @@ class Model:
         total_loss = self.n.loss
         if self.config.adversarial_training and len(self.orch.langs) > 1:
             total_loss += self.n.adversarial_term
-        if self.config.frobenius > 0:
-            total_loss += self.config.frobenius * self.n.frobenius
+        if self.config.ortho > 0:
+            total_loss += self.config.ortho * self.n.ortho
         grads, vs = zip(*self.orch.n.optimizer.compute_gradients(total_loss))
         gradient_norm = tf.global_norm(grads)
         if self.config.clip > 0:
@@ -544,7 +544,7 @@ class Model:
             'gradient_norm': self.n.gradient_norm,
             'length': self.n.total_batch_length,
             'unit_strength': self.n.unit_strength,
-            'frobenius': self.n.frobenius
+            'ortho': self.n.ortho
         }
 
     def basic_results(self, results):
@@ -553,7 +553,7 @@ class Model:
             'adv_loss': np.mean(results['adv_loss']),
             'gradient_norm': np.mean(results['gradient_norm']),
             'unit_strength': np.std(np.mean(results['unit_strength'], axis=0)),
-            'frobenius': np.mean(results['frobenius'])
+            'ortho': np.mean(results['ortho'])
         }
 
     def task_code(self):
