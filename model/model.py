@@ -18,6 +18,7 @@ class Model:
         self.dl = data_loader
         self.config = config
         self.logger = logger
+        self.previous_results = dict()
 
         self.n = types.SimpleNamespace()
 
@@ -519,6 +520,9 @@ class Model:
                 'role': eval_set.dataset.role,
                 'epoch': self.orch.epoch
             })
+
+            if eval_set.dataset.role == 'dev':
+                self.previous_results[self.orch.epoch] = self.get_latest_result(output)
             self.log(
                 message={'results': output},
                 level=LOG_RESULT)
@@ -528,6 +532,13 @@ class Model:
             yield self.orch.sess.run(
                 fetches=fetch_nodes,
                 feed_dict=self.test_feed_dict(batch))
+
+    def should_early_stop(self):
+        if self.config.early_stopping >= len(self.previous_results):
+            return False
+        if self.get_best_epoch() > len(self.previous_results) - self.config.early_stopping:
+            return False
+        return True
 
     def get_representations(self, iterator):
         return np.vstack([

@@ -25,7 +25,6 @@ class Embeddings:
 
         # used for word_emb_type 'mwe_projected'
         order = np.random.permutation(self.config.word_emb_size)
-        weights = np.random.random(self.config.word_emb_size)
 
         for line in self.read_lines():
             line_iter = split_iter(line)
@@ -41,11 +40,8 @@ class Embeddings:
                     vec = np.random.random(self.config.word_emb_size)
                     norm = np.linalg.norm(vec)
                     emb_matrix[id] = vec / norm
-                elif self.config.word_emb_type == 'mwe_projected':
-                    vec = vec[order]  # random reorder
-                    vec *= weights
-                    norm = np.linalg.norm(vec)
-                    emb_matrix[id] = vec / norm
+                elif self.config.word_emb_type == 'mwe_rotated':
+                    emb_matrix[id] = vec[order]
                 else:
                     raise RuntimeError('Wrong embedding types(must be "mwe", "random" or "mwe_projected").')
         print('Loaded.')

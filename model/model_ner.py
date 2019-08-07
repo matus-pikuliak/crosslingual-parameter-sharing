@@ -100,4 +100,9 @@ class ModelNER(ModelSQT):
                 chunks.add((i, pointer - 1, id))
         return chunks
 
+    def get_latest_result(self, output):
+        return output['chunk_f1']
+
+    def get_best_epoch(self):
+        return max(self.previous_results, key=self.previous_results.get)
 

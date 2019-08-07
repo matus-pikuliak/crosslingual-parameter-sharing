@@ -19,3 +19,9 @@ class ModelPOS(ModelSQT):
         return {
             'acc': 100 * sum(results['correct_tags']) / sum(results['length'])
         }
+
+    def get_latest_result(self, output):
+        return output['acc']
+
+    def get_best_epoch(self):
+        return max(self.previous_results, key=self.previous_results.get)

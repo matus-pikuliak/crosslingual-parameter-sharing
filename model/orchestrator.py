@@ -99,6 +99,13 @@ class Orchestrator:
             raise AttributeError('lr_schedule must be set to static or decay')
 
     def run_training(self, start_epoch=1):
+        if self.config.early_stopping > 0:
+            try:
+                focused = next(model for model in self.models.values() if model.is_focused())
+            except StopIteration:  # no model is focused
+                assert len(self.models) == 1
+                focused = self.models[0]
+
         start_time = datetime.datetime.now()
         self.log(
             message=f'Run started {start_time}',
@@ -121,6 +128,12 @@ class Orchestrator:
 
             if self.config.save_model == 'epoch':
                 self.save(self.epoch)
+
+            if self.config.early_stopping > 0 and focused.should_early_stop():
+                self.log(
+                    message=f'Early stopping in epoch {self.epoch}',
+                    level=LOG_CRITICAL)
+                break
 
         if self.config.save_model == 'run':
             self.save()

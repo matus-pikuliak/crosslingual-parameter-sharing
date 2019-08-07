@@ -217,3 +217,9 @@ class ModelDEP(Model):
 
         return np.array(result, dtype=np.int32)
 
+    def get_latest_result(self, output):
+        return output['las']
+
+    def get_best_epoch(self):
+        return max(self.previous_results, key=self.previous_results.get)
+

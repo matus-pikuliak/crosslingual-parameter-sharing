@@ -127,3 +127,9 @@ class ModelLMO(Model):
         return {
             'perplexity': np.exp(sum(results['perplexity'])/sum(results['length']))
         }
+
+    def get_latest_result(self, output):
+        return output['perplexity']
+
+    def get_best_epoch(self):
+        return min(self.previous_results, key=self.previous_results.get)

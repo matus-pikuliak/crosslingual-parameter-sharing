@@ -94,12 +94,19 @@ db = {
         (6, 'mtml', 'no-adv-tsh-focused'),
         (6, 'mt', 'private-focused'),
         (6, 'mtml', 'private-focused-0.75'),
+        (10, 'var', 'zero-shot'),
+        (6, 'var', 'zero-shot2'),
+        (3, 'var', 'zero-shot3'),
+        (10, 'var', 'zero-shot4'),
+        (5, 'var', 'zero-shot6'),
     ],
     'deepnet5': [
         (8, 'top3', 'private-focused'),
         (6, 'ml', 'private-focused'),
         (6, 'top1',    'private-focused'),
         (6, 'top1', 'private-focused'),
+        (6, 'var', 'zero-shot5'),
+        (5, 'var', 'zero-shot7'),
     ]
 }
 
