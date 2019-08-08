@@ -104,7 +104,7 @@ class Orchestrator:
                 focused = next(model for model in self.models.values() if model.is_focused())
             except StopIteration:  # no model is focused
                 assert len(self.models) == 1
-                focused = self.models[0]
+                focused = list(self.models.values())[0]
 
         start_time = datetime.datetime.now()
         self.log(
