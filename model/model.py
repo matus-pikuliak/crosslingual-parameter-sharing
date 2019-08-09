@@ -318,24 +318,17 @@ class Model:
                 value=0,
                 dtype=tf.float32)
 
-        norms = {
-            matrix: tf.norm(
-                tensor=matrix,
-                axis=-1,
-                keepdims=True)
+        matrices = [tf.math.l2_normalize(
+            x=matrix,
+            axis=1)
             for matrix
-            in matrices
-        }
+            in matrices]
 
         losses = []
         for m1, m2 in itertools.combinations(matrices, 2):
             loss = tf.matmul(
                 a=m1,
                 b=m2,
-                transpose_b=True)
-            loss /= tf.matmul(
-                a=norms[m1],
-                b=norms[m2],
                 transpose_b=True)
             loss = tf.square(
                 tf.norm(
