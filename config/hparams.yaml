@@ -4,7 +4,8 @@ default: &default
   word_emb_size: 300
   train_emb: false
   char_emb_size: 30
-  char_level: true
+  word_level: true
+  char_level: false
 
   emb_task: false
   emb_lang: false

@@ -109,29 +109,23 @@ class Model:
         self.n.max_length = tf.shape(self.n.word_ids)[1]
 
     def add_word_processing(self):
+        embs = list()
 
-        with tf.variable_scope('word_embeddings', reuse=tf.AUTO_REUSE):
-            word_emb_matrix = tf.get_variable(
-                dtype=tf.float32,
-                initializer=tf.cast(self.load_embeddings(self.lang), tf.float32),
-                trainable=self.config.train_emb,
-                name=f'word_embedding_matrix_{self.lang}')
-
-        word_embeddings = tf.nn.embedding_lookup(
-            params=word_emb_matrix,
-            ids=self.n.word_ids)
-
+        if self.config.word_level:
+            embs.append(self.add_pretrained_embeddings())
         if self.config.char_level:
-            char_embeddings = self.add_char_embeddings()
-            word_embeddings = tf.concat(
-                values=[word_embeddings, char_embeddings],
-                axis=-1)
-
+            embs.append(self.add_char_embeddings())
+        assert len(embs) > 0
         model_embeddings = self.add_model_embeddings()
         if model_embeddings is not None:
+            embs.append(model_embeddings)
+
+        if len(embs) > 1:
             word_embeddings = tf.concat(
-                values=[word_embeddings, model_embeddings],
-                axis=-1)
+                    values=embs,
+                    axis=-1)
+        else:
+            word_embeddings = embs[0]
 
         word_embeddings = tf.nn.dropout(
             x=word_embeddings,
@@ -139,9 +133,19 @@ class Model:
 
         self.n.word_embeddings = word_embeddings
 
-    def load_embeddings(self, lang):
-        emb = Embeddings(lang, self.config)
-        return emb.matrix(self.dl.lang_vocabs[lang])
+    def add_pretrained_embeddings(self):
+        with tf.variable_scope('word_embeddings', reuse=tf.AUTO_REUSE):
+            word_emb_matrix = tf.get_variable(
+                dtype=tf.float32,
+                initializer=tf.cast(
+                    x=Embeddings(self.lang, self.config).matrix(self.dl.lang_vocabs[self.lang]),
+                    dtype=tf.float32),
+                trainable=self.config.train_emb,
+                name=f'word_embedding_matrix_{self.lang}')
+
+        return tf.nn.embedding_lookup(
+            params=word_emb_matrix,
+            ids=self.n.word_ids)
 
     def add_char_embeddings(self):
         #FIXME: add char level sharing strategies
