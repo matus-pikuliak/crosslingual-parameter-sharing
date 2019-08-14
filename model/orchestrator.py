@@ -194,15 +194,7 @@ class Orchestrator:
             level=LOG_CRITICAL)
 
     def evaluate_models(self):
-        eval_models = self.models.values()
-
-        if self.config.focus_on is not None:
-            eval_models = [self.models[tuple(self.config.focus_on.split('-'))]]
-
-        if self.config.train_only is not None:
-            eval_models = [self.models[tuple(self.config.train_only.split('-'))]]
-
-        for model in eval_models:
+        for model in self.models.values():
             model.evaluate()
 
     def show_graph(self):
