@@ -3,6 +3,23 @@ import itertools
 ls = ['cs', 'de', 'en', 'es']
 ts = ['dep', 'lmo', 'ner', 'pos']
 
+'''
+14.08.2019 deepnet5 run
+zero-shot ML transfer one-to-one
+'''
+for t in ts:
+    for l in ls:
+        for l2 in ls:
+            if l2 != l and t != 'lmo':
+                print(
+                    f'bash train.sh focus_on {t}-{l} focus_rate 0 task_layer_private false epochs 100 early_stopping 10 tasks {t}-{l} {t}-{l2}',
+                    end=' && ')
+
+exit()
+
+
+
+
 
 
 # TOP1

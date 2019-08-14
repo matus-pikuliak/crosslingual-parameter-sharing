@@ -3,6 +3,7 @@ db = {
         (8, 'var', 'early-5'),
         (8, 'var', 'early-10'),
         (8, 'var', 'early-no'),
+        (36, 'ml', 'zero-shot'),
     ]
 }
 
