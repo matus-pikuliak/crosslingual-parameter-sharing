@@ -1,6 +1,8 @@
 db = {
     'deepnet5': [
-        (0, 'top3', 'private-focused'),
+        (8, 'var', 'early-5'),
+        (8, 'var', 'early-10'),
+        (8, 'var', 'early-no'),
     ]
 }
 
