@@ -4,6 +4,71 @@ ls = ['cs', 'de', 'en', 'es']
 ts = ['dep', 'lmo', 'ner', 'pos']
 
 '''
+15.08.2019 deepnet2070 run
+zero-shot all transfer many-to-one
+'''
+for t in ts:
+    for l in ls:
+        if t != 'lmo':
+            print(
+                f'bash train.sh focus_on {t}-{l} focus_rate 0 task_layer_private false epochs 100 early_stopping 10 tasks all',
+                end=' && ')
+for t in ts:
+    for l in ls:
+        if t != 'lmo':
+            print(
+                f'bash train.sh focus_on {t}-{l} word_lstm_lang true word_lstm_task true focus_rate 0 task_layer_private false epochs 100 early_stopping 10 tasks all',
+                end=' && ')
+for t in ts:
+    for l in ls:
+        if t != 'lmo':
+            print(
+                f'bash train.sh focus_on {t}-{l} word_lstm_lang true word_lstm_task true  word_lstm_global false focus_rate 0 task_layer_private false epochs 100 early_stopping 10 tasks all',
+                end=' && ')
+exit()
+
+'''
+15.08.2019 deepnet5 run
+zero-shot related transfer many-to-one
+'''
+for t in ts:
+    for l in ls:
+        if t != 'lmo':
+            tasks = ' '.join([f'{t2}-{l2}' for t2 in ts for l2 in ls if t == t2 or l == l2])
+            print(
+                f'bash train.sh focus_on {t}-{l} focus_rate 0 task_layer_private false epochs 100 early_stopping 10 tasks {tasks}',
+                end=' && ')
+for t in ts:
+    for l in ls:
+        if t != 'lmo':
+            tasks = ' '.join([f'{t2}-{l2}' for t2 in ts for l2 in ls if t == t2 or l == l2])
+            print(
+                f'bash train.sh focus_on {t}-{l} word_lstm_lang true word_lstm_task true focus_rate 0 task_layer_private false epochs 100 early_stopping 10 tasks {tasks}',
+                end=' && ')
+for t in ts:
+    for l in ls:
+        if t != 'lmo':
+            tasks = ' '.join([f'{t2}-{l2}' for t2 in ts for l2 in ls if t == t2 or l == l2])
+            print(
+                f'bash train.sh focus_on {t}-{l} word_lstm_lang true word_lstm_task true  word_lstm_global false focus_rate 0 task_layer_private false epochs 100 early_stopping 10 tasks {tasks}',
+                end=' && ')
+exit()
+
+
+'''
+15.08.2019 deepnet2070 run
+zero-shot ML transfer many-to-one
+'''
+for t in ts:
+    for l in ls:
+        if t != 'lmo':
+            tasks = ' '.join([f'{t}-{l2}' for l2 in ls])
+            print(
+                f'bash train.sh focus_on {t}-{l} focus_rate 0 task_layer_private false epochs 100 early_stopping 10 tasks {tasks}',
+                end=' && ')
+exit()
+
+'''
 14.08.2019 deepnet5 run
 zero-shot ML transfer one-to-one
 '''
@@ -14,7 +79,6 @@ for t in ts:
                 print(
                     f'bash train.sh focus_on {t}-{l} focus_rate 0 task_layer_private false epochs 100 early_stopping 10 tasks {t}-{l} {t}-{l2}',
                     end=' && ')
-
 exit()
 
 
