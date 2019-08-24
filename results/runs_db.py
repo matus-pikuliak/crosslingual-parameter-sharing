@@ -20,6 +20,10 @@ db = {
         (12, 'all', 'zero-shot'),
         (12, 'all', 'zero-shot-task-lang'),
         (12, 'all', 'zero-shot-task-lang-no-global'),
+        (12, 'all', 'zero-shot-embs'),
+        (12, 'rel', 'zero-shot-embs'),
+        (12, 'all', 'zero-shot-embs-400'),
+        (12, 'rel', 'zero-shot-embs-400'),
     ],
 }
 
