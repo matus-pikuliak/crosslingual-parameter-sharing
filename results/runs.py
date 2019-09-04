@@ -4,6 +4,40 @@ ls = ['cs', 'de', 'en', 'es']
 ts = ['dep', 'lmo', 'ner', 'pos']
 
 '''
+04.09.2019 deepnet2070 run
+zero shot task or lang embeddings
+'''
+
+for t in ts:
+    for l in ls:
+        if t != 'lmo':
+            print(
+                f'bash train.sh focus_on {t}-{l} emb_task True focus_rate 0 task_layer_private false epochs 100 early_stopping 10 tasks all',
+                end=' && ')
+for t in ts:
+    for l in ls:
+        if t != 'lmo':
+            print(
+                f'bash train.sh focus_on {t}-{l} emb_lang True focus_rate 0 task_layer_private false epochs 100 early_stopping 10 tasks all',
+                end=' && ')
+
+exit()
+
+'''
+02.09.2019 deepnet2070 run
+normal baselines
+'''
+
+for t in ts:
+    for l in ls:
+        if t != 'lmo':
+            print(
+                f'bash train.sh epochs 100 early_stopping 10 tasks {t}-{l}',
+                end=' && ')
+exit()
+
+
+'''
 24.08.2019 deepnet2070 run
 zero-shot all rel transfer with task and lang embeddings
 '''

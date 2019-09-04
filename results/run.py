@@ -23,7 +23,7 @@ class Run:
         with open(self.path) as f:
             log = ast.literal_eval(f.read())
             self.data = log['results']
-            self.hparams = log['config']
+            self.config = log['config']
 
     def match(self, datum, **filters):
         return all(
