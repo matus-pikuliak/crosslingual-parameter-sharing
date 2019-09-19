@@ -4,6 +4,35 @@ ls = ['cs', 'de', 'en', 'es']
 ts = ['dep', 'lmo', 'ner', 'pos']
 
 '''
+04.09.2019 deepnet5 run
+zero shot task or lang sharing
+'''
+for t in ts:
+    for l in ls:
+        if t != 'lmo':
+            print(
+                f'bash train.sh focus_on {t}-{l} word_lstm_lang true focus_rate 0 task_layer_private false epochs 100 early_stopping 10 tasks all',
+                end=' && ')
+for t in ts:
+    for l in ls:
+        if t != 'lmo':
+            print(
+                f'bash train.sh focus_on {t}-{l} word_lstm_task true focus_rate 0 task_layer_private false epochs 100 early_stopping 10 tasks all',
+                end=' && ')
+for t in ts:
+    for l in ls:
+        if t != 'lmo':
+            print(
+                f'bash train.sh focus_on {t}-{l} ortho 25 word_lstm_lang true word_lstm_task true focus_rate 0 task_layer_private false epochs 100 early_stopping 10 tasks all',
+                end=' && ')
+for t in ts:
+    for l in ls:
+        if t != 'lmo':
+            print(
+                f'bash train.sh focus_on {t}-{l} ortho 10 word_lstm_lang true word_lstm_task true focus_rate 0 task_layer_private false epochs 100 early_stopping 10 tasks all',
+                end=' && ')
+exit()
+'''
 04.09.2019 deepnet2070 run
 zero shot task or lang embeddings
 '''
@@ -19,6 +48,12 @@ for t in ts:
         if t != 'lmo':
             print(
                 f'bash train.sh focus_on {t}-{l} emb_lang True focus_rate 0 task_layer_private false epochs 100 early_stopping 10 tasks all',
+                end=' && ')
+for t in ts:
+    for l in ls:
+        if t != 'lmo':
+            print(
+                f'bash train.sh focus_on {t}-{l} emb_task true emb_lang true word_lstm_lang true word_lstm_task true focus_rate 0 task_layer_private false epochs 100 early_stopping 10 tasks all',
                 end=' && ')
 
 exit()
