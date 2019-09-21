@@ -18,6 +18,7 @@ db = {
         (12, 'all', 'zero-shot-lang'),
         (12, 'all', 'zero-shot-task-lang-ortho-25'),
         (12, 'all', 'zero-shot-task-lang-ortho-10'),
+        (12, 'all', 'zero-shot-embs-rotated'),
     ],
     'deepnet2070': [
         (12, 'ml-3', 'zero-shot'),
@@ -32,6 +33,8 @@ db = {
         (12, 'all', 'zero-shot-task-emb'),
         (12, 'all', 'zero-shot-lang-emb'),
         (12, 'all', 'zero-shot-task-lang-both-embs'),
+        (12, 'all', 'zero-shot-rotated'),
+        (12, 'all', 'zero-shot-task-lang-rotated'),
     ],
 }
 print([(server, sum(tpl[0] for tpl in tuples)) for server, tuples in db.items()])
