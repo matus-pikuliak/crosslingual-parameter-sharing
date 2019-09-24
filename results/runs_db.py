@@ -19,6 +19,7 @@ db = {
         (12, 'all', 'zero-shot-task-lang-ortho-25'),
         (12, 'all', 'zero-shot-task-lang-ortho-10'),
         (12, 'all', 'zero-shot-embs-rotated'),
+        (12, 'ml-3', 'zero-shot-rotated'),
     ],
     'deepnet2070': [
         (12, 'ml-3', 'zero-shot'),

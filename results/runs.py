@@ -3,7 +3,18 @@ import itertools
 ls = ['cs', 'de', 'en', 'es']
 ts = ['dep', 'lmo', 'ner', 'pos']
 
-#TODO: ml w/ mwe_rotated
+'''
+21.09.2019 deepnet5 run
+zero shot random MWE
+'''
+for t in ts:
+    for l in ls:
+        if t != 'lmo':
+            tasks = ' '.join([f'{t}-{l2}' for l2 in ls])
+            print(
+                f'bash train.sh focus_on {t}-{l} word_emb_type mwe_rotated focus_rate 0 task_layer_private false epochs 100 early_stopping 10 tasks {tasks}',
+                end=' && ')
+exit()
 
 '''
 20.09.2019 deepnet2070 run
