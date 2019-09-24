@@ -2,6 +2,43 @@ import itertools
 
 ls = ['cs', 'de', 'en', 'es']
 ts = ['dep', 'lmo', 'ner', 'pos']
+'''
+24.09.2019 deepnet5 run
+zero shot char level all&& embs
+'''
+for t in ts:
+    for l in ls:
+        if t != 'lmo':
+            print(
+                f'bash train.sh focus_on {t}-{l} word_level false char_level true focus_rate 0 task_layer_private false epochs 100 early_stopping 10 tasks all',
+                end=' && ')
+
+for t in ts:
+    for l in ls:
+        if t != 'lmo':
+            print(
+                f'bash train.sh focus_on {t}-{l} word_level false char_level true emb_lang true emb_task true focus_rate 0 task_layer_private false epochs 100 early_stopping 10 tasks all',
+                end=' && ')
+exit()
+'''
+24.09.2019 deepnet2070 run
+zero shot char level ml-3 && task-lang all
+'''
+for t in ts:
+    for l in ls:
+        if t != 'lmo':
+            tasks = ' '.join([f'{t}-{l2}' for l2 in ls])
+            print(
+                f'bash train.sh focus_on {t}-{l} word_level false char_level true focus_rate 0 task_layer_private false epochs 100 early_stopping 10 tasks {tasks}',
+                end=' && ')
+
+for t in ts:
+    for l in ls:
+        if t != 'lmo':
+            print(
+                f'bash train.sh focus_on {t}-{l} word_level false char_level true word_lstm_lang true word_lstm_task true focus_rate 0 task_layer_private false epochs 100 early_stopping 10 tasks all',
+                end=' && ')
+exit()
 
 '''
 21.09.2019 deepnet5 run
