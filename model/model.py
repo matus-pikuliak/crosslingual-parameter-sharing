@@ -122,8 +122,8 @@ class Model:
 
         if len(embs) > 1:
             word_embeddings = tf.concat(
-                    values=embs,
-                    axis=-1)
+                values=embs,
+                axis=-1)
         else:
             word_embeddings = embs[0]
 

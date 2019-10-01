@@ -1,7 +1,61 @@
 import itertools
 
-ls = ['cs', 'de', 'en', 'es']
-ts = ['dep', 'lmo', 'ner', 'pos']
+import numpy as np
+
+ls = {'cs', 'de', 'en', 'es'}
+ts = {'dep', 'lmo', 'ner', 'pos'}
+
+pairs = set()
+while len(pairs) < 20:
+    tgt_task = np.random.choice(list(ts - {'lmo'}))
+    tgt_lang = np.random.choice(list(ls))
+    src_task = np.random.choice(list(ts - {tgt_task}))
+    src_lang = np.random.choice(list(ls - {tgt_lang}))
+    tpl = (tgt_task, tgt_lang, src_task, src_lang)
+    if tpl not in pairs:
+        pairs.add(tpl)
+    else:
+        continue
+
+    print(
+        f'bash train.sh focus_on {tgt_task}-{tgt_lang} focus_rate 0 task_layer_private false epochs 100 early_stopping 10 tasks {tgt_task}-{tgt_lang} {tgt_task}-{src_lang}',
+        end=' && ')
+    print(
+        f'bash train.sh focus_on {tgt_task}-{tgt_lang} focus_rate 0 task_layer_private false epochs 100 early_stopping 10 tasks {tgt_task}-{tgt_lang} {tgt_task}-{src_lang} {src_task}-{tgt_lang}',
+        end=' && ')
+    print(
+        f'bash train.sh focus_on {tgt_task}-{tgt_lang} focus_rate 0 task_layer_private false epochs 100 early_stopping 10 tasks {tgt_task}-{tgt_lang} {tgt_task}-{src_lang} {src_task}-{src_lang}',
+        end=' && ')
+    print(
+        f'bash train.sh focus_on {tgt_task}-{tgt_lang} focus_rate 0 task_layer_private false epochs 100 early_stopping 10 tasks {tgt_task}-{tgt_lang} {tgt_task}-{src_lang} {src_task}-{tgt_lang} {src_task}-{src_lang}',
+        end=' && ')
+    print(
+        f'bash train.sh focus_on {tgt_task}-{tgt_lang} emb_task True emb_lang True focus_rate 0 task_layer_private false epochs 100 early_stopping 10 tasks {tgt_task}-{tgt_lang} {tgt_task}-{src_lang} {src_task}-{tgt_lang} {src_task}-{src_lang}',
+        end=' && ')
+    print(
+        f'bash train.sh focus_on {tgt_task}-{tgt_lang} word_lstm_lang True word_lstm_task True focus_rate 0 task_layer_private false epochs 100 early_stopping 10 tasks {tgt_task}-{tgt_lang} {tgt_task}-{src_lang} {src_task}-{tgt_lang} {src_task}-{src_lang}',
+        end=' && ')
+
+exit()
+'''
+24.09.2019 deepnet5 run
+zero shot random MWE, char level both with 400 embs
+'''
+for t in ts:
+    for l in ls:
+        if t != 'lmo':
+            print(
+                f'bash train.sh focus_on {t}-{l} word_lstm_size 400 word_emb_type mwe_rotated emb_task True emb_lang True focus_rate 0 task_layer_private false epochs 100 early_stopping 10 tasks all',
+                end=' && ')
+
+for t in ts:
+    for l in ls:
+        if t != 'lmo':
+            print(
+                f'bash train.sh focus_on {t}-{l} word_lstm_size 400 word_level false char_level true emb_lang true emb_task true focus_rate 0 task_layer_private false epochs 100 early_stopping 10 tasks all',
+                end=' && ')
+exit()
+
 '''
 24.09.2019 deepnet5 run
 zero shot char level all&& embs
