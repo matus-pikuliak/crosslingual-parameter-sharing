@@ -81,11 +81,10 @@ class Config:
         return config
 
     @staticmethod
-    def load_from_log(run_name, log_path=None):
-        if log_path is None:
-            log_path = Config().log_path
-        log_file_path = os.path.join(log_path, run_name)
-        with open(log_file_path) as log_file:
+    def load_from_log(run_name=None, log_path=None):
+        if run_name is not None:
+            log_path = os.path.join(Config().log_path, run_name)
+        with open(log_path) as log_file:
             log = ast.literal_eval(log_file.read())
             config = Config.load_from_dict(log['config'])
             return config

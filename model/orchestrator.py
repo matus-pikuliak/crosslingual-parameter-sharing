@@ -227,3 +227,10 @@ class Orchestrator:
 
     def log(self, message, level):
         self.logger.log(message, level)
+
+    def get_representations(self, tls):
+        return {
+            tl: self.models[tl].get_representations()
+            for tl
+            in tls
+        }

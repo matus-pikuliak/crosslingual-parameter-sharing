@@ -537,7 +537,11 @@ class Model:
             return False
         return True
 
-    def get_representations(self, iterator):
+    def get_representations(self):
+        print(self)
+        test_sets = self.create_sets(is_train=False, role='test', task=self.task, lang=self.lang)
+        iterator = test_sets[0].iterator
+
         return np.vstack([
             self.orch.sess.run(
                 fetches=self.n.contextualized_masked,
