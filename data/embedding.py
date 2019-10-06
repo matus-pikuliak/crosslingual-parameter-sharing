@@ -7,6 +7,8 @@ from utils.general_utils import split_iter
 
 class Embeddings:
 
+    # FIXME: the cache should not be global
+
     cache = {}
 
     def __init__(self, lang, config):

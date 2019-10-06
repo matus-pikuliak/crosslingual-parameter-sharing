@@ -1,10 +1,12 @@
 """
 python get_representations.py log_path model_path task-lang1 task-lang2 ...
 """
+import os
 import sys
 
 import numpy as np
 import matplotlib.pyplot as plt
+import tkinter
 from matplotlib.patches import Patch
 from sklearn.manifold import TSNE
 from sklearn.decomposition import PCA
@@ -55,9 +57,9 @@ def get_scatter_data(representations, pca=True, tsne=True):
     return x, y, c, representations.keys()
 
 
-def show_representations(*args):
-    representations = get_representations(*args)
-    x, y, c, languages = get_scatter_data(representations, tsne=False)
+def show_representations(log_path, *args):
+    representations = get_representations(log_path, *args)
+    x, y, c, languages = get_scatter_data(representations)
 
     fig, axes = plt.subplots(1, 1, figsize=(5, 7), squeeze=False)
     scheme = ['gold', 'red', 'deepskyblue', 'green']
@@ -68,7 +70,9 @@ def show_representations(*args):
         Patch(color=scheme[i], label=lang)
         for i, lang in enumerate(languages)]
     ax.legend(handles=legend_elements)
-    plt.show()
+
+    _, name = os.path.split(log_path)
+    plt.savefig('/home/mpikuliak/logs/images/'+name)
 
 
 if __name__ == '__main__':
