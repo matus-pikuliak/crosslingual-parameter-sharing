@@ -538,7 +538,6 @@ class Model:
         return True
 
     def get_representations(self):
-        print(self)
         test_sets = self.create_sets(is_train=False, role='test', task=self.task, lang=self.lang)
         iterator = test_sets[0].iterator
 

@@ -5,6 +5,31 @@ import numpy as np
 ls = {'cs', 'de', 'en', 'es'}
 ts = {'dep', 'lmo', 'ner', 'pos'}
 
+'''
+11.10.2019 deepnet2070
+adversarial
+'''
+for t in ts:
+    for l in ls:
+        if t != 'lmo':
+            print(
+                f'bash train.sh focus_on {t}-{l} adversarial_training True focus_rate 0 task_layer_private false epochs 100 early_stopping 10 tasks all',
+                end=' && ')
+
+print()
+
+'''
+11.10.2019 deepnet5
+lstm 400
+'''
+for t in ts:
+    for l in ls:
+        if t != 'lmo':
+            print(
+                f'bash train.sh focus_on {t}-{l} word_lstm_size 400 focus_rate 0 task_layer_private false epochs 100 early_stopping 10 tasks all',
+                end=' && ')
+exit()
+
 pairs = set()
 while len(pairs) < 20:
     tgt_task = np.random.choice(list(ts - {'lmo'}))

@@ -72,7 +72,7 @@ def show_representations(log_path, *args):
     ax.legend(handles=legend_elements)
 
     _, name = os.path.split(log_path)
-    plt.savefig('/home/mpikuliak/logs/images/'+name)
+    plt.savefig('/home/fiit/logs/images/'+name)
 
 
 if __name__ == '__main__':
