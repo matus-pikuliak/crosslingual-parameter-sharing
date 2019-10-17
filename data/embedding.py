@@ -7,19 +7,11 @@ from utils.general_utils import split_iter
 
 class Embeddings:
 
-    # FIXME: the cache should not be global
-
-    cache = {}
-
     def __init__(self, lang, config):
         self.config = config
         self.lang = lang
 
     def matrix(self, vocab):
-        if self.lang in Embeddings.cache:
-            print(f'{self.lang} embedding matrix loaded from cache.')
-            return Embeddings.cache[self.lang]
-
         print(f'Loading {self.lang} embedding matrix.')
         emb_matrix = np.zeros(
             shape=(len(vocab), self.config.word_emb_size),
@@ -47,8 +39,6 @@ class Embeddings:
                 else:
                     raise RuntimeError('Wrong embedding types(must be "mwe", "random" or "mwe_projected").')
         print('Loaded.')
-
-        Embeddings.cache[self.lang] = emb_matrix
         return emb_matrix
 
     def vocab(self):

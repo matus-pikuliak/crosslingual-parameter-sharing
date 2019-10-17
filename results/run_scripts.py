@@ -2,8 +2,8 @@ import itertools
 
 import numpy as np
 
-ls = {'cs', 'de', 'en', 'es'}
-ts = {'dep', 'lmo', 'ner', 'pos'}
+ls = ['cs', 'de', 'en', 'es']
+ts = ['dep', 'lmo', 'ner', 'pos']
 
 '''
 11.10.2019 deepnet2070
@@ -23,6 +23,7 @@ print()
 lstm 400
 '''
 for t in ts:
+    print(t)
     for l in ls:
         if t != 'lmo':
             print(

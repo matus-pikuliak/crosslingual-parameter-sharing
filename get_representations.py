@@ -25,12 +25,31 @@ def get_representations(log_path, model_path, *tls):
 
     with Orchestrator(dl, config) as orch:
         orch.load(model_path)
-        return orch.get_representations([tuple(tl.split('-')) for tl in tls])
+        return orch.get_representations(
+            batch_count=5,
+            tls=tls)
 
 
-def get_scatter_data(representations, pca=True, tsne=True):
-    x = np.vstack([r for r in representations.values()])
+def get_desired(log_path, *tls):
+    config = Config.load_from_log(log_path)
+    dl = DataLoader(config)
+    dl.load()
 
+    with Orchestrator(dl, config) as orch:
+        desired = []
+        for tl in tls:
+            task, lang = tl
+            model = orch.models[(task, lang)]
+            test_set = model.create_sets(is_train=False, role='test', task=task, lang=lang)
+            iterator = test_set[0].iterator
+            for _ in range(5):
+                _, sentence_lengths, _, _, label_ids = next(iterator)
+                for length, labels in zip(sentence_lengths, label_ids):
+                    desired.extend(labels[:length])
+        return np.array(desired)
+
+
+def reduce_dim(x, pca=True, tsne=True):
     if tsne and pca:
         x = PCA(n_components=50).fit_transform(x)
         x = TSNE(n_components=2, n_iter=1000).fit_transform(x)
@@ -38,41 +57,45 @@ def get_scatter_data(representations, pca=True, tsne=True):
         x = TSNE(n_components=2, n_iter=1000).fit_transform(x)
     elif pca:
         x = PCA(n_components=2).fit_transform(x)
-
-    scheme = ['gold', 'red', 'deepskyblue', 'green']
-    new_x = np.zeros((x.shape[0], x.shape[1] + 1))
-    new_x[:, :-1] = x
-    x = new_x
-    i = 0
-    for rep_id, rep in enumerate(representations.values()):
-        for _ in rep:
-            x[i][2] = rep_id
-            i += 1
-
-    np.random.shuffle(x)
-    x = x[:2000, ...]
-    x, y, c = zip(*x)
-    c = np.rint(c)
-    c = [plt_colors[scheme[int(i)]] for i in c]
-    return x, y, c, representations.keys()
+    return x
 
 
-def show_representations(log_path, *args):
-    representations = get_representations(log_path, *args)
-    x, y, c, languages = get_scatter_data(representations)
 
-    fig, axes = plt.subplots(1, 1, figsize=(5, 7), squeeze=False)
+
+def show_representations(log_path, model_path, *tls):
+    representations = get_representations(log_path, model_path, *tls)
+    data = np.vstack([r for r in representations.values()])
+    data = reduce_dim(data)
+    x, y = data[:, 0], data[:, 1]
+
+
+    # scheme = ['gold', 'red', 'deepskyblue', 'green']
+
+
+    fig, axes = plt.subplots(1, 2, figsize=(5, 7), squeeze=True)
     scheme = ['gold', 'red', 'deepskyblue', 'green']
 
-    ax = axes[0][0]
+    c = get_desired(log_path, *tls)
+    ax = axes[0]
     ax.scatter(x, y, c=c, s=2)
-    legend_elements = [
-        Patch(color=scheme[i], label=lang)
-        for i, lang in enumerate(languages)]
-    ax.legend(handles=legend_elements)
+
+    c = np.concatenate(
+        [np.array([i] * len(r))
+         for i, r
+         in enumerate(representations.values())
+        ])
+    ax = axes[1]
+    ax.scatter(x, y, c=c, s=2)
+
+    # legend_elements = [
+    #     Patch(color=scheme[i], label=lang)
+    #     for i, lang in enumerate(languages)]
+    # ax.legend(handles=legend_elements)
 
     _, name = os.path.split(log_path)
-    plt.savefig('/home/fiit/logs/images/'+name)
+    plt.show()
+    exit()
+    # plt.savefig('/home/fiit/logs/images/'+name)
 
 
 if __name__ == '__main__':

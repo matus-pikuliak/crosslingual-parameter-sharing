@@ -7,6 +7,7 @@ import numpy as np
 import tensorflow as tf
 
 import utils.general_utils as utils
+from data.embedding import Embeddings
 from logs.logger import Logger
 from constants import LOG_CRITICAL, LOG_MESSAGE, LOG_RESULT
 from model.model import Model
@@ -33,6 +34,7 @@ class Orchestrator:
         self.n = types.SimpleNamespace()
 
         self.tasks, self.langs = zip(*self.config.tasks)
+        self.embeddings_cache = dict()
 
     def __enter__(self, *args):
         self.add_hyperparameters()
@@ -86,6 +88,13 @@ class Orchestrator:
         }
         selected_optimizer = available_optimizers[self.config.optimizer]
         self.n.optimizer = selected_optimizer(self.n.learning_rate)
+
+    def embeddings(self, lang):
+        if lang not in self.embeddings_cache:
+            self.embeddings_cache[lang] = Embeddings(lang, self.config).matrix(self.dl.lang_vocabs[lang])
+        else:
+            print(f'Loading {lang} embeddings from cache')
+        return self.embeddings_cache[lang]
 
     def current_learning_rate(self, epoch=None):
         if epoch is None:
@@ -228,9 +237,9 @@ class Orchestrator:
     def log(self, message, level):
         self.logger.log(message, level)
 
-    def get_representations(self, tls):
+    def get_representations(self, batch_count, tls):
         return {
-            tl: self.models[tl].get_representations()
+            tl: self.models[tl].get_representations(batch_count)
             for tl
             in tls
         }

@@ -5,7 +5,6 @@ import numpy as np
 import tensorflow as tf
 
 from constants import LOG_RESULT, TASKS
-from data.embedding import Embeddings
 from model.dataset_iterator import DatasetIterator
 
 
@@ -138,7 +137,7 @@ class Model:
             word_emb_matrix = tf.get_variable(
                 dtype=tf.float32,
                 initializer=tf.cast(
-                    x=Embeddings(self.lang, self.config).matrix(self.dl.lang_vocabs[self.lang]),
+                    x=self.orch.embeddings(self.lang),
                     dtype=tf.float32),
                 trainable=self.config.train_emb,
                 name=f'word_embedding_matrix_{self.lang}')
@@ -537,7 +536,7 @@ class Model:
             return False
         return True
 
-    def get_representations(self):
+    def get_representations(self, batch_count):
         test_sets = self.create_sets(is_train=False, role='test', task=self.task, lang=self.lang)
         iterator = test_sets[0].iterator
 
@@ -545,7 +544,7 @@ class Model:
             self.orch.sess.run(
                 fetches=self.n.contextualized_masked,
                 feed_dict=self.test_feed_dict(next(iterator)))
-            for _ in range(5)
+            for _ in range(batch_count)
         ])
 
     def basic_fetches(self):
