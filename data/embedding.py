@@ -1,6 +1,7 @@
 import os
 
 import numpy as np
+import tensorflow as tf
 
 from utils.general_utils import split_iter
 
@@ -38,6 +39,15 @@ class Embeddings:
                     emb_matrix[id] = vec[order]
                 else:
                     raise RuntimeError('Wrong embedding types(must be "mwe", "random" or "mwe_projected").')
+
+        with tf.variable_scope('word_embeddings', reuse=tf.AUTO_REUSE):
+            emb_matrix = tf.get_variable(
+                dtype=tf.float32,
+                initializer=tf.cast(
+                    x=emb_matrix,
+                    dtype=tf.float32),
+                trainable=self.config.train_emb,
+                name=f'word_embedding_matrix_{self.lang}')
         print('Loaded.')
         return emb_matrix
 

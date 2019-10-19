@@ -50,6 +50,7 @@ def get_desired(log_path, *tls):
 
 
 def reduce_dim(x, pca=True, tsne=True):
+    print('Reducing dimensionality.')
     if tsne and pca:
         x = PCA(n_components=50).fit_transform(x)
         x = TSNE(n_components=2, n_iter=1000).fit_transform(x)
@@ -57,9 +58,8 @@ def reduce_dim(x, pca=True, tsne=True):
         x = TSNE(n_components=2, n_iter=1000).fit_transform(x)
     elif pca:
         x = PCA(n_components=2).fit_transform(x)
+    print('Done.')
     return x
-
-
 
 
 def show_representations(log_path, model_path, *tls):
@@ -84,6 +84,7 @@ def show_representations(log_path, model_path, *tls):
          for i, r
          in enumerate(representations.values())
         ])
+
     ax = axes[1]
     ax.scatter(x, y, c=c, s=2)
 
@@ -94,7 +95,6 @@ def show_representations(log_path, model_path, *tls):
 
     _, name = os.path.split(log_path)
     plt.show()
-    exit()
     # plt.savefig('/home/fiit/logs/images/'+name)
 
 

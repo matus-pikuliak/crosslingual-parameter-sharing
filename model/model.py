@@ -133,14 +133,7 @@ class Model:
         self.n.word_embeddings = word_embeddings
 
     def add_pretrained_embeddings(self):
-        with tf.variable_scope('word_embeddings', reuse=tf.AUTO_REUSE):
-            word_emb_matrix = tf.get_variable(
-                dtype=tf.float32,
-                initializer=tf.cast(
-                    x=self.orch.embeddings(self.lang),
-                    dtype=tf.float32),
-                trainable=self.config.train_emb,
-                name=f'word_embedding_matrix_{self.lang}')
+        word_emb_matrix = self.orch.embeddings(self.lang)
 
         return tf.nn.embedding_lookup(
             params=word_emb_matrix,

@@ -10,7 +10,7 @@ class Run:
             return func(self, *args, **kwargs)
         return wrap
 
-    def __init__(self, path, type, name, autoload=True):
+    def __init__(self, path, type, name, server, autoload=True):
         """
         :param path:
         :param type: stsl / mt / ml / mtml
@@ -20,6 +20,7 @@ class Run:
         rest, self.filename = os.path.split(self.path)
         self.type = type
         self.name = name
+        self.server = server
         self.loaded = False
         if autoload:
             self.load()
@@ -40,9 +41,16 @@ class Run:
         )
 
     def match(self, type=None, name=None, contains=(), **config):
-        return (
+        fast_check = (
             (name is None or name == self.name) and
-            (type is None or type == self.type) and
+            (type is None or type == self.type)
+        )
+
+        if not fast_check:
+            return False
+
+        self.load()
+        return (
             all(self.contains(*tl) for tl in contains) and
             all(self.config[key] == value for key, value in config.items())
         )
@@ -95,7 +103,8 @@ class Run:
             'perplexity': False,
             'chunk_f1': True,
             'acc': True,
-            'loss': False
+            'loss': False,
+            'adv_loss': False,
         }[metric]
 
     @staticmethod

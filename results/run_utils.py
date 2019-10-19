@@ -18,7 +18,7 @@ def init_runs(log_path, run_db):
 
         for path in paths:
             record = next(records)
-            run = Run(path, *record, autoload=False)
+            run = Run(path, *record, server=server, autoload=False)
             runs.append(run)
 
     return runs
