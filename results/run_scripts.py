@@ -5,6 +5,97 @@ import numpy as np
 ls = ['cs', 'de', 'en', 'es']
 ts = ['dep', 'lmo', 'ner', 'pos']
 
+fours = [
+    ['pos-es', 'pos-cs', 'dep-es', 'dep-cs'],
+    ['pos-de', 'pos-es', 'ner-de', 'ner-es'],
+    ['pos-es', 'pos-cs', 'lmo-es', 'lmo-cs'],
+    ['dep-cs', 'dep-en', 'ner-cs', 'ner-en'],
+    ['ner-en', 'ner-de', 'dep-en', 'dep-de'],
+    ['dep-es', 'dep-de', 'ner-es', 'ner-de'],
+    ['dep-cs', 'dep-es', 'lmo-cs', 'lmo-es'],
+    ['ner-en', 'ner-cs', 'dep-en', 'dep-cs'],
+    ['ner-es', 'ner-cs', 'lmo-es', 'lmo-cs'],
+    ['pos-cs', 'pos-en', 'ner-cs', 'ner-en'],
+    ['ner-es', 'ner-en', 'dep-es', 'dep-en'],
+    ['pos-cs', 'pos-de', 'ner-cs', 'ner-de'],
+    ['pos-cs', 'pos-es', 'dep-cs', 'dep-es'],
+    ['dep-es', 'dep-de', 'lmo-es', 'lmo-de'],
+    ['dep-en', 'dep-es', 'pos-en', 'pos-es'],
+    ['dep-en', 'dep-es', 'ner-en', 'ner-es'],
+    ['ner-en', 'ner-es', 'dep-en', 'dep-es'],
+    ['pos-en', 'pos-es', 'lmo-en', 'lmo-es'],
+    ['pos-de', 'pos-en', 'dep-de', 'dep-en'],
+    ['dep-cs', 'dep-es', 'pos-cs', 'pos-es'],
+]
+
+for f in fours:
+    print(
+        f'bash train.sh focus_on {f[0]} adversarial_training True focus_rate 0 task_layer_private false epochs 100 early_stopping 10 tasks {" ".join(f)}',
+        end=' && ')
+
+exit()
+
+'''
+21.10.2019 deepnet5
+zero-shot all-to-one limited task lang 200 embs
+'''
+for t in ts:
+    for l in ls:
+        if t != 'lmo':
+            print(
+                f'bash train.sh focus_on {t}-{l} word_lstm_task True word_lstm_lang True limited_task {t} limited_data_size 200 focus_rate 0 task_layer_private false epochs 100 early_stopping 10 tasks all',
+                end=' && ')
+
+for t in ts:
+    for l in ls:
+        if t != 'lmo':
+            print(
+                f'bash train.sh focus_on {t}-{l} word_lstm_task True word_lstm_lang True limited_language {l} limited_data_size 200 focus_rate 0 task_layer_private false epochs 100 early_stopping 10 tasks all',
+                end=' && ')
+
+exit()
+
+'''
+21.10.2019 deepnet5
+zero-shot all-to-one limited task lang 200 embs
+'''
+for t in ts:
+    for l in ls:
+        if t != 'lmo':
+            print(
+                f'bash train.sh focus_on {t}-{l} emb_task True emb_lang True limited_task {t} limited_data_size 200 focus_rate 0 task_layer_private false epochs 100 early_stopping 10 tasks all',
+                end=' && ')
+
+for t in ts:
+    for l in ls:
+        if t != 'lmo':
+            print(
+                f'bash train.sh focus_on {t}-{l} emb_task True emb_lang True limited_language {l} limited_data_size 200 focus_rate 0 task_layer_private false epochs 100 early_stopping 10 tasks all',
+                end=' && ')
+
+exit()
+
+'''
+21.10.2019 deepnet2070
+zero-shot all-to-one limited task lang 200 adversarial
+'''
+for t in ts:
+    for l in ls:
+        if t != 'lmo':
+            print(
+                f'bash train.sh focus_on {t}-{l} adversarial_training True limited_task {t} limited_data_size 200 focus_rate 0 task_layer_private false epochs 100 early_stopping 10 tasks all',
+                end=' && ')
+
+for t in ts:
+    for l in ls:
+        if t != 'lmo':
+            print(
+                f'bash train.sh focus_on {t}-{l} adversarial_training True limited_language {l} limited_data_size 200 focus_rate 0 task_layer_private false epochs 100 early_stopping 10 tasks all',
+                end=' && ')
+
+exit()
+
+
 '''
 19.10.2019 deepnet2070
 zero-shot all-to-one limited task lang 200

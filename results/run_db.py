@@ -26,6 +26,10 @@ db = {
         (12, 'all', 'zero-shot-embs-400-rotated'),
         (12, 'all', 'zero-shot-400'),
         (12, 'all', 'zero-shot-adversarial-task-lang'),
+        (12, 'all', 'zero-shot-embs-limited-task-200'),
+        (12, 'all', 'zero-shot-embs-limited-lang-200'),
+        (12, 'all', 'zero-shot-task-lang-limited-task-200'),
+        (12, 'all', 'zero-shot-task-lang-limited-lang-200'),
     ],
     'deepnet2070': [
         (12, 'ml-3', 'zero-shot'),
@@ -47,6 +51,11 @@ db = {
         (120, 'var', 'zero-shot-two-by-two'),  # 20 target-source parov, pre kazdy ML, REL, ML+UNREL, ALL, ALL+emb, ALL+params
         (12, 'all', 'zero-shot-adversarial'),
         (12, 'all', 'zero-shot-adversarial-embs'),
+        (12, 'all', 'zero-shot-limited-task-200'),
+        (12, 'all', 'zero-shot-limited-lang-200'),
+        (12, 'all', 'zero-shot-adversarial-limited-task-200'),
+        (12, 'all', 'zero-shot-adversarial-limited-lang-200'),
+        (120, 'var', 'zero-shot-two-by-two-adversarial'),  # adversarial doplnok ku 120 runom vyssie
     ],
 }
 print([(server, sum(tpl[0] for tpl in tuples)) for server, tuples in db.items()])

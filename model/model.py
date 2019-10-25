@@ -282,6 +282,13 @@ class Model:
             for lstm
             in lstms))
 
+        self.n.frobenius = self.add_frobenius(*(
+            tf.boolean_mask(
+                tensor=lstm,
+                mask=self.n.sentence_lengths_mask)
+            for lstm
+            in lstms))
+
         if len(lstms) == 1:
             self.n.contextualized = lstms[0]
         else:
@@ -332,6 +339,28 @@ class Model:
         return sum(losses) / tf.cast(
             x=len(losses) * self.n.total_batch_length**2,
             dtype=tf.float32)
+
+    def add_frobenius(self, *matrices):
+
+        if len(matrices) == 1:
+            return tf.constant(
+                value=0,
+                dtype=tf.float32)
+
+        losses = []
+        for m1, m2 in itertools.combinations(matrices, 2):
+            loss = tf.matmul(
+                a=m1,
+                b=m2,
+                transpose_a=True)
+            loss = tf.square(
+                tf.norm(
+                    tensor=loss,
+                    ord='fro',
+                    axis=[0, 1]))
+            losses.append(loss)
+
+        return sum(losses) / tf.cast(len(losses), dtype=tf.float32)
 
     def lstm(self, inputs, sequence_lengths, cell_size, name_scope, avg_pool=False, dropout=True):
         with tf.variable_scope(name_scope, reuse=tf.AUTO_REUSE):
@@ -446,6 +475,8 @@ class Model:
             total_loss += self.n.adversarial_term
         if self.config.ortho > 0:
             total_loss += self.config.ortho * self.n.ortho
+        if self.config.frobenius > 0:
+            total_loss += self.config.frobenius * self.n.frobenius
         grads, vs = zip(*self.orch.n.optimizer.compute_gradients(total_loss))
         gradient_norm = tf.global_norm(grads)
         if self.config.clip > 0:
