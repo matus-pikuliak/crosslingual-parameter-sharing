@@ -578,7 +578,8 @@ class Model:
             'gradient_norm': self.n.gradient_norm,
             'length': self.n.total_batch_length,
             'unit_strength': self.n.unit_strength,
-            'ortho': self.n.ortho
+            'ortho': self.n.ortho,
+            'frobenius': self.n.frobenius
         }
 
     def basic_results(self, results):
@@ -587,7 +588,7 @@ class Model:
             'adv_loss': np.mean(results['adv_loss']),
             'gradient_norm': np.mean(results['gradient_norm']),
             'unit_strength': np.std(np.mean(results['unit_strength'], axis=0)),
-            'ortho': np.mean(results['ortho'])
+            'frobenius': np.mean(results['frobenius'])
         }
 
     def task_code(self):
