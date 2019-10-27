@@ -55,7 +55,8 @@ db = {
         (12, 'all', 'zero-shot-limited-lang-200'),
         (12, 'all', 'zero-shot-adversarial-limited-task-200'),
         (12, 'all', 'zero-shot-adversarial-limited-lang-200'),
-        (120, 'var', 'zero-shot-two-by-two-adversarial'),  # adversarial doplnok ku 120 runom vyssie
+        (20, 'var', 'zero-shot-two-by-two-adversarial'),  # adversarial doplnok ku 120 runom vyssie
+        (6, 'frob', 'zero-shot-dep-cs-frobenius'),  # hparam tuning
     ],
 }
 print([(server, sum(tpl[0] for tpl in tuples)) for server, tuples in db.items()])

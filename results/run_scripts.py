@@ -5,6 +5,20 @@ import numpy as np
 ls = ['cs', 'de', 'en', 'es']
 ts = ['dep', 'lmo', 'ner', 'pos']
 
+'''
+25.10.2019 deepnet2070
+zero-shot task-lang with frobenius
+'''
+for frob in [0.01, 0.1, 1.0, 0.001, 0.0001, 0.0]:
+        print(
+            f'bash train.sh focus_on dep-cs frobenius {frob} word_lstm_lang true word_lstm_task true focus_rate 0 task_layer_private false epochs 100 early_stopping 10 tasks all',
+            end=' && ')
+exit()
+
+'''
+24.10.2019 deepnet2070
+zero-shot 2x2 with adversarial
+'''
 fours = [
     ['pos-es', 'pos-cs', 'dep-es', 'dep-cs'],
     ['pos-de', 'pos-es', 'ner-de', 'ner-es'],
