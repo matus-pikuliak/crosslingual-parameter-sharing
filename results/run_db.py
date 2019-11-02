@@ -30,6 +30,7 @@ db = {
         (12, 'all', 'zero-shot-embs-limited-lang-200'),
         (12, 'all', 'zero-shot-task-lang-limited-task-200'),
         (12, 'all', 'zero-shot-task-lang-limited-lang-200'),
+        (12, 'all', 'zero-shot-char-level-adversarial'),
     ],
     'deepnet2070': [
         (12, 'ml-3', 'zero-shot'),
@@ -57,6 +58,7 @@ db = {
         (12, 'all', 'zero-shot-adversarial-limited-lang-200'),
         (20, 'var', 'zero-shot-two-by-two-adversarial'),  # adversarial doplnok ku 120 runom vyssie
         (6, 'frob', 'zero-shot-dep-cs-frobenius'),  # hparam tuning
+        (12, 'all', 'zero-shot-rotated-adversarial'),
     ],
 }
 print([(server, sum(tpl[0] for tpl in tuples)) for server, tuples in db.items()])

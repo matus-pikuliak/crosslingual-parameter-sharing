@@ -158,7 +158,8 @@ class Orchestrator:
         if self.config.train_only is not None:
             train_models = [m for m in train_models if [m.task, m.lang] == self.config.train_only.split('-')]
 
-        if self.config.focus_on is None:
+        if self.config.focus_rate < 0:
+            on_rate = 1 / len(train_models)
             off_rate = 1 / len(train_models)
         else:
             on_rate = self.config.focus_rate

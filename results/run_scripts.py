@@ -6,6 +6,80 @@ ls = ['cs', 'de', 'en', 'es']
 ts = ['dep', 'lmo', 'ner', 'pos']
 
 '''
+27.10.2019 deepnet5 / deepnet20170
+low-resource
+'''
+
+fours = [
+    ['pos-es', 'pos-cs', 'dep-es', 'dep-cs'],
+    ['pos-de', 'pos-es', 'ner-de', 'ner-es'],
+    ['pos-es', 'pos-cs', 'lmo-es', 'lmo-cs'],
+    ['dep-cs', 'dep-en', 'ner-cs', 'ner-en'],
+    ['ner-en', 'ner-de', 'dep-en', 'dep-de'],
+    ['dep-es', 'dep-de', 'ner-es', 'ner-de'],
+    ['dep-cs', 'dep-es', 'lmo-cs', 'lmo-es'],
+    ['ner-en', 'ner-cs', 'dep-en', 'dep-cs'],
+    ['ner-es', 'ner-cs', 'lmo-es', 'lmo-cs'],
+    ['pos-cs', 'pos-en', 'ner-cs', 'ner-en'],
+    ['ner-es', 'ner-en', 'dep-es', 'dep-en'],
+    ['pos-cs', 'pos-de', 'ner-cs', 'ner-de'],
+    ['pos-cs', 'pos-es', 'dep-cs', 'dep-es'],
+    ['dep-es', 'dep-de', 'lmo-es', 'lmo-de'],
+    ['dep-en', 'dep-es', 'pos-en', 'pos-es'],
+    ['dep-en', 'dep-es', 'ner-en', 'ner-es'],
+    ['ner-en', 'ner-es', 'dep-en', 'dep-es'],
+    ['pos-en', 'pos-es', 'lmo-en', 'lmo-es'],
+    ['pos-de', 'pos-en', 'dep-de', 'dep-en'],
+    ['dep-cs', 'dep-es', 'pos-cs', 'pos-es'],
+]
+
+for four in fours[:10]:
+    print(
+        f'bash train.sh focus_on {four[0]} limited_task_language {four[0]} limited_data_size 200 task_layer_private false epochs 100 early_stopping 10 tasks {four[0]}',
+        end=' && ')
+    print(
+        f'bash train.sh focus_on {four[0]} limited_task_language {four[0]} limited_data_size 200 task_layer_private false epochs 100 early_stopping 10 tasks {four[0]} {four[1]}',
+        end=' && ')
+    print(
+        f'bash train.sh focus_on {four[0]} limited_task_language {four[0]} limited_data_size 200 task_layer_private false epochs 100 early_stopping 10 tasks {four[0]} {four[2]}',
+        end=' && ')
+    print(
+        f'bash train.sh focus_on {four[0]} limited_task_language {four[0]} limited_data_size 200 task_layer_private false epochs 100 early_stopping 10 tasks {four[0]} {four[1]} {four[2]}',
+        end=' && ')
+    print(
+        f'bash train.sh focus_on {four[0]} limited_task_language {four[0]} limited_data_size 200 task_layer_private false epochs 100 early_stopping 10 tasks {" ".join(four)}',
+        end=' && ')
+
+exit()
+
+'''
+27.10.2019 deepnet5
+zero-shot adversarial char-level
+'''
+for t in ts:
+    for l in ls:
+        if t != 'lmo':
+            print(
+                f'bash train.sh focus_on {t}-{l} adversarial_training True char_level True word_level False focus_rate 0 task_layer_private false epochs 100 early_stopping 10 tasks all',
+                end=' && ')
+
+exit()
+
+'''
+27.10.2019 deepnet2070
+zero-shot adversarial mwe_rotated
+'''
+for t in ts:
+    for l in ls:
+        if t != 'lmo':
+            print(
+                f'bash train.sh focus_on {t}-{l} adversarial_training True word_emb_type mwe_rotated focus_rate 0 task_layer_private false epochs 100 early_stopping 10 tasks all',
+                end=' && ')
+
+exit()
+
+
+'''
 25.10.2019 deepnet2070
 zero-shot task-lang with frobenius
 '''

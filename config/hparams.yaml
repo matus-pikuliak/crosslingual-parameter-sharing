@@ -33,7 +33,7 @@ default: &default
 
   train_only: na
   focus_on: na
-  focus_rate: 0.5
+  focus_rate: -1.0
   early_stopping: -1
 
   max_sentence_length: 70
