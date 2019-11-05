@@ -6,8 +6,8 @@ ls = ['cs', 'de', 'en', 'es']
 ts = ['dep', 'lmo', 'ner', 'pos']
 
 '''
-27.10.2019 deepnet5 / deepnet20170
-low-resource
+27.10.2019 deepnet2070 (first 10) / deepnet 5 (second 10)
+low-resource 200
 '''
 
 fours = [
@@ -33,7 +33,7 @@ fours = [
     ['dep-cs', 'dep-es', 'pos-cs', 'pos-es'],
 ]
 
-for four in fours[:10]:
+for four in fours[10:]:
     print(
         f'bash train.sh focus_on {four[0]} limited_task_language {four[0]} limited_data_size 200 task_layer_private false epochs 100 early_stopping 10 tasks {four[0]}',
         end=' && ')
