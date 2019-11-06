@@ -167,7 +167,8 @@ class Model:
                 sequence_lengths=word_lengths,
                 cell_size=self.config.char_lstm_size,
                 name_scope=name_scope,
-                avg_pool=True)
+                avg_pool=True,
+                dropout=False)
 
         if self.config.char_lstm_private:
             lstms.append(get_lstm(f'char_bilstm_{self.task}_{self.lang}'))
@@ -281,9 +282,8 @@ class Model:
             for lstm
             in lstms))
 
-
         if len(lstms) == 1:
-            contextualized = lstms[0]
+            self.n.contextualized = lstms[0]
         else:
             fw, bw = zip(*(
                 tf.split(
@@ -293,19 +293,15 @@ class Model:
                 for lstm
                 in lstms))
 
-            contextualized = tf.concat(
+            self.n.contextualized = tf.concat(
                 values=fw+bw,
                 axis=-1)
 
-        self.n.contextualized_masked_no_dropout = tf.boolean_mask(
-                tensor=contextualized,
+        self.n.contextualized_masked = tf.boolean_mask(
+                tensor=self.n.contextualized,
                 mask=self.n.sentence_lengths_mask)
 
         self.add_adversarial_loss()
-
-        self.n.contextualized = tf.nn.dropout(
-            x=contextualized,
-            keep_prob=self.config.dropout)
 
     def add_ortho(self, *matrices):
 
@@ -337,7 +333,7 @@ class Model:
             x=len(losses) * self.n.total_batch_length**2,
             dtype=tf.float32)
 
-    def lstm(self, inputs, sequence_lengths, cell_size, name_scope, avg_pool=False):
+    def lstm(self, inputs, sequence_lengths, cell_size, name_scope, avg_pool=False, dropout=True):
         with tf.variable_scope(name_scope, reuse=tf.AUTO_REUSE):
             cell_fw = tf.contrib.cudnn_rnn.CudnnCompatibleLSTMCell(cell_size)
             cell_bw = tf.contrib.cudnn_rnn.CudnnCompatibleLSTMCell(cell_size)
@@ -365,11 +361,16 @@ class Model:
                     axis=-1)  # Axis needed for broadcasting.
                 out = out / div_mask
 
+            if dropout:
+                out = tf.nn.dropout(
+                    x=out,
+                    rate=self.orch.n.dropout)
+
             return out
 
     def add_adversarial_loss(self):
         with tf.variable_scope('adversarial_training', reuse=tf.AUTO_REUSE):
-            cont_repr = self.n.contextualized_masked_no_dropout
+            cont_repr = self.n.contextualized_masked
             lambda_ = self.config.adversarial_lambda
             gradient_reversal = tf.stop_gradient((1 + lambda_) * cont_repr) - lambda_ * cont_repr
 
@@ -412,7 +413,7 @@ class Model:
 
     def add_unit_strength(self):
 
-        repr = self.n.contextualized_masked_no_dropout
+        repr = self.n.contextualized_masked
         norms = tf.norm(
             tensor=self.n.contextualized_weights,
             axis=1)
@@ -534,7 +535,7 @@ class Model:
 
         return np.vstack([
             self.orch.sess.run(
-                fetches=self.n.contextualized_masked_no_dropout,
+                fetches=self.n.contextualized_masked,
                 feed_dict=self.test_feed_dict(next(iterator)))
             for _ in range(batch_count)
         ])
