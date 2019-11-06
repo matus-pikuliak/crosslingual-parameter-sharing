@@ -61,7 +61,7 @@ db = {
         (6, 'frob', 'zero-shot-dep-cs-frobenius'),  # hparam tuning
         (12, 'all', 'zero-shot-rotated-adversarial'),
         (50, 'var', 'low-resource'),  # 10 target-source parov, pre kazdy Single, ML, MT, ML+MT, ALL
-        (2, 'var', 'no-dropout'),  # 10 target-source parov, pre kazdy Single, ML, MT, ML+MT, ALL
+        (4, 'var', 'no-dropout'),  # 10 target-source parov, pre kazdy Single, ML, MT, ML+MT, ALL
     ],
 }
 print([(server, sum(tpl[0] for tpl in tuples)) for server, tuples in db.items()])
