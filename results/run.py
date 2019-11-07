@@ -4,7 +4,7 @@ import os
 
 class Run:
 
-    def eager(func):
+    def lazy(func):
         def wrap(self, *args, **kwargs):
             self.load()
             return func(self, *args, **kwargs)
@@ -62,14 +62,14 @@ class Run:
             if self.match_datum(datum, **filters)
         )
 
-    @eager
+    @lazy
     def history(self, metric=None, **filters):
         metric, maximize = self.set_metric_and_meximize(metric, None, **filters)
         data = self.filter_data(**filters)
         data = sorted(data, key=lambda d: d['epoch'])
         return (datum[metric] for datum in data)
 
-    @eager
+    @lazy
     def best(self, metric=None, maximize=None, **filters):
         metric, maximize = self.set_metric_and_meximize(metric, maximize, **filters)
         data = self.filter_data(**filters)
@@ -77,7 +77,7 @@ class Run:
         result = data[-1] if maximize else data[0]
         return result[metric], result['epoch']
 
-    @eager
+    @lazy
     def metric_eval(self, metric=None, maximize=None, **filters):
         metric, maximize = self.set_metric_and_meximize(metric, maximize, **filters)
         assert('role' not in filters)
@@ -87,7 +87,7 @@ class Run:
         datum = data[0]
         return datum[metric], epoch
 
-    @eager
+    @lazy
     def contains(self, task, lang):
         try:
             next(self.filter_data(task=task, language=lang))
