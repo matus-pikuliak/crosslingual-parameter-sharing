@@ -85,7 +85,7 @@ class Run:
         data = list(self.filter_data(epoch=epoch, role='test', **filters))
         assert(len(data) == 1)
         datum = data[0]
-        return datum[metric], epoch
+        return datum[metric], datum['epoch']
 
     @lazy
     def contains(self, task, lang):
