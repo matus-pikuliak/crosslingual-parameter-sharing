@@ -5,6 +5,7 @@ import numpy as np
 ls = ['cs', 'de', 'en', 'es']
 ts = ['dep', 'lmo', 'ner', 'pos']
 
+
 '''
 6.11.2019 deepnet2070 no dropout ortho and adversarial
 '''

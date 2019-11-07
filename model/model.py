@@ -377,30 +377,25 @@ class Model:
                 units=self.config.hidden_size,
                 activation=tf.nn.relu)
 
-            def loss(id, len_ids):
-                logits = tf.layers.dense(
-                    inputs=hidden,
-                    units=len_ids)
+            logits = tf.layers.dense(
+                inputs=hidden,
+                units=len(self.orch.langs))
 
-                one_hot = tf.one_hot(
-                    indices=id,
-                    depth=len_ids)
-                one_hot = tf.expand_dims(
-                    input=one_hot,
-                    axis=0)
-                one_hot = tf.tile(
-                    input=one_hot,
-                    multiples=[self.n.total_batch_length, 1])
+            one_hot = tf.one_hot(
+                indices=self.n.lang_id,
+                depth=len(self.orch.langs))
+            one_hot = tf.expand_dims(
+                input=one_hot,
+                axis=0)
+            one_hot = tf.tile(
+                input=one_hot,
+                multiples=[self.n.total_batch_length, 1])
 
-                out = tf.nn.softmax_cross_entropy_with_logits_v2(
-                    labels=one_hot,
-                    logits=logits)
-                return tf.reduce_mean(out)
+            loss = tf.nn.softmax_cross_entropy_with_logits_v2(
+                labels=one_hot,
+                logits=logits)
 
-            lang_loss = loss(self.n.lang_id, len(self.orch.langs))
-            task_loss = loss(self.n.task_id, len(self.orch.tasks))
-
-            self.n.adversarial_loss = lang_loss + task_loss
+            self.n.adversarial_loss = tf.reduce_mean(loss)
 
             use_adversarial = tf.less_equal(
                 tf.random.uniform(shape=[]),
