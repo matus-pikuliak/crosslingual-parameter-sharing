@@ -32,6 +32,7 @@ db = {
         (12, 'all', 'zero-shot-task-lang-limited-lang-200'),
         (12, 'all', 'zero-shot-char-level-adversarial'),
         (50, 'var', 'low-resource-2'),  # 10 target-source parov, pre kazdy Single, ML, MT, ML+MT, ALL
+        (2, 'var', 'no-dropout'),  # iny dropout zle, povodny dropout
     ],
     'deepnet2070': [
         (12, 'ml-3', 'zero-shot'),
@@ -61,7 +62,7 @@ db = {
         (6, 'frob', 'zero-shot-dep-cs-frobenius'),  # hparam tuning
         (12, 'all', 'zero-shot-rotated-adversarial'),
         (50, 'var', 'low-resource'),  # 10 target-source parov, pre kazdy Single, ML, MT, ML+MT, ALL
-        (4, 'var', 'no-dropout'),  # 10 target-source parov, pre kazdy Single, ML, MT, ML+MT, ALL
+        (4, 'var', 'no-dropout'),  # iny dropout zle, povodny dropout
     ],
 }
 print([(server, sum(tpl[0] for tpl in tuples)) for server, tuples in db.items()])

@@ -10,6 +10,7 @@ ts = ['dep', 'lmo', 'ner', 'pos']
 '''
 print('bash train.sh focus_on dep-cs early_stopping 10 epochs 100 word_lstm_task true word_lstm_lang true focus_rate 0 ortho 25.0 task_layer_private false tasks all && bash train.sh focus_on dep-cs early_stopping 10 epochs 100 adversarial_training true focus_rate 0 task_layer_private false tasks all &')
 
+exit()
 
 '''
 2.11.2019 deepnet2070 (first 10) / deepnet 5 (second 10)
