@@ -304,7 +304,7 @@ class Model:
 
         self.n.contextualized = tf.nn.dropout(
             x=contextualized,
-            keep_prob=self.orch.n.dropout)
+            rate=self.orch.n.dropout)
 
     def add_ortho(self, *matrices):
 
