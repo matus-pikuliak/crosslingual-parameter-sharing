@@ -5,18 +5,9 @@ import numpy as np
 ls = ['cs', 'de', 'en', 'es']
 ts = ['dep', 'lmo', 'ner', 'pos']
 
-
-'''
-6.11.2019 deepnet2070 no dropout ortho and adversarial
-'''
-print('bash train.sh focus_on dep-cs early_stopping 10 epochs 100 word_lstm_task true word_lstm_lang true focus_rate 0 ortho 25.0 task_layer_private false tasks all && bash train.sh focus_on dep-cs early_stopping 10 epochs 100 adversarial_training true focus_rate 0 task_layer_private false tasks all &')
-
-exit()
-
-'''
-2.11.2019 deepnet2070 (first 10) / deepnet 5 (second 10)
-low-resource 200
-'''
+adv = 'adversarial_training true '
+embs = 'emb_task true emb_lang true '
+para = 'word_lstm_lang true word_lstm_task true '
 
 fours = [
     ['pos-es', 'pos-cs', 'dep-es', 'dep-cs'],
@@ -40,6 +31,43 @@ fours = [
     ['pos-de', 'pos-en', 'dep-de', 'dep-en'],
     ['dep-cs', 'dep-es', 'pos-cs', 'pos-es'],
 ]
+
+'''
+7.11.2019 deepnet2070 fours limited200 advanced
+'''
+for four in fours:
+    print(
+        f'bash train.sh focus_on {four[0]} limited_task_language {four[0]} limited_data_size 200 task_layer_private false epochs 100 early_stopping 10 ' +
+        adv +
+        'tasks ' +
+        ' '.join(four),
+        end=' && ')
+    print(
+        f'bash train.sh focus_on {four[0]} limited_task_language {four[0]} limited_data_size 200 task_layer_private false epochs 100 early_stopping 10 ' +
+        embs +
+        'tasks ' +
+        ' '.join(four),
+        end=' && ')
+    print(
+        f'bash train.sh focus_on {four[0]} limited_task_language {four[0]} limited_data_size 200 task_layer_private false epochs 100 early_stopping 10 ' +
+        para +
+        'tasks ' +
+        ' '.join(four),
+        end=' && ')
+
+exit()
+
+'''
+6.11.2019 deepnet2070 no dropout ortho and adversarial
+'''
+print('bash train.sh focus_on dep-cs early_stopping 10 epochs 100 word_lstm_task true word_lstm_lang true focus_rate 0 ortho 25.0 task_layer_private false tasks all && bash train.sh focus_on dep-cs early_stopping 10 epochs 100 adversarial_training true focus_rate 0 task_layer_private false tasks all &')
+
+exit()
+
+'''
+2.11.2019 deepnet2070 (first 10) / deepnet 5 (second 10)
+low-resource 200
+'''
 
 for four in fours[10:]:
     print(
