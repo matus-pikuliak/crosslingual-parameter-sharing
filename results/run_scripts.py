@@ -8,6 +8,7 @@ ts = ['dep', 'lmo', 'ner', 'pos']
 adv = 'adversarial_training true '
 embs = 'emb_task true emb_lang true '
 para = 'word_lstm_lang true word_lstm_task true '
+zero = 'early_stopping 10 epochs 100 focus_rate 0 task_layer_private false '
 
 fours = [
     ['pos-es', 'pos-cs', 'dep-es', 'dep-cs'],
@@ -31,6 +32,16 @@ fours = [
     ['pos-de', 'pos-en', 'dep-de', 'dep-en'],
     ['dep-cs', 'dep-es', 'pos-cs', 'pos-es'],
 ]
+
+'''
+8.11.2019 deepnet5 ortho with new dropout experiment
+'''
+tms_task = ['dep-cs', 'ner-es', 'pos-de']
+
+for t in tms_task:
+    print(f'bash train.sh focus_on {t} {zero} {para} ortho 50.0  tasks all', end=' && ')
+
+exit()
 
 '''
 7.11.2019 deepnet2070 fours limited200 advanced

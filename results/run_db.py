@@ -32,7 +32,7 @@ db = {
         (12, 'all', 'zero-shot-task-lang-limited-lang-200'),
         (12, 'all', 'zero-shot-char-level-adversarial'),
         (50, 'var', 'low-resource-2'),  # 10 target-source parov, pre kazdy Single, ML, MT, ML+MT, ALL
-        (4, 'var', 'no-dropout'),  # bug dropout, novy dropout
+        (7, 'var', 'no-dropout'),  # bug dropout, novy dropout
     ],
     'deepnet2070': [
         (12, 'ml-3', 'zero-shot'),
