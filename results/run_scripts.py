@@ -34,6 +34,20 @@ fours = [
 ]
 
 '''
+12.11.2019 deepnet2070 adv again
+'''
+for t in ts:
+    for l in ls:
+        print(f'bash train.sh focus_on {t}-{l} {zero} {adv} tasks all', end=' && ')
+exit()
+'''
+12.11.2019 deepnet5 parat ortho again
+'''
+for t in ts:
+    for l in ls:
+        print(f'bash train.sh focus_on {t}-{l} {zero} {para} ortho 50.0  tasks all', end=' && ')
+exit()
+'''
 8.11.2019 deepnet5 ortho with new dropout experiment
 '''
 tms_task = ['dep-cs', 'ner-es', 'pos-de']

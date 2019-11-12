@@ -33,6 +33,7 @@ db = {
         (12, 'all', 'zero-shot-char-level-adversarial'),
         (50, 'var', 'low-resource-2'),  # 10 target-source parov, pre kazdy Single, ML, MT, ML+MT, ALL
         (7, 'var', 'no-dropout'),  # bug dropout, novy dropout
+        (12, 'all', 'zero-shot-task-lang-ortho-50-again'),
     ],
     'deepnet2070': [
         (12, 'ml-3', 'zero-shot'),
@@ -64,6 +65,7 @@ db = {
         (50, 'var', 'low-resource'),  # 10 target-source parov, pre kazdy Single, ML, MT, ML+MT, ALL
         (4, 'var', 'no-dropout'),  # iny dropout zle, povodny dropout
         (60, 'var', 'low-resource-advanced'),  # 20 target-source parov, adversarial, embs, parameter
+        (12, 'all', 'zero-shot-adv-again'),  # 20 target-source parov, adversarial, embs, parameter
     ],
 }
 print([(server, sum(tpl[0] for tpl in tuples)) for server, tuples in db.items()])
