@@ -9,6 +9,7 @@ adv = 'adversarial_training true '
 embs = 'emb_task true emb_lang true '
 para = 'word_lstm_lang true word_lstm_task true '
 zero = 'early_stopping 10 epochs 100 focus_rate 0 task_layer_private false '
+char_level = ''
 
 fours = [
     ['pos-es', 'pos-cs', 'dep-es', 'dep-cs'],
@@ -32,6 +33,29 @@ fours = [
     ['pos-de', 'pos-en', 'dep-de', 'dep-en'],
     ['dep-cs', 'dep-es', 'pos-cs', 'pos-es'],
 ]
+
+'''
+21.11.2019 deepnet5 mwe_rotated, char_level adversarial
+'''
+for t in ['dep', 'ner', 'pos']:
+    for l in ls:
+        print(f'bash train.sh focus_on {t}-{l} {zero} tasks all', end=' && ')
+exit()
+
+'''
+21.11.2019 deepnet2070 ml + unrel
+'''
+for t in ['dep', 'ner', 'pos']:
+    for l in ls:
+        tasks = [f'{t}-{l}']
+        for t2 in ts:
+            for l2 in ls:
+                if l != l2:
+                    tasks.append(f'{t2}-{l2}')
+        tasks = ' '.join(tasks)
+        print(f'bash train.sh focus_on {t}-{l} {zero} tasks {tasks}', end=' && ')
+exit()
+
 
 '''
 12.11.2019 deepnet2070 adv again

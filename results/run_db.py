@@ -66,6 +66,7 @@ db = {
         (4, 'var', 'no-dropout'),  # iny dropout zle, povodny dropout
         (60, 'var', 'low-resource-advanced'),  # 20 target-source parov, adversarial, embs, parameter
         (12, 'all', 'zero-shot-adv-again'),  # 20 target-source parov, adversarial, embs, parameter
+        (12, 'ml-unrel-12', 'zero-shot'),
     ],
 }
 print([(server, sum(tpl[0] for tpl in tuples)) for server, tuples in db.items()])
