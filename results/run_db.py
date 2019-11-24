@@ -34,6 +34,7 @@ db = {
         (50, 'var', 'low-resource-2'),  # 10 target-source parov, pre kazdy Single, ML, MT, ML+MT, ALL
         (7, 'var', 'no-dropout'),  # bug dropout, novy dropout
         (12, 'all', 'zero-shot-task-lang-ortho-50-again'),
+        (12, 'rel', 'zero-shot-rel-again'),
     ],
     'deepnet2070': [
         (12, 'ml-3', 'zero-shot'),

@@ -44,11 +44,13 @@ class Orchestrator:
         for model in self.models.values():
             model.build_graph()
 
-        config = tf.ConfigProto()
+        config_dict = dict()
         if not self.config.use_gpu:
-            config.device_count = {'GPU': 0, 'CPU': 1}
+            config_dict['device_count'] = {'GPU': 0, 'CPU': 1}
+        config = tf.ConfigProto(**config_dict)
         if self.config.allow_gpu_growth:
             config.gpu_options.allow_growth = True
+
 
         self.sess = tf.Session(config=config)
         self.sess.run(tf.global_variables_initializer())
@@ -208,7 +210,7 @@ class Orchestrator:
             model.evaluate()
 
     def show_graph(self):
-        tf.summary.FileWriter(self.config.model_path, self.sess.graph)
+        # tf.summary.FileWriter(self.config.model_path, self.sess.graph)
         size = 0
         for variable in tf.global_variables():
             if 'Adam' not in variable.name:
@@ -238,9 +240,9 @@ class Orchestrator:
     def log(self, message, level):
         self.logger.log(message, level)
 
-    def get_representations(self, batch_count, tls):
+    def get_representations(self, batch_count, lstm, tls):
         return {
-            tl: self.models[tl].get_representations(batch_count)
+            tl: self.models[tl].get_representations(batch_count, lstm)
             for tl
             in tls
         }

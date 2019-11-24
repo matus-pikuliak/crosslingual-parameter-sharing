@@ -126,6 +126,10 @@ class Model:
         else:
             word_embeddings = embs[0]
 
+        self.n.word_embeddings_masked_no_dropout = tf.boolean_mask(
+                tensor=word_embeddings,
+                mask=self.n.sentence_lengths_mask)
+
         word_embeddings = tf.nn.dropout(
             x=word_embeddings,
             rate=self.orch.n.dropout)
@@ -528,13 +532,18 @@ class Model:
             return False
         return True
 
-    def get_representations(self, batch_count):
+    def get_representations(self, batch_count, lstm=True):
         test_sets = self.create_sets(is_train=False, role='test', task=self.task, lang=self.lang)
         iterator = test_sets[0].iterator
 
+        if lstm:
+            fetch = self.n.contextualized_masked_no_dropout
+        else:
+            fetch = self.n.word_embeddings_masked_no_dropout
+
         return np.vstack([
             self.orch.sess.run(
-                fetches=self.n.contextualized_masked_no_dropout,
+                fetches=fetch,
                 feed_dict=self.test_feed_dict(next(iterator)))
             for _ in range(batch_count)
         ])
