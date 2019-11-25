@@ -35,11 +35,46 @@ fours = [
 ]
 
 '''
-21.11.2019 deepnet5 mwe_rotated, char_level adversarial
+25.11.2019 deepnet5 ml-rel adv
 '''
 for t in ['dep', 'ner', 'pos']:
     for l in ls:
-        print(f'bash train.sh focus_on {t}-{l} {zero} tasks all', end=' && ')
+        tasks = []
+        for t2 in ts:
+            for l2 in ls:
+                if l == l2 or t == t2:
+                    tasks.append(f'{t2}-{l2}')
+        tasks = ' '.join(tasks)
+        print(f'bash train.sh focus_on {t}-{l} {zero} {adv} tasks {tasks}', end=' && ')
+exit()
+
+
+'''
+25.11.2019 deepnet2070 ml-rel embs
+'''
+for t in ['dep', 'ner', 'pos']:
+    for l in ls:
+        tasks = []
+        for t2 in ts:
+            for l2 in ls:
+                if l == l2 or t == t2:
+                    tasks.append(f'{t2}-{l2}')
+        tasks = ' '.join(tasks)
+        print(f'bash train.sh focus_on {t}-{l} {zero} {embs} tasks {tasks}', end=' && ')
+exit()
+
+'''
+22.11.2019 deepnet5 ml + rel - again
+'''
+for t in ['dep', 'ner', 'pos']:
+    for l in ls:
+        tasks = []
+        for t2 in ts:
+            for l2 in ls:
+                if l == l2 or t == t2:
+                    tasks.append(f'{t2}-{l2}')
+        tasks = ' '.join(tasks)
+        print(f'bash train.sh focus_on {t}-{l} {zero} tasks {tasks}', end=' && ')
 exit()
 
 '''
