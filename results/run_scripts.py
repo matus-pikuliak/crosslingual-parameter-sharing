@@ -35,6 +35,23 @@ fours = [
 ]
 
 '''
+26.11.2019 deepnet2070 adv-task-para
+'''
+for t in ['dep', 'ner', 'pos']:
+    for l in ls:
+        print(f'bash train.sh focus_on {t}-{l} {zero} {adv} word_lstm_task true tasks all', end=' && ')
+exit()
+
+
+'''
+26.11.2019 deepnet5 adv-task-emb
+'''
+for t in ['dep', 'ner', 'pos']:
+    for l in ls:
+        print(f'bash train.sh focus_on {t}-{l} {zero} {adv} emb_task true tasks all', end=' && ')
+exit()
+
+'''
 25.11.2019 deepnet5 ml-rel adv
 '''
 for t in ['dep', 'ner', 'pos']:

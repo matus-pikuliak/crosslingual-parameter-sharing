@@ -36,6 +36,7 @@ db = {
         (12, 'all', 'zero-shot-task-lang-ortho-50-again'),
         (12, 'rel', 'zero-shot-rel-again'),
         (12, 'rel', 'zero-shot-adv'),
+        (12, 'all', 'zero-shot-adversarial-task-emb'),
     ],
     'deepnet2070': [
         (12, 'ml-3', 'zero-shot'),
@@ -70,6 +71,7 @@ db = {
         (12, 'all', 'zero-shot-adv-again'),  # 20 target-source parov, adversarial, embs, parameter
         (12, 'ml-unrel-12', 'zero-shot'),
         (12, 'rel', 'zero-shot-embs'),
+        (12, 'all', 'zero-shot-adversarial-task-para'),
     ],
 }
 print([(server, sum(tpl[0] for tpl in tuples)) for server, tuples in db.items()])
