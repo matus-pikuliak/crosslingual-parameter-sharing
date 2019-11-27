@@ -73,5 +73,11 @@ db = {
         (12, 'rel', 'zero-shot-embs'),
         (12, 'all', 'zero-shot-adversarial-task-para'),
     ],
+    'deepnet6-1': [
+        (12, 'ml-3', 'low-resource'),
+    ],
+    'deepnet6-2': [
+        (12, 'all', 'low-resource'),
+    ],
 }
 print([(server, sum(tpl[0] for tpl in tuples)) for server, tuples in db.items()])

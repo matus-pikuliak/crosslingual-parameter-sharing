@@ -9,6 +9,9 @@ adv = 'adversarial_training true '
 embs = 'emb_task true emb_lang true '
 para = 'word_lstm_lang true word_lstm_task true '
 zero = 'early_stopping 10 epochs 100 focus_rate 0 task_layer_private false '
+low_res = 'early_stopping 10 epochs 100 task_layer_private false limited_data_size 200 '
+dp6 = 'allow_gpu_growth True'
+dp6_2 = 'model_path /home/mpikuliak/models2 log_path /home/mpikuliak/logs2'
 char_level = ''
 
 fours = [
@@ -33,6 +36,25 @@ fours = [
     ['pos-de', 'pos-en', 'dep-de', 'dep-en'],
     ['dep-cs', 'dep-es', 'pos-cs', 'pos-es'],
 ]
+
+'''
+27.11.2019 deepnet6-2 low-resource all
+'''
+for t in ['dep', 'ner', 'pos']:
+    for l in ls:
+        print(f'bash train.sh {dp6} {dp6_2} focus_on {t}-{l} limited_task_language {t}-{l} {low_res} model_path /home/mpikuliak/models2 log_path /home/mpikuliak/logs2 tasks all', end=' && ')
+exit()
+
+'''
+27.11.2019 deepnet6-1 low-resource ml
+'''
+for t in ['dep', 'ner', 'pos']:
+    for l in ls:
+        tasks = ' '.join(t+'-'+l2 for l2 in ls)
+        print(f'bash train.sh {dp6} focus_on {t}-{l} limited_task_language {t}-{l} {low_res} tasks {tasks}', end=' && ')
+exit()
+
+
 
 '''
 26.11.2019 deepnet2070 adv-task-para
