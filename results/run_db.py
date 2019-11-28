@@ -37,6 +37,7 @@ db = {
         (12, 'rel', 'zero-shot-rel-again'),
         (12, 'rel', 'zero-shot-adv'),
         (12, 'all', 'zero-shot-adversarial-task-emb'),
+        (12, 'rel', 'low-resource'),
     ],
     'deepnet2070': [
         (12, 'ml-3', 'zero-shot'),
@@ -75,6 +76,7 @@ db = {
     ],
     'deepnet6-1': [
         (12, 'ml-3', 'low-resource'),
+        (12, 'mt-3', 'low-resource'),
     ],
     'deepnet6-2': [
         (12, 'all', 'low-resource'),

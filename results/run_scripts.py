@@ -38,6 +38,24 @@ fours = [
 ]
 
 '''
+28.11.2019 deepnet5 low-resource mtml
+'''
+for t in ['dep', 'ner', 'pos']:
+    for l in ls:
+        tasks = ' '.join(t2+'-'+l2 for t2 in ts for l2 in ls if t2 == t or l2 == l)
+        print(f'bash train.sh focus_on {t}-{l} limited_task_language {t}-{l} {low_res} tasks {tasks}', end=' && ')
+exit()
+
+'''
+28.11.2019 deepnet6-1 low-resource mt
+'''
+for t in ['dep', 'ner', 'pos']:
+    for l in ls:
+        tasks = ' '.join(t2+'-'+l for t2 in ts)
+        print(f'bash train.sh {dp6} focus_on {t}-{l} limited_task_language {t}-{l} {low_res} tasks {tasks}', end=' && ')
+exit()
+
+'''
 27.11.2019 deepnet6-2 low-resource all
 '''
 for t in ['dep', 'ner', 'pos']:
