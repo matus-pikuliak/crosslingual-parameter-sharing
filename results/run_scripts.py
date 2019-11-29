@@ -38,6 +38,30 @@ fours = [
 ]
 
 '''
+29.11.2019 deepnet2070 low-resource mtml adv
+'''
+for t in ['dep', 'ner', 'pos']:
+    for l in ls:
+        print(f'bash train.sh focus_on {t}-{l} limited_task_language {t}-{l} {low_res} {adv} tasks all', end=' && ')
+exit()
+
+'''
+29.11.2019 deepnet6-1 low-resource mtml embs
+'''
+for t in ['dep', 'ner', 'pos']:
+    for l in ls:
+        print(f'bash train.sh focus_on {t}-{l} limited_task_language {t}-{l} {low_res} {embs} tasks all', end=' && ')
+exit()
+
+'''
+29.11.2019 deepnet5 low-resource mtml para
+'''
+for t in ['dep', 'ner', 'pos']:
+    for l in ls:
+        print(f'bash train.sh focus_on {t}-{l} limited_task_language {t}-{l} {low_res} {para} tasks all', end=' && ')
+exit()
+
+'''
 28.11.2019 deepnet5 low-resource mtml
 '''
 for t in ['dep', 'ner', 'pos']:
