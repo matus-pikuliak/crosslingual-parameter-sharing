@@ -38,6 +38,23 @@ fours = [
 ]
 
 '''
+1.12.2019 deepnet6-2 zero-shot adv ml
+'''
+for t in ['dep', 'ner', 'pos']:
+    for l in ls:
+        tasks = ' '.join(f'{t}-{l2}' for l2 in ls)
+        print(f'bash train.sh focus_on {t}-{l} {zero} {adv} {dp6} {dp6_2} tasks {tasks}', end=' && ')
+exit()
+
+'''
+1.12.2019 deepnet2070 zero-shot adv 400
+'''
+for t in ['dep', 'ner', 'pos']:
+    for l in ls:
+        print(f'bash train.sh focus_on {t}-{l} {zero} {adv} word_lstm_size 400 tasks all', end=' && ')
+exit()
+
+'''
 29.11.2019 deepnet2070 low-resource mtml adv
 '''
 for t in ['dep', 'ner', 'pos']:

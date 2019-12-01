@@ -72,9 +72,10 @@ db = {
         (60, 'var', 'low-resource-advanced'),  # 20 target-source parov, adversarial, embs, parameter
         (12, 'all', 'zero-shot-adv-again'),  # 20 target-source parov, adversarial, embs, parameter
         (12, 'ml-unrel-12', 'zero-shot'),
-        (12, 'rel', 'zero-shot-embs'),
+        (12, 'rel', 'zero-shot-embs-again'),
         (12, 'all', 'zero-shot-adversarial-task-para'),
         (12, 'all', 'low-resource-adversarial'),
+        (12, 'all', 'zero-shot-adv-400'),
     ],
     'deepnet6-1': [
         (12, 'ml-3', 'low-resource'),
@@ -83,6 +84,7 @@ db = {
     ],
     'deepnet6-2': [
         (12, 'all', 'low-resource'),
+        (12, 'ml-3', 'zero-shot-adv'),
     ],
 }
 print([(server, sum(tpl[0] for tpl in tuples)) for server, tuples in db.items()])
