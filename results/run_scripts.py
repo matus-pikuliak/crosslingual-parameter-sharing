@@ -38,12 +38,12 @@ fours = [
 ]
 
 '''
-1.12.2019 deepnet6-2 zero-shot adv ml
+2.12.2019 deepnet5 zero-shot adv ml
 '''
 for t in ['dep', 'ner', 'pos']:
     for l in ls:
         tasks = ' '.join(f'{t}-{l2}' for l2 in ls)
-        print(f'bash train.sh focus_on {t}-{l} {zero} {adv} {dp6} {dp6_2} tasks {tasks}', end=' && ')
+        print(f'bash train.sh focus_on {t}-{l} {zero} {adv} tasks {tasks}', end=' && ')
 exit()
 
 '''
