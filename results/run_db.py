@@ -82,6 +82,7 @@ db = {
         (12, 'ml-3', 'low-resource'),
         (12, 'mt-3', 'low-resource'),
         (12, 'all', 'low-resource-embs'),
+        (12, 'stsl', 'low-resource'),
     ],
     'deepnet6-2': [
         (12, 'all', 'low-resource'),

@@ -38,6 +38,14 @@ fours = [
 ]
 
 '''
+2.12.2019 deepnet6-1 low resource stsl
+'''
+for t in ['dep', 'ner', 'pos']:
+    for l in ls:
+        print(f'bash train.sh limited_task_language {t}-{l} {low_res} tasks {t}-{l}', end=' && ')
+exit()
+
+'''
 2.12.2019 deepnet5 zero-shot adv ml
 '''
 for t in ['dep', 'ner', 'pos']:
