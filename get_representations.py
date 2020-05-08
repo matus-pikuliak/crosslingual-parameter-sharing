@@ -5,13 +5,8 @@ import os
 import sys
 
 import numpy as np
-import matplotlib.pyplot as plt
-import tkinter
-from matplotlib.patches import Patch
 from sklearn.manifold import TSNE
 from sklearn.decomposition import PCA
-from matplotlib import colors as mcolors
-plt_colors = dict(mcolors.BASE_COLORS, **mcolors.CSS4_COLORS)
 
 from config.config import Config
 from data.data_loader import DataLoader
@@ -38,7 +33,7 @@ def reduce_dim(x, pca=True, tsne=True):
         x = PCA(n_components=50).fit_transform(x)
         x = TSNE(n_components=2, n_iter=1000).fit_transform(x)
     elif tsne:
-        x = TSNE(n_components=2, n_iter=1000).fit_transform(x)
+        x = TSNE(n_components=2, n_iter=500).fit_transform(x)
     elif pca:
         x = PCA(n_components=2).fit_transform(x)
     print('Done.')
@@ -65,32 +60,19 @@ def show_representations(log_path, model_path, lstm, tls):
         x, y = data[:, 0], data[:, 1]
         print('Dimensionality reduced')
 
-        fig, axes = plt.subplots(1, 2, figsize=(5, 7), squeeze=True)
-        scheme = ['gold', 'red', 'deepskyblue', 'green']
-
-        c = get_desired(orch, *tls)
-        ax = axes[0]
-        ax.scatter(x, y, c=c, s=2)
-
         legend = dict()
         for i, (key, value) in enumerate(representations.items()):
             print(i, key)
             legend[i] = value
 
-        c = np.concatenate(
+        c1 = get_desired(orch, *tls)
+        c2 = np.concatenate(
             [np.array([i] * len(r))
              for i, r
              in legend.items()
-            ])
+             ])
 
-        ax = axes[1]
-
-        scatter = ax.scatter(x, y, c=c, s=2)
-        ax.legend(*scatter.legend_elements(), title="Languages")
-
-        _, name = os.path.split(log_path)
-        plt.show()
-        # plt.savefig('/home/fiit/logs/images/'+name)
+    return x, y, c1, c2
 
 
 if __name__ == '__main__':
